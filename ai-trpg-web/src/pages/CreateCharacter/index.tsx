@@ -3,12 +3,18 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { apiUrl } from '../../config';
 import './CreateCharacter.css';
 
+// SECTION: 骰点工具
+// NOTE: COC 7th 属性生成大量使用 D6，这里保持最小工具函数便于测试替换。
 const rollD6 = () => Math.floor(Math.random() * 6) + 1;
 
+// SECTION: 空属性模板
+// NOTE: 属性值全部以 COC 百分制保存，0 表示尚未生成/填写。
 const emptyStats = {
   str: 0, con: 0, siz: 0, dex: 0, app: 0, int: 0, pow: 0, edu: 0, luc: 0
 };
 
+// SECTION: 空背景模板
+// NOTE: 背景字段直接持久化进 fullData，游戏页目前只读取基础/技能/资源。
 const emptyBgInfo = {
   description: '', belief: '', importantPerson: '', meaningfulPlace: '',
   treasuredItem: '', traits: '', scars: '', phobias: '', history: '', credit: '', wealth: ''
@@ -17,36 +23,41 @@ const emptyBgInfo = {
 export default function CreateCharacter() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // SECTION: 编辑模式入口
+  // NOTE: Lobby 点击编辑时通过 navigate state 传入整张角色摘要和 fullData。
   const editData = location.state?.character;
 
-  // 侧边栏导航状态
-  const [activeTab, setActiveTab] = useState('skills'); // 方便你测试，默认打开技能页签
-
-  // --- 1. 基本信息状态 ---
+  // SECTION: 页面页签与基础资料
+  // NOTE: 新建时使用默认空值，编辑时优先回填旧角色的 fullData.basicInfo。
+  const [activeTab, setActiveTab] = useState('skills');
   const [basicInfo, setBasicInfo] = useState(editData?.fullData?.basicInfo || {
     name: '', age: 20, gender: '', era: '1920s', 
     residence: '', hometown: '', occupation: ''
   });
 
+  // SECTION: 头像上传状态
+  // NOTE: 头像目前只在本页预览，尚未进入持久化数据结构。
   const [avatar, setAvatar] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- 属性生成模式状态 ---
-  const [statMode, setStatMode] = useState<'roll' | 'buy'>('roll'); // 'roll' 投掷, 'buy' 购点
-  const [buyLimit, setBuyLimit] = useState(480); // 购点上限，默认常见村规480点（不含幸运）
-
-  // --- 2. 属性状态 ---
+  // SECTION: 属性生成模式
+  // NOTE: roll 是传统随机，buy 是购点；两种模式共用同一份 stats。
+  const [statMode, setStatMode] = useState<'roll' | 'buy'>('roll');
+  const [buyLimit, setBuyLimit] = useState(480);
   const [stats, setStats] = useState<Record<string, number>>({
     ...emptyStats,
     ...(editData?.fullData?.stats || {})
   });
 
-  //const hp = Math.floor((stats.con + stats.siz) / 10);
-  //const mp = Math.floor(stats.pow / 5);
+  // SECTION: 派生资源
+  // NOTE: SAN 初始值等于 POW；HP/MP 在后端摘要中按 CON/SIZ/POW 派生。
   const san = stats.pow;
-  //const dodge = Math.floor(stats.dex / 2);
+  // NOTE: COC 7th 移动力按 DEX/STR 与 SIZ 的比较决定。
   const move = stats.dex < stats.siz && stats.str < stats.siz ? 7 : stats.dex > stats.siz && stats.str > stats.siz ? 9 : 8;
-  
+
+  // SECTION: 伤害加值与体格
+  // NOTE: DB/build 由 STR + SIZ 区间推导，显示用，不直接保存到后端摘要。
   const strSizSum = stats.str + stats.siz;
   let db = "0", build = 0;
   if (strSizSum >= 2 && strSizSum <= 64) { db = "-2"; build = -2; }
@@ -55,11 +66,13 @@ export default function CreateCharacter() {
   else if (strSizSum >= 125 && strSizSum <= 164) { db = "+1D4"; build = 1; }
   else if (strSizSum >= 165) { db = "+1D6"; build = 2; }
 
-  // --- 新增：计算购点模式下的已花费点数 (通常不包含幸运，但这里为你提供全计算) ---
+  // SECTION: 购点预算
+  // NOTE: 当前购点模式把 LUC 也计入 spentStatPoints；UI 文案提示 LUC 可按房规单独处理。
   const spentStatPoints = stats.str + stats.con + stats.siz + stats.dex + stats.app + stats.int + stats.pow + stats.edu;
   const remainStatPoints = buyLimit - spentStatPoints;
 
-  // 1. 准备全量 COC 7th 常用技能库
+  // SECTION: 默认技能表
+  // NOTE: 这里存 COC 常用技能初始值，后续可以抽到独立配置文件或后端规则包。
   const defaultSkills = [
     { id: 's1', name: '会计 (Accounting)', base: 5, job: 0, interest: 0, grow: 0 },
     { id: 's2', name: '人类学 (Anthropology)', base: 1, job: 0, interest: 0, grow: 0 },
@@ -95,9 +108,12 @@ export default function CreateCharacter() {
     { id: 's32', name: '投掷 (Throw)', base: 20, job: 0, interest: 0, grow: 0 }
   ];
 
+  // SECTION: 技能状态
+  // NOTE: 编辑时优先使用旧卡 skills；新建时使用默认技能模板。
   const [skills, setSkills] = useState<any[]>(editData?.fullData?.skills || defaultSkills);
 
-  // 2. 核心逻辑：当敏捷(DEX)或教育(EDU)改变时，自动重新计算闪避和母语的初始值
+  // SECTION: 属性联动技能
+  // NOTE: 闪避基础值依赖 DEX，母语基础值依赖 EDU；属性改动后自动刷新。
   useEffect(() => {
     setSkills(prev => prev.map(s => {
       if (s.name.includes('闪避')) return { ...s, base: Math.floor(stats.dex / 2) || 0 };
@@ -106,7 +122,8 @@ export default function CreateCharacter() {
     }));
   }, [stats.dex, stats.edu]);
 
-  // 技能操作逻辑
+  // SECTION: 技能字段更新
+  // NOTE: 技能名保持字符串，点数字段统一转 number，空输入视为 0。
   const updateSkill = (id: string, field: string, value: string | number) => {
     setSkills(skills.map(s => {
       if (s.id !== id) return s;
@@ -115,17 +132,22 @@ export default function CreateCharacter() {
     }));
   };
 
+  // SECTION: 自定义技能
+  // NOTE: custom_ 前缀用于渲染时判断是否允许编辑初始值和删除。
   const addCustomSkill = () => {
     setSkills([...skills, { 
       id: `custom_${Date.now()}`, name: '', base: 1, job: 0, interest: 0, grow: 0 
     }]);
   };
 
+  // SECTION: 删除自定义技能
+  // NOTE: 默认技能不提供删除按钮，所以这里主要服务 custom_ 技能。
   const removeSkill = (id: string) => {
     setSkills(skills.filter(s => s.id !== id));
   };
 
-  // 动态计算剩余点数
+  // SECTION: 技能点预算
+  // NOTE: 本职点按 EDU*4，兴趣点按 INT*2；保存前会阻止透支。
   const totalJobPoints = stats.edu * 4;
   const totalIntPoints = stats.int * 2;
   const spentJob = skills.reduce((sum, s) => sum + (s.job || 0), 0);
@@ -133,12 +155,15 @@ export default function CreateCharacter() {
   const remainJob = totalJobPoints - spentJob;
   const remainInt = totalIntPoints - spentInt;
 
-  // --- 4. 背景与资产状态 ---
+  // SECTION: 背景资料
+  // NOTE: 背景资料只影响角色档案展示，不参与当前自动判定逻辑。
   const [bgInfo, setBgInfo] = useState({
     ...emptyBgInfo,
     ...(editData?.fullData?.bgInfo || {})
   });
 
+  // SECTION: 头像预览上传
+  // NOTE: FileReader 转 base64 只供本地预览；后续若持久化应改为对象存储或后端上传。
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -148,6 +173,8 @@ export default function CreateCharacter() {
     }
   };
 
+  // SECTION: 随机生成属性
+  // NOTE: STR/CON/DEX/APP/POW/LUC 用 3D6*5，SIZ/INT/EDU 用 (2D6+6)*5。
   const handleRollAll = () => {
     setStats({
       str: (rollD6() + rollD6() + rollD6()) * 5,
@@ -162,24 +189,21 @@ export default function CreateCharacter() {
     });
   };
 
-  // 【替换为以下代码】
+  // SECTION: 保存角色卡
+  // NOTE: 保存前做最小完整性校验；更复杂的房规校验后续可集中到后端。
   const handleSave = async () => {
-    // 1. 基础校验
     if (!basicInfo.name || stats.str === 0) return alert('请至少填写姓名并检定核心属性！');
     if (remainJob < 0 || remainInt < 0) return alert('技能点数已透支，请检查加点！');
-    
-    // 2. 身份校验（从 localStorage 获取当前登录的账号）
     const username = localStorage.getItem('trpg_username'); 
     if (!username) return alert('警告：未检测到登录账号信息，请先返回登录页！');
 
-    // 3. 组装终极数据包 (加上 editData 的 id 确保覆盖更新)
+    // NOTE: editData?.id 决定后端是更新旧角色还是创建新角色。
     const finalCharacterData = { 
       id: editData?.id, 
       basicInfo, stats, skills, bgInfo 
     };
-    
+
     try {
-      // 4. 发送给 Node.js 后端
       const response = await fetch(apiUrl('/api/characters'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -190,10 +214,10 @@ export default function CreateCharacter() {
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
         alert(`调查员 [${basicInfo.name}] 档案已成功刻录进星舰数据库！`);
-        navigate(-1); // 成功后返回大厅
+        navigate(-1);
       } else {
         alert(`保存失败: ${result.message}`);
       }
@@ -206,14 +230,14 @@ export default function CreateCharacter() {
   return (
     <div className="create-char-container">
       <div className="char-workspace">
-        
-        {/* ================= 左侧：固定侧边栏 ================= */}
         <div className="char-sidebar flat-box">
           <div className="sidebar-top">
             <h2 className="sidebar-title">
               {editData ? '编辑调查员档案' : '新建调查员档案'}<br/>
               <span className="highlight-text" style={{ fontSize: '1rem' }}>[COC 7th]</span>
             </h2>
+            {/* SECTION: 编辑页签 */}
+            {/* NOTE: 三个页签共享同一份角色状态，切换不会丢失未保存输入。 */}
             <div className="sidebar-tabs">
               <button className={`tab-btn ${activeTab === 'basic' ? 'active' : ''}`} onClick={() => setActiveTab('basic')}>基本信息</button>
               <button className={`tab-btn ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')}>职业与技能</button>
@@ -225,13 +249,11 @@ export default function CreateCharacter() {
             <button className="flat-btn secondary" onClick={() => navigate(-1)}>放弃并返回</button>
           </div>
         </div>
-
-        {/* ================= 右侧：内容工作区 ================= */}
         <div className="char-main-area flat-box">
-          
-          {/* TAB 1: 基本信息 */}
           {activeTab === 'basic' && (
             <>
+              {/* SECTION: 基础身份页 */}
+              {/* NOTE: 姓名是游戏内唯一展示名，也是 ROLL 指令匹配的目标名。 */}
               <h3 className="section-title">调查员身份录入</h3>
               <div style={{ display: 'flex', gap: '30px' }}>
                 <div className="avatar-upload-box" onClick={() => fileInputRef.current?.click()}>
@@ -257,14 +279,11 @@ export default function CreateCharacter() {
                   </div>
                 </div>
               </div>
-
-              {/* 基础属性生成 (双模式) */}
               <div style={{ marginTop: '20px', borderTop: '1.5px dashed #EFE6E8', paddingTop: '20px' }}>
                 
                 <div className="stat-mode-header">
                   <div>
                     <h3 className="section-title" style={{ border: 'none', margin: 0, padding: 0 }}>基础属性生成</h3>
-                    {/* 将原来的 mode-toggle 替换为以下代码 */}
                         <div className="mode-toggle" style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
                         <button 
                             className={`flat-btn small ${statMode === 'roll' ? 'primary' : 'secondary'}`} 
@@ -282,8 +301,6 @@ export default function CreateCharacter() {
                         </button>
                         </div>
                   </div>
-
-                  {/* 右侧操作区：根据模式不同显示不同内容 */}
                   {statMode === 'roll' ? (
                     <button className="flat-btn primary small btn-short" onClick={handleRollAll}>🎲 随机投掷全属性</button>
                   ) : (
@@ -294,8 +311,8 @@ export default function CreateCharacter() {
                     </div>
                   )}
                 </div>
-
-                {/* 萌新讲解小贴士 */}
+                {/* SECTION: 属性生成说明 */}
+                {/* NOTE: 说明文案跟随 statMode 切换，减少用户误解购点和随机的差异。 */}
                 <div className="info-box">
                   {statMode === 'roll' 
                     ? "【投掷规则】传统 COC 跑团的精髓，由命运决定你的天赋！点击按钮将使用 3D6×5 的标准规则生成属性。"
@@ -305,8 +322,6 @@ export default function CreateCharacter() {
                     {Object.entries(stats).map(([key, val]) => (
                         <div key={key} className="stat-box">
                         <div className="stat-label">{key.toUpperCase()}</div>
-                        
-                        {/* 统一的显示层 */}
                         <div className="stat-display-wrapper">
                             {statMode === 'buy' ? (
                             <input 
@@ -320,8 +335,6 @@ export default function CreateCharacter() {
                             <div className={val>=75?'high':val>0&&val<=40?'low':'normal'}>{val || '-'}</div>
                             )}
                         </div>
-
-                        {/* 幸运专属：右上角骰子 */}
                         {statMode === 'buy' && key === 'luc' && (
                             <button 
                             className="flat-btn secondary small luc-dice-btn" 
@@ -341,12 +354,12 @@ export default function CreateCharacter() {
               </div>
             </>
           )}
-
-          {/* TAB 2: 动态职业与技能 */}
           {activeTab === 'skills' && (
             <>
+              {/* SECTION: 职业与技能页 */}
+              {/* NOTE: 技能总成功率 = 初始值 + 职业投入 + 兴趣投入 + 成长。 */}
               <h3 className="section-title">职业信息与技能配置</h3>
-              
+
               <div className="form-row" style={{ marginTop: 0 }}>
                 <div className="form-item">
                   <label>所选职业</label>
@@ -373,7 +386,9 @@ export default function CreateCharacter() {
                   <span style={{ fontSize: '0.85rem', color: '#A0858D' }}>※ 分配点数不能超过剩余点数，总成功率将自动计算。</span>
                   <button className="flat-btn secondary small" onClick={addCustomSkill}>+ 添加自定义技能</button>
                 </div>
-                
+
+                {/* SECTION: 技能表格 */}
+                {/* NOTE: 自定义技能可编辑名称和初始值，系统技能只允许分配点数。 */}
                 <div className="skill-table-container">
                 <table className="skill-table">
                   <thead>
@@ -416,10 +431,10 @@ export default function CreateCharacter() {
               </div>
             </>
           )}
-
-          {/* TAB 3: 背景与资产 */}
           {activeTab === 'background' && (
             <div style={{ display: 'flex', gap: '30px' }}>
+              {/* SECTION: 背景故事页 */}
+              {/* NOTE: 背景字段为玩家手写文本，不参与当前 AI 自动检定。 */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <h3 className="section-title">故事背景</h3>
                 <div className="form-item"><label>个人描述</label><textarea className="flat-input" value={bgInfo.description} onChange={e=>setBgInfo({...bgInfo, description: e.target.value})}></textarea></div>
@@ -427,7 +442,9 @@ export default function CreateCharacter() {
                 <div className="form-item"><label>重要之人</label><textarea className="flat-input" value={bgInfo.importantPerson} onChange={e=>setBgInfo({...bgInfo, importantPerson: e.target.value})}></textarea></div>
                 <div className="form-item"><label>恐惧症与狂躁症</label><textarea className="flat-input" value={bgInfo.phobias} onChange={e=>setBgInfo({...bgInfo, phobias: e.target.value})}></textarea></div>
               </div>
-              
+
+              {/* SECTION: 资产与经历页 */}
+              {/* NOTE: 信用评级字段可与技能表中的 Credit Rating 分开记录具体资产说明。 */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <h3 className="section-title">资产与经历</h3>
                 <div className="form-row" style={{ marginTop: 0 }}>

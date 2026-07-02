@@ -56,6 +56,7 @@ Socket 事件：
 - `lobby_chat_send` / `lobby_chat_receive`：大厅闲聊
 - `player_action`：玩家行动、骰子结果、日志写入、AI 触发判断
 - `new_message`：后端向游戏页广播玩家/骰子/DM 消息
+- `turn_state`：后端广播明确回合状态，包含 `waiting_players`、`waiting_rolls`、`waiting_dm`、待行动玩家、待掷骰玩家和检定结果
 - `disconnect`：玩家断线，从内存房间移除；房间无人则销毁
 
 ## 前端数据流
@@ -83,11 +84,17 @@ Socket 事件：
 
 ## 回合与骰子逻辑
 
+协议解析：
+
+- 后端 `src/domain/directives.js` 和前端 `src/domain/directives.ts` 共同维护 `ROLL`、`STAT` 和骰子结果的解析规则。
+- 页面和 Socket 不再各写一套主要正则；后续扩展 `CLUE`、`SCENE` 等指令时优先扩展 domain 层。
+
 后端判断是否触发 AI：
 
 - 如果上一条 DM 消息含 `<<ROLL:技能:角色卡姓名>>`，等待所有被点名且仍在房间内的角色提交 `D100 =` 结果。
 - 如果没有检定要求，等待房间内所有玩家都提交一次 `player_action`。
 - 条件满足后读取最后 15 条日志，组装为 Chat Completions 上下文，调用模型。
+- 每次进入房间、同步角色、玩家行动、AI 回复后，后端都会广播 `turn_state`。前端优先按这个状态锁定输入框，本地聊天历史推导只作为兜底。
 
 前端游戏页会解析 DM 消息：
 
@@ -139,13 +146,22 @@ Socket 房间身份细节：
 - Auth 注册表单删除昵称字段，账号与跑团展示名彻底拆开。
 - Home 不再读取昵称，欢迎语固定为 `Hello，调查员。`。
 - Game 的发言、掷骰、回合等待、队友过滤都改为基于角色卡姓名。
+- Game 已接入后端 `turn_state`，不再完全依赖前端从聊天历史猜回合锁。
+- `ROLL` 已接入稳定 `rollId`，投骰提交、日志保存、重复拦截和结果回填优先按 `rollId` 匹配。
+
+## 已完成的架构整理
+
+- 后端从单文件拆到 `src/routes`、`src/repositories`、`src/services`、`src/sockets`、`src/storage`。
+- 前后端分别新增 `domain/directives`，集中维护 `ROLL`、`STAT` 和骰子结果解析。
+- 后端新增 `turn_state` 广播，显式描述当前处于等待玩家、等待掷骰或等待 DM 结算。
+- 前端 Socket 客户端集中在 `src/socket.ts`。
+- 根目录已初始化 Git 仓库并推送到 GitHub，`.env`、运行 JSON、日志、存档和依赖目录已在 `.gitignore` 中排除。
 
 ## 空文件与可清理项
 
 - `src/assets/components/ChatBox.tsx` 是空文件。
 - `src/assets/components/PinkButton.tsx` 是空文件。
 - `ai-trpg-web/README.md` 仍是 Vite 模板说明。
-- 根目录没有 Git 仓库元数据，当前 `git status` 在根目录不可用。
 
 ## 风险与后续优先级
 

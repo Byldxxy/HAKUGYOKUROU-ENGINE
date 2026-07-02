@@ -1,3 +1,5 @@
+/* SECTION: 关系图容器 */
+/* NOTE: 高度继承笔记弹窗内容区，工具栏固定在上方，画布吃满剩余空间。 */
 .relation-container {
   display: flex;
   flex-direction: column;
@@ -8,6 +10,8 @@
 .relation-toolbar { display: flex; gap: 10px; }
 .flat-btn.small { height: 36px; padding: 0 15px; }
 
+/* SECTION: 关系图画布 */
+/* NOTE: 背景点阵帮助玩家摆放节点，overflow hidden 防止拖拽节点跑出可视区。 */
 .relation-canvas {
   flex: 1;
   position: relative;
@@ -15,24 +19,28 @@
   background-color: #FFFFFF;
   border-radius: 4px;
   overflow: hidden;
-  /* 添加微弱的点阵背景增加画布质感 */
+
   background-image: radial-gradient(#EFE6E8 1.5px, transparent 1.5px);
   background-size: 20px 20px;
 }
 
+/* SECTION: SVG 连线层 */
+/* NOTE: SVG 覆盖整个画布；g 恢复 pointer-events 让双击边可以删除。 */
 .relation-svg {
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 100%;
-  pointer-events: none; /* SVG 自身不阻挡拖拽事件，但内部的连线/文本可以 */
+  pointer-events: none;
 }
 .relation-svg g { pointer-events: all; }
 
+/* SECTION: 人物/线索节点 */
+/* NOTE: 节点固定 60px，TSX 中拖拽落点用 30px 偏移对齐中心。 */
 .graph-node {
   position: absolute;
   width: 60px;
   height: 60px;
-  border-radius: 50%; /* 变成圆形 */
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -46,6 +54,8 @@
 }
 .graph-node:active { cursor: grabbing; }
 
+/* SECTION: 删除区域 */
+/* NOTE: 拖节点到这里会删除节点及相关边，颜色刻意区别于普通按钮。 */
 .trash-zone {
   position: absolute;
   bottom: 20px;

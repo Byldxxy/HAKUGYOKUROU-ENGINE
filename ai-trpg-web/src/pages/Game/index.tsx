@@ -1,32 +1,53 @@
-// 修改前：import { useState } from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Game.css';
 import RelationGraph, { type GraphNode, type GraphEdge } from '../../components/RelationGraph';
 import { apiUrl } from '../../config';
 import { emitWhenConnected, ensureSocketConnected, socket } from '../../socket';
+import {
+  parseRollRequests,
+  parseStatDirectives,
+  stripDirectives,
+  type RollRequest,
+} from '../../domain/directives';
 
-type RollRequest = {
-  skill: string;
-  player: string;
+type RollRequestWithState = RollRequest & {
+  id?: string;
+  originalPlayer?: string;
+  resolved?: boolean;
+  result?: string;
 };
 
-const parseRollRequests = (content: string): RollRequest[] => {
-  const rollRegex = /<<ROLL:([^:<>]+):([^<>]+?)(?:>>|>)/g;
-  return Array.from(content.matchAll(rollRegex), match => ({
-    skill: match[1].trim(),
-    player: match[2].trim(),
-  }));
+type TurnState = {
+  mode: 'waiting_players' | 'waiting_rolls' | 'waiting_dm';
+  inputLocked: boolean;
+  actedPlayers: string[];
+  pendingPlayers: string[];
+  pendingRollPlayers: string[];
+  rollRequests: Array<RollRequestWithState & {
+    id: string;
+    resolved: boolean;
+    result: string;
+  }>;
+  pendingRolls: Array<RollRequestWithState & {
+    id: string;
+    resolved: boolean;
+    result: string;
+  }>;
 };
 
-const findRollResult = (messages: any[], dmIndex: number, roll: RollRequest) => {
+// SECTION: 检定结果查找
+// NOTE: 新日志优先按 rollId 匹配；旧日志没有 rollId 时，用“角色 + 技能”兼容历史数据。
+const findRollResult = (messages: any[], dmIndex: number, roll: RollRequestWithState) => {
+  if (roll.result) return roll.result;
+
   for (let index = dmIndex + 1; index < messages.length; index += 1) {
     const message = messages[index];
     if (message.role === 'dm') break;
     if (message.role !== 'roll' || message.sender !== roll.player) continue;
 
     const content = String(message.content || '');
-    if (content.startsWith(`[对 ${roll.skill} 进行检定]`)) {
+    if ((roll.id && message.rollId === roll.id) || (!message.rollId && content.startsWith(`[对 ${roll.skill} 进行检定]`))) {
       return content;
     }
   }
@@ -38,11 +59,13 @@ export default function Game() {
   const navigate = useNavigate();
   const { roomId } = useParams();
 
-  // 控制角色卡弹窗状态
+  // SECTION: UI 状态
+  // NOTE: activeCard 控制角色详情弹窗；myCharacter 是当前客户端唯一的“我”。
   const [activeCard, setActiveCard] = useState<string | null>(null);
   const [myCharacter, setMyCharacter] = useState<any>(null);
 
-  // --- 笔记本相关的状态 ---
+  // SECTION: 战役笔记状态
+  // NOTE: 关系图状态提升到 Game，避免切换笔记页签时节点和边丢失。
   const [isNotebookOpen, setIsNotebookOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'relation' | 'notes' | 'clues'>('relation');
   const [freeNotes, setFreeNotes] = useState('');
@@ -50,27 +73,25 @@ export default function Game() {
   const [isNotebookLoaded, setIsNotebookLoaded] = useState(false);
   const saveNotebookTimerRef = useRef<number | null>(null);
 
-  // --- 新增：跑团正式发言与后端通信状态 ---
+  // SECTION: 聊天与回合状态
+  // NOTE: turnState 来自后端，是输入锁和等待提示的权威来源。
   const [inputText, setInputText] = useState('');
-
-  // --- 新增：强制破窗解锁状态 ---
   const [forceUnlock, setForceUnlock] = useState(false);
-  
-  // 👇 1. 将原本写死的开场白，替换为一个空数组
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [turnState, setTurnState] = useState<TurnState | null>(null);
 
-  // 👇 2. 新增：进入房间时，立即向后端索要当前房间的历史记忆
+  // SECTION: 房间历史加载
+  // NOTE: 首屏先拉取 JSONL 历史，保证刷新后消息、检定结果和 DM 回复都能恢复。
   useEffect(() => {
     const fetchRoomHistory = async () => {
+      setTurnState(null);
       try {
         const res = await fetch(apiUrl(`/api/room_history?roomId=${roomId}`));
         const data = await res.json();
-        
+
         if (data.success && data.messages.length > 0) {
-          // 如果有历史记录（说明房主读档了），直接把旧记录铺到公屏上
           setChatMessages(data.messages);
         } else {
-          // 如果没有记录（说明是全新开局），塞入初始开场白
           setChatMessages([
             { role: 'dm', sender: '系统 DM', content: '伴随着一阵低沉的机械轰鸣，这艘古老星舰的休眠舱缓缓开启。桃花岛的空气过滤系统似乎出了些故障，空气中弥漫着机油的奇特味道。' }
           ]);
@@ -82,10 +103,11 @@ export default function Game() {
     if (roomId) fetchRoomHistory();
   }, [roomId]);
 
-  // --- 新增：房主专属存档功能 ---
+  // SECTION: 手动存档
+  // NOTE: 当前存档以房间日志为主体，username 用于把存档归到当前账号名下。
   const handleSaveGame = async () => {
     const saveName = window.prompt('请输入存档名称：', `桃花岛战役_${new Date().toLocaleDateString()}`);
-    if (!saveName) return; // 如果玩家点取消，就停止
+    if (!saveName) return;
 
     const username = localStorage.getItem('trpg_username');
     try {
@@ -105,69 +127,57 @@ export default function Game() {
     }
   };
 
-  // 用来记录哪些消息（按索引）已经被点过检定按钮了
+  // SECTION: 检定同步锁
+  // NOTE: rolledIndices 只处理“点击后、广播回来前”的短暂窗口；刷新后的去重由后端 rollId 保证。
   const [rolledIndices, setRolledIndices] = useState<string[]>([]);
-
-  // --- 新增：自动滚动到底部的逻辑 ---
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // SECTION: 聊天自动滚动
   useEffect(() => {
-    // 每次 chatMessages 发生变化时，平滑滚动到锚点位置
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-// --- 2. 新增：实时联机通讯逻辑 ---
+  // SECTION: Socket 事件绑定
+  // NOTE: new_message 只追加聊天；turn_state 只更新状态，二者职责分离。
   useEffect(() => {
     ensureSocketConnected();
-    // A. 组件一加载，就告诉后端我要加入这个特定房间
     if (roomId) emitWhenConnected('join_room', roomId);
-
-    // B. 监听后端的 'new_message' 广播，一收到消息就塞进聊天列表
     const handleNewMessage = (msg: any) => {
       setChatMessages(prev => [...prev, msg]);
     };
+    const handleTurnState = (state: TurnState) => {
+      setTurnState(state);
+    };
     socket.on('new_message', handleNewMessage);
-
-    // C. 清理函数：离开页面时关掉监听，防止消息重复渲染
+    socket.on('turn_state', handleTurnState);
     return () => {
       socket.off('new_message', handleNewMessage);
+      socket.off('turn_state', handleTurnState);
     };
   }, [roomId]);
 
+  // SECTION: 玩家普通行动
+  // NOTE: 普通行动不带 isRoll，后端会把它纳入“本轮已行动玩家”统计。
   const handleSendMessage = () => {
     if (!inputText.trim()) return;
-    // 直接把动作抛给后端
     emitWhenConnected('player_action', {
       roomId: roomId,
       playerName: myCharacter.name,
       message: inputText
     });
-
-    // 清空输入框，等待广播传回消息自动上屏
-    setInputText(''); 
+    setInputText('');
     setForceUnlock(false);
   };
 
-// --- 新增：严格版 COC 7th D100 检定引擎 ---
-  const handleSkillRoll = (skillName: string, playerName: string, msgIndex: string) => {// 👈 新增了 msgIndex 参数
-    // 确保只有被叫到名字的玩家才能按这个按钮（二次防呆）
+  // SECTION: COC D100 检定
+  // NOTE: 前端只负责生成随机骰和显示结果文本；是否允许重复提交由后端 rollId 决定。
+  const handleSkillRoll = (skillName: string, playerName: string, rollId: string) => {
     if (playerName !== myCharacter.name) return;
-
-    // 👇 核心防呆锁：如果这个请求已经投掷过，直接拦截不执行！
-    if (rolledIndices.includes(msgIndex)) return;
-    
-    // 把当前这条消息的索引加入“正在同步”黑名单
-    setRolledIndices(prev => [...prev, msgIndex]);
-    // 👆 防呆锁结束
-
-    // 获取玩家该技能的点数，如果没有这个技能，默认值为 1
+    if (rolledIndices.includes(rollId)) return;
+    setRolledIndices(prev => [...prev, rollId]);
     const skillValue = myCharacter.skills[skillName] || 1;
-    
-    // 命运的骰子转动 (1-100)
     const roll = Math.floor(Math.random() * 100) + 1;
     let result = '';
-
-    // 严格版判定规则
     if (roll === 1) {
       result = '大成功 (Critical Success)';
     } else if (skillValue < 50 && roll >= 96) {
@@ -183,23 +193,22 @@ export default function Game() {
     } else {
       result = '失败 (Failure)';
     }
-
-    // 组装帅气的公屏播报文本
     const rollMessage = `掷出了 D100 = ${roll} / ${skillValue}，结果：【${result}】`;
-    
-    // 将骰子结果发给后端（附带 isRoll: true 标记，强制触发 AI 结算）
     emitWhenConnected('player_action', {
       roomId: roomId,
       playerName: myCharacter.name,
       message: `[对 ${skillName} 进行检定]：${rollMessage}`,
-      isRoll: true 
+      rollId,
+      isRoll: true
     });
   };
 
-  // --- 新增：把关系图的记忆存放在这里，防止被销毁 ---
+  // SECTION: 关系图状态
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
   const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
 
+  // SECTION: 战役笔记加载
+  // NOTE: 笔记按 roomId + username 读取，同一账号在不同房间有独立笔记。
   useEffect(() => {
     const fetchNotebook = async () => {
       const username = localStorage.getItem('trpg_username');
@@ -226,6 +235,8 @@ export default function Game() {
     fetchNotebook();
   }, [roomId]);
 
+  // SECTION: 战役笔记保存
+  // NOTE: 防抖写入，避免每次输入都立刻落到后端 JSON 文件。
   useEffect(() => {
     const username = localStorage.getItem('trpg_username');
     if (!roomId || !username || !isNotebookLoaded) return;
@@ -262,28 +273,24 @@ export default function Game() {
     };
   }, [roomId, isNotebookLoaded, freeNotes, clues, graphNodes, graphEdges]);
 
-  // --- 新增：自动化状态结算中心 (拦截 AI 的 STAT 指令) ---
+  // SECTION: STAT 指令结算
+  // NOTE: AI 的 STAT 指令只更新本地 UI 状态；持久化角色生命值之后可以再独立设计。
   useEffect(() => {
     if (chatMessages.length === 0) return;
     const lastMsg = chatMessages[chatMessages.length - 1];
-    
-    if (lastMsg.role === 'dm') {
-      const statRegex = /<<STAT:(.*?):(HP|SAN|MP):([+-]?\d+)(?:>>|>)/g;
-      let match;
-      while ((match = statRegex.exec(lastMsg.content)) !== null) {
-        const targetPlayer = match[1].trim();
-        const statName = match[2].trim().toLowerCase() as 'hp' | 'san' | 'mp'; 
-        const change = parseInt(match[3].trim(), 10);
 
-        // 如果受害者是我自己，更新我的血条
+    if (lastMsg.role === 'dm') {
+      parseStatDirectives(lastMsg.content).forEach((directive) => {
+        const targetPlayer = directive.player;
+        const statName = directive.type.toLowerCase() as 'hp' | 'san' | 'mp';
+        const change = directive.value;
         if (myCharacter && targetPlayer === myCharacter.name) {
           setMyCharacter((prev: any) => {
             if (!prev) return prev;
             const newCurrent = Math.max(0, Math.min(prev[statName].max, prev[statName].current + change));
             return { ...prev, [statName]: { ...prev[statName], current: newCurrent } };
           });
-        } 
-        // 如果受害者是队友，更新队友的血条
+        }
         else {
           setTeammates((prevMates) => prevMates.map(mate => {
             if (mate.name === targetPlayer && mate[statName].current !== '?') {
@@ -293,16 +300,17 @@ export default function Game() {
             return mate;
           }));
         }
-      }
+      });
     }
-  }, [chatMessages]); // 每次有新消息都触发扫描
+  }, [chatMessages]);
 
-  // --- 2. 页面加载时，根据大厅传来的 ID 去拉取真实卡片 ---
+  // SECTION: 当前出战角色加载
+  // NOTE: 大厅只存当前角色 ID，游戏页必须重新拉完整角色卡用于技能和属性检定。
   useEffect(() => {
     const fetchCharacter = async () => {
       const username = localStorage.getItem('trpg_username');
       const charId = localStorage.getItem('trpg_current_char_id');
-      
+
       if (!username || !charId) {
         alert('未检测到出战角色，请返回大厅选择！');
         navigate(`/lobby/${roomId}`);
@@ -316,11 +324,9 @@ export default function Game() {
           const targetChar = data.cards.find((c: any) => c.id === charId);
           if (targetChar) {
             const full = targetChar.fullData;
-            
-            // 提炼技能：计算出每个技能的总成功率 (基础+职业+兴趣+成长)
             const parsedSkills: Record<string, number> = {};
             full.skills.forEach((s: any) => {
-              const shortName = s.name.split(' ')[0]; // 把 "侦查 (Spot Hidden)" 变成 "侦查"
+              const shortName = s.name.split(' ')[0];
               parsedSkills[shortName] = s.base + (s.job || 0) + (s.interest || 0) + (s.grow || 0);
             });
 
@@ -331,12 +337,12 @@ export default function Game() {
               parsedSkills['敏捷'] = full.stats.dex;
               parsedSkills['外貌'] = full.stats.app;
               parsedSkills['智力'] = full.stats.int;
-              parsedSkills['灵感'] = full.stats.int; // COC中，灵感检定等同于智力
+              parsedSkills['灵感'] = full.stats.int;
               parsedSkills['意志'] = full.stats.pow;
               parsedSkills['教育'] = full.stats.edu;
               parsedSkills['幸运'] = full.stats.luc;
               parsedSkills['理智'] = targetChar.san;
-              parsedSkills['SAN'] = targetChar.san; // 兼容 AI 可能的英文称呼
+              parsedSkills['SAN'] = targetChar.san;
             }
 
             setMyCharacter({
@@ -347,10 +353,8 @@ export default function Game() {
               hp: { current: targetChar.hp, max: targetChar.hp },
               san: { current: targetChar.san, max: full.stats.pow },
               mp: { current: targetChar.mp, max: targetChar.mp },
-              skills: parsedSkills // 32个技能全部注入
+              skills: parsedSkills
             });
-
-            // 新增：向服务器同步我的完整档案，确保队友能看见我的状态
             emitWhenConnected('sync_character', {
               roomId,
               nickname: full.basicInfo.name,
@@ -366,7 +370,8 @@ export default function Game() {
     fetchCharacter();
   }, [roomId, navigate]);
 
-  // 模拟队友的数据
+  // SECTION: 队友状态镜像
+  // NOTE: lobby_update 是房间玩家列表的广播源，游戏页用它生成左侧队友卡片。
   const [teammates, setTeammates] = useState<any[]>([]);
 
   useEffect(() => {
@@ -376,16 +381,15 @@ export default function Game() {
         const playerName = p.characterName || p.fullData?.basicInfo?.name || p.fullData?.fullData?.basicInfo?.name || p.name;
         return playerName !== selfName;
       });
-      
+
       const formattedMates = mates.map((m: any) => {
-        // 👇 核心修复：深度挖掘队友数据，如果队友没带角色卡进房间，则保底显示 '?'
         const hp = m.hp ?? m.fullData?.hp ?? (m.fullData?.stats ? Math.floor((m.fullData.stats.con + m.fullData.stats.siz)/10) : '?');
         const san = m.san ?? m.fullData?.san ?? m.fullData?.stats?.pow ?? '?';
         const mp = m.mp ?? m.fullData?.mp ?? (m.fullData?.stats ? Math.floor(m.fullData.stats.pow/5) : '?');
 
         return {
           id: m.id,
-          name: m.characterName || m.fullData?.basicInfo?.name || m.fullData?.fullData?.basicInfo?.name || m.name, 
+          name: m.characterName || m.fullData?.basicInfo?.name || m.fullData?.fullData?.basicInfo?.name || m.name,
           role: m.role || m.fullData?.basicInfo?.occupation || '未选定角色',
           hp: { current: hp, max: hp },
           san: { current: san, max: san },
@@ -399,17 +403,19 @@ export default function Game() {
     return () => { socket.off('lobby_update', handleLobbyUpdate); };
   }, [myCharacter?.name]);
 
-  // 提取线索的右键菜单逻辑
+  // SECTION: 线索提取
+  // NOTE: 右键选中文本会写入关键线索列表，随后由笔记防抖保存。
   const handleContextMenu = (e: React.MouseEvent) => {
     const selectedText = window.getSelection()?.toString().trim();
     if (selectedText) {
-      e.preventDefault(); // 阻止浏览器默认右键菜单
+      e.preventDefault();
       setClues(prev => prev.includes(selectedText) ? prev : [...prev, selectedText]);
-      alert(`已成功提取线索: "${selectedText.substring(0, 10)}..."`); 
+      alert(`已成功提取线索: "${selectedText.substring(0, 10)}..."`);
     }
   };
 
-  // 渲染角色卡弹窗内容的辅助函数
+  // SECTION: 角色卡弹窗内容
+  // NOTE: 自己能看完整技能，队友只显示表观信息。
   const renderModalContent = () => {
     if (activeCard === 'self') {
       return (
@@ -439,8 +445,6 @@ export default function Game() {
     }
     return null;
   };
-
-  // 👇 插入在这里 👇
   if (!myCharacter) {
     return (
       <div className="game-container" style={{ alignItems: 'center', justifyContent: 'center' }}>
@@ -448,45 +452,43 @@ export default function Game() {
       </div>
     );
   }
-  // 👆 插入结束 👆  
 
-  // ==========================================
-  // --- 新增：回合制状态推导逻辑 ---
-  // ==========================================
-  
-  // 1. 汇总当前小队的所有人名单 (包括自己和队友)
+  // SECTION: 本地回合兜底推导
+  // NOTE: 后端 turn_state 未抵达时，前端仍可用聊天历史推导基础锁定状态。
   const allPlayers = [myCharacter.name, ...teammates.map(t => t.name)];
   const playerDisplayNames = new Map<string, string>([
     [myCharacter.name, myCharacter.name],
     ...teammates.map(t => [t.name, t.name] as [string, string])
   ]);
-
-  // 2. 找到聊天记录里，最后一条 DM 消息的索引位置
   const lastDmIndex = chatMessages.map(m => m.role).lastIndexOf('dm');
-
-  // 3. 截取当前回合的消息（即最后一条 DM 消息之后的所有消息）
   const currentRoundMessages = chatMessages.slice(lastDmIndex + 1);
-  
-  // 4. 提取当前回合已经发过言的玩家名单（利用 Set 去重）
   const actedPlayers = Array.from(new Set(currentRoundMessages.map(m => m.sender)));
-
-  // 5. 计算还有哪些玩家没行动（总名单 减去 已行动名单）
-  const pendingPlayers = allPlayers.filter(name => !actedPlayers.includes(name));
+  const pendingPlayers = turnState?.pendingPlayers || allPlayers.filter(name => !actedPlayers.includes(name));
   const pendingPlayerLabels = pendingPlayers.map(name => playerDisplayNames.get(name) || name);
-
-  // 6. 判断我自己是否已经在这回合行动过了（如果使用了强行解锁，则无视锁定）
-  const isMyTurnDone = actedPlayers.includes(myCharacter.name);
-  const isTurnLocked = isMyTurnDone && !forceUnlock;
+  const activeActedPlayers = turnState?.actedPlayers || actedPlayers;
+  const isMyTurnDone = activeActedPlayers.includes(myCharacter.name);
 
   const lastDmMessage = lastDmIndex !== -1 ? String(chatMessages[lastDmIndex]?.content || '') : '';
-  const activeRollRequests = parseRollRequests(lastDmMessage);
-  const pendingRolls = activeRollRequests.filter(roll => !findRollResult(chatMessages, lastDmIndex, roll));
-  const pendingRollPlayers = Array.from(new Set(pendingRolls.map(roll => roll.player)));
+  const fallbackRollRequests: RollRequestWithState[] = parseRollRequests(lastDmMessage).map((roll) => ({
+    ...roll,
+    id: `${lastDmIndex}-${roll.index}-${roll.player}-${roll.skill}`,
+  }));
+  const activeRollRequests = turnState?.rollRequests || fallbackRollRequests;
+  const pendingRolls = turnState?.pendingRolls || activeRollRequests.filter(roll => !findRollResult(chatMessages, lastDmIndex, roll));
+  const pendingRollPlayers = turnState?.pendingRollPlayers || Array.from(new Set(pendingRolls.map(roll => roll.player)));
   const isWaitingForMyRoll = pendingRolls.some(roll => roll.player === myCharacter.name);
   const isRollGateLocked = activeRollRequests.length > 0;
+  // NOTE: 输入锁优先使用后端 turn_state；本地历史推导只作为重连前的兜底。
+  const isTurnLocked = turnState
+    ? (
+      (turnState.mode === 'waiting_dm' && activeRollRequests.length === 0) ||
+      (turnState.mode === 'waiting_players' && isMyTurnDone && !forceUnlock)
+    )
+    : (isMyTurnDone && !forceUnlock);
   const isInputLocked = isRollGateLocked || isTurnLocked;
 
-  // 7. 动态生成输入框的占位符文本
+  // SECTION: 输入提示文案
+  // NOTE: 文案优先级为检定锁、回合锁、可自由行动。
   let inputPlaceholder = "描述你的行动、语言，或心理活动（Shift+Enter 换行）...";
   if (isRollGateLocked) {
     if (isWaitingForMyRoll) {
@@ -506,24 +508,19 @@ export default function Game() {
 
   return (
     <div className="game-container">
-      {/* 顶部导航 */}
       <div className="game-header flat-box">
         <span className="room-info">桃花岛历险记 // {roomId}</span>
         <div style={{ display: 'flex', gap: '15px' }}>
-          {/* 如果需要可以加判断只让房主看到，但因为存档存在账号名下，目前开放给所有人保存也无妨 */}
           <button className="flat-btn secondary small" onClick={handleSaveGame}>存档</button>
           <button className="flat-btn secondary small" onClick={() => navigate(`/lobby/${roomId}`)}>退出</button>
         </div>
       </div>
 
       <div className="game-body">
-        {/* 左侧：侧边栏 */}
         <aside className="game-sidebar">
-          
-          {/* 我的角色模块 */}
           <div className="flat-box my-character-panel">
-            <div 
-              className="avatar-box clickable" 
+            <div
+              className="avatar-box clickable"
               onClick={() => setActiveCard('self')}
               title="点击查看完整角色卡"
             >
@@ -546,9 +543,7 @@ export default function Game() {
                 <span style={{ fontSize: '13px', fontFamily: 'monospace', fontWeight: 'bold', color: '#A0858D', minWidth: '45px', textAlign: 'right', display: 'inline-block', marginLeft: '10px' }}>{myCharacter.mp.current}/{myCharacter.mp.max}</span>
               </div>
             </div>
-
-            {/* --- 新增：笔记本按钮 --- */}
-            <button 
+            <button
               className="flat-btn secondary notebook-btn"
               onClick={() => setIsNotebookOpen(true)}
               style={{ marginTop: '10px', width: '100%', height: '45px', fontSize: '0.9rem' }}
@@ -556,13 +551,11 @@ export default function Game() {
               📓 打开战役笔记
             </button>
           </div>
-          
-          {/* 队友列表模块 */}
           <div className="teammates-section">
             <h4 className="section-subtitle">小队成员</h4>
             {teammates.map(mate => (
               <div key={mate.id} className="flat-box teammate-card">
-                <div 
+                <div
                   className="teammate-name clickable"
                   onClick={() => setActiveCard(mate.id)}
                   title="点击观察外貌"
@@ -570,7 +563,6 @@ export default function Game() {
                   {mate.name} <span style={{ fontSize:'0.75rem', color:'#A0858D', fontWeight:'normal' }}>({mate.role})</span>
                 </div>
                 <div className="teammate-mini-stats">
-                  {/* 👇 统一加上具体的数值 👇 */}
                   <span className="mini-stat hp">HP {mate.hp.current}/{mate.hp.max}</span>
                   <span className="mini-stat san">SAN {mate.san.current}/{mate.san.max}</span>
                   <span className="mini-stat mp">MP {mate.mp.current}/{mate.mp.max}</span>
@@ -579,54 +571,45 @@ export default function Game() {
             ))}
           </div>
         </aside>
-
-        {/* 右侧：主舞台 */}
         <main className="game-main flat-box">
-          {/* --- 绑定右键菜单事件的聊天区 --- */}
-          
-          {/* 动态绑定的聊天流 (升级版) */}
           <div className="chat-history" onContextMenu={handleContextMenu}>
             {chatMessages.map((msg, idx) => {
               const messageContent = String(msg.content || '');
-              const statRegex = /<<STAT:([^:<>]+):(HP|SAN|MP):([+-]?\d+)(?:>>|>)/g;
-              const rollStripRegex = /<<ROLL:([^:<>]+):([^<>]+?)(?:>>|>)/g;
-              const rolls = parseRollRequests(messageContent);
-              const stats = Array.from(messageContent.matchAll(statRegex), match => ({
-                player: match[1].trim(),
-                type: match[2].trim(),
-                val: match[3].trim(),
-              }));
+              const parsedRolls = parseRollRequests(messageContent);
+              // NOTE: 最新 DM 优先使用后端带 rollId 的 turn_state，历史 DM 用本地解析结果。
+              const rolls: RollRequestWithState[] = idx === lastDmIndex && turnState?.rollRequests?.length
+                ? turnState.rollRequests
+                : parsedRolls.map((roll) => ({
+                  ...roll,
+                  id: `${idx}-${roll.index}-${roll.player}-${roll.skill}`,
+                }));
+              const stats = parseStatDirectives(messageContent);
               const hasRoll = rolls.length > 0;
               const hasStat = stats.length > 0;
-              
+
               if (msg.role === 'dm' && (hasRoll || hasStat)) {
-                const pureText = messageContent
-                  .replace(rollStripRegex, '')
-                  .replace(statRegex, '')
-                  .trim();
+                // NOTE: DM 正文展示时剥离控制指令，避免玩家看到协议噪声。
+                const pureText = stripDirectives(messageContent);
 
                 return (
                   <div key={idx} className={`message dm`}>
                     <span className="sender-name">系统 DM</span>
                     <div className="message-content">
                       {pureText}
-                      
-                      {/* 渲染掉血/掉理智播报 */}
                       {stats.length > 0 && (
                         <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           {stats.map((st, sIdx) => (
-                            <span key={sIdx} style={{ background: st.val.startsWith('-') ? '#FFEbee' : '#E8F5E9', color: st.val.startsWith('-') ? '#D32F2F' : '#2E7D32', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                              ⚠️ {st.player} 的 {st.type} {st.val}
+                            <span key={sIdx} style={{ background: st.rawValue.startsWith('-') ? '#FFEbee' : '#E8F5E9', color: st.rawValue.startsWith('-') ? '#D32F2F' : '#2E7D32', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                              ⚠️ {st.player} 的 {st.type} {st.rawValue}
                             </span>
                           ))}
                         </div>
                       )}
-
-                      {/* 渲染检定按钮 (这里保留你原本的 rolls.map 代码) */}
                       {rolls.map((rollItem, rIdx) => {
                          const targetSkill = rollItem.skill;
                          const targetPlayer = rollItem.player;
-                         const rollKey = `${idx}-${rIdx}`;
+                         // NOTE: rollKey 是本地按钮锁的键；后端仍以 rollId 做最终去重。
+                         const rollKey = rollItem.id || `${idx}-${rollItem.index ?? rIdx}-${targetPlayer}-${targetSkill}`;
                          const rollResult = findRollResult(chatMessages, idx, rollItem);
                          const isRolling = rolledIndices.includes(rollKey);
 
@@ -635,14 +618,14 @@ export default function Game() {
                              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#d81b60', display: 'block', marginBottom: '10px' }}>
                                [系统判定] 需要 {targetPlayer} 进行【{targetSkill}】检定
                              </span>
-                             
+
                              {rollResult ? (
                                <div style={{ margin: '8px auto 0', padding: '12px 16px', maxWidth: '720px', border: '1.5px dashed #4A2A33', borderRadius: '4px', background: '#fff', color: '#4A2A33', fontWeight: 'bold', lineHeight: 1.7 }}>
                                  {rollResult}
                                </div>
                              ) : myCharacter.name === targetPlayer ? (
-                               <button 
-                                 className="flat-btn primary" 
+                               <button
+                                 className="flat-btn primary"
                                  style={{ padding: '8px 25px', opacity: isRolling ? 0.6 : 1, whiteSpace: 'nowrap', minWidth: '120px' }}
                                  onClick={() => handleSkillRoll(targetSkill, targetPlayer, rollKey)}
                                  disabled={isRolling}
@@ -659,8 +642,6 @@ export default function Game() {
                   </div>
                 );
               }
-
-              // 如果不是检定请求，正常渲染
               if (msg.role === 'roll') return null;
 
               return (
@@ -672,20 +653,15 @@ export default function Game() {
             })}
             <div ref={messagesEndRef} />
           </div>
-          
-          {/* 动态绑定的输入台（附带回合制锁定） */}
-          {/* 增加 flexWrap: 'wrap'，让元素可以自然换行 */}
           <div className="control-panel" style={{ flexDirection: 'column', gap: '10px' }}>
-
-            {/* 👇 越权发言按钮：占据 100% 宽度，直接霸占最顶行，绝对不会被遮挡 👇 */}
             {isTurnLocked && !isRollGateLocked && (
-              <button 
+              <button
                 onClick={() => setForceUnlock(true)}
                 title="强制打破回合锁，自由发言"
-                style={{ 
-                  background: 'transparent', border: 'none', color: '#d81b60', 
-                  cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', 
-                  padding: 0, textAlign: 'left', width: 'fit-content' 
+                style={{
+                  background: 'transparent', border: 'none', color: '#d81b60',
+                  cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold',
+                  padding: 0, textAlign: 'left', width: 'fit-content'
                 }}
               >
                 防卡死越权发言
@@ -693,25 +669,25 @@ export default function Game() {
             )}
 
             <div style={{ display: 'flex', gap: '15px', alignItems: 'stretch', width: '100%' }}>
-              <textarea 
-                className="flat-textarea" 
-                placeholder={inputPlaceholder} 
+              <textarea
+                className="flat-textarea"
+                placeholder={inputPlaceholder}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                disabled={isInputLocked} 
-                style={{ backgroundColor: isInputLocked ? '#f0ecec' : '#fff' }} 
+                disabled={isInputLocked}
+                style={{ backgroundColor: isInputLocked ? '#f0ecec' : '#fff' }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault(); 
-                    if (!isInputLocked) handleSendMessage(); 
+                    e.preventDefault();
+                    if (!isInputLocked) handleSendMessage();
                   }
                 }}
               ></textarea>
-              
-              <button 
-                className="flat-btn primary send-btn" 
+
+              <button
+                className="flat-btn primary send-btn"
                 onClick={handleSendMessage}
-                disabled={isInputLocked} 
+                disabled={isInputLocked}
               >
                 执行
               </button>
@@ -719,8 +695,6 @@ export default function Game() {
           </div>
         </main>
       </div>
-
-      {/* 角色卡详情弹窗 (Modal) */}
       {activeCard && (
         <div className="modal-overlay" onClick={() => setActiveCard(null)}>
           <div className="modal-content flat-box" onClick={(e) => e.stopPropagation()}>
@@ -729,28 +703,22 @@ export default function Game() {
           </div>
         </div>
       )}
-
-      {/* --- 笔记本大弹窗 (Modal) --- */}
       {isNotebookOpen && (
         <div className="modal-overlay" onClick={() => setIsNotebookOpen(false)}>
           <div className="notebook-modal flat-box" onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" onClick={() => setIsNotebookOpen(false)}>×</button>
-            
-            {/* 顶部分栏 Tab */}
             <div className="notebook-tabs">
               <div className={`tab-item ${activeTab === 'relation' ? 'active' : ''}`} onClick={() => setActiveTab('relation')}>关系图谱</div>
               <div className={`tab-item ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}>自由笔记</div>
               <div className={`tab-item ${activeTab === 'clues' ? 'active' : ''}`} onClick={() => setActiveTab('clues')}>关键线索</div>
             </div>
-
-            {/* 内容区 */}
             <div className="notebook-content">
               {activeTab === 'notes' && (
-                <textarea 
-                  className="flat-textarea full-height" 
+                <textarea
+                  className="flat-textarea full-height"
                   value={freeNotes}
                   onChange={(e) => setFreeNotes(e.target.value)}
-                  placeholder="在这里自由记录跑团灵感、疑问或吐槽..." 
+                  placeholder="在这里自由记录跑团灵感、疑问或吐槽..."
                 />
               )}
 
@@ -770,7 +738,7 @@ export default function Game() {
               )}
 
               {activeTab === 'relation' && (
-                <RelationGraph 
+                <RelationGraph
                   nodes={graphNodes} setNodes={setGraphNodes}
                   edges={graphEdges} setEdges={setGraphEdges}
                 />

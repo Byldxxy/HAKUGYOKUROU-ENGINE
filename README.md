@@ -96,6 +96,7 @@ ai-trpg-server/
 - 游戏主舞台：回合发言、自动等待队友、AI DM 推进、历史记录恢复
 - COC 掷骰：AI 输出 `<<ROLL:技能名称:角色卡姓名>>` 后，对应角色卡客户端会渲染检定按钮并播报结果
 - 状态变更：AI 输出 `<<STAT:角色卡姓名:HP|SAN|MP:+/-数字>>` 后，前端更新角色状态
+- 回合状态：后端广播 `turn_state`，前端根据明确状态锁定输入框、等待玩家行动、等待掷骰或等待 AI 结算
 - 存档系统：按房间日志复制成存档，房主可从大厅加载
 - 战役笔记：自由笔记、右键提取关键线索、可拖拽人物关系图
 
@@ -133,12 +134,21 @@ npm run start
 npm run check
 ```
 
-## 已知注意事项
+## 已完成的整理
+
+- 后端已拆成 routes、socket handlers、repositories、storage、ai service。
+- `ROLL` / `STAT` 指令解析已集中到前后端 `domain/directives` 模块，后续扩展协议优先改这里。
+- `ROLL` 请求已生成稳定 `rollId`，骰子结果按 `rollId` 回填与去重。
+- 后端已广播 `turn_state`，前端优先按明确回合状态锁定输入框。
+- 大厅角色卡拉取已集中到 `loadCharacters`；入房 Socket 上报会等待角色卡加载完成，避免占位玩家重复进房。
+- 前端已集中使用 `src/socket.ts` 的 Socket.IO 客户端。
+- 战役笔记已持久化到本地 JSON 文件。
+- 前端会清理旧的 `trpg_nickname` localStorage 缓存，但业务逻辑不再依赖它。
+
+## 待修改与上线风险
 
 - 账号密码当前明文保存在 `users.json`，只适合本地开发。
 - 后端接口基本没有鉴权，依赖前端 localStorage 传入的用户名。
-- 后端已拆成 routes、socket handlers、repositories、storage、ai service。
-- 大厅角色卡拉取已集中到 `loadCharacters`；入房 Socket 上报会等待角色卡加载完成，避免占位玩家重复进房。
-- 前端已集中使用 `src/socket.ts` 的 Socket.IO 客户端；跨页面连接生命周期仍可继续梳理。
-- 战役笔记已持久化到本地 JSON 文件；后续上线建议迁入数据库并加权限校验。
-- 前端会清理旧的 `trpg_nickname` localStorage 缓存，但业务逻辑不再依赖它。
+- 本地 JSON 文件适合原型开发，后续上线建议迁入数据库并补权限校验。
+- 房间实时状态仍主要保存在后端内存，后端重启后需要玩家重新进房。
+- Socket 跨页面连接生命周期还可以继续收敛，避免 join/leave 时机分散。

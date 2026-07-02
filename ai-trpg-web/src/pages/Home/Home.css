@@ -1,28 +1,33 @@
-/* --- 页面基础环境 --- */
+
+/* SECTION: 首页画布 */
+/* NOTE: Home 是登录后的房间入口，保持和 Auth 同样的居中卡片语言。 */
 .home-container {
   min-height: 100vh;
   width: 100vw;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #FAF5F7; /* 极浅的暖灰粉色，高级留白 */
+  background-color: #FAF5F7;
   font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 
-/* --- 核心扁平卡片 --- */
+
+/* SECTION: 首页主卡片 */
+/* NOTE: 尺寸和登录卡片一致，减少用户从登录到大厅入口的视觉跳变。 */
 .boutique-card {
   width: 100%;
   max-width: 420px;
   background: #FFFFFF;
   padding: 50px 40px;
-  /* 扁平化设计的灵魂：细边框 + 实体偏移阴影 */
+
   border: 1.5px solid #4A2A33;
   box-shadow: 8px 8px 0px #FFC2D1;
   border-radius: 4px;
   box-sizing: border-box;
 }
 
-/* --- 标题排版 --- */
+
+/* SECTION: 品牌标题 */
 .header-group {
   text-align: center;
   margin-bottom: 45px;
@@ -31,7 +36,7 @@
 .title {
   font-size: 2.2rem;
   font-weight: 800;
-  color: #4A2A33; /* 深勃艮第红，代替死板的纯黑 */
+  color: #4A2A33;
   margin: 0 0 8px 0;
   letter-spacing: 2px;
 }
@@ -44,14 +49,18 @@
   font-weight: 600;
 }
 
-/* --- 操作区布局 --- */
+
+/* SECTION: 房间操作区 */
+/* NOTE: 创建房间、分割线、加入房间纵向排列，适合小屏保持单列。 */
 .action-group {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
-/* 按钮基础统一样式 */
+
+/* SECTION: 通用按钮 */
+/* NOTE: Home 仍有页面内 flat-btn 定义，后续可以抽到全局样式。 */
 .flat-btn {
   height: 50px;
   font-size: 1rem;
@@ -65,7 +74,8 @@
   justify-content: center;
 }
 
-/* 主按钮：创建房间 */
+
+/* SECTION: 主按钮 */
 .flat-btn.primary {
   width: 100%;
   background-color: #FF8FAB;
@@ -84,7 +94,8 @@
   box-shadow: 0px 0px 0px #4A2A33;
 }
 
-/* 分割线 */
+
+/* SECTION: 分割线 */
 .divider {
   display: flex;
   align-items: center;
@@ -103,17 +114,19 @@
   padding: 0 15px;
 }
 
-/* --- 修复后的加入房间输入区 --- */
+
+/* SECTION: 加入房间输入行 */
+/* NOTE: input 使用 flex:1 + width:0，防止按钮把输入框挤出容器。 */
 .join-row {
   display: flex;
   width: 100%;
   gap: 12px;
-  box-sizing: border-box; /* 严防溢出 */
+  box-sizing: border-box;
 }
 
 .flat-input {
   flex: 1;
-  width: 0; /* 强迫 flex 元素遵守父级宽度，防止撑破 */
+  width: 0;
   height: 50px;
   border: 1.5px solid #D4C3C7;
   border-radius: 4px;
@@ -135,10 +148,11 @@
   font-weight: 300;
 }
 
-/* 次按钮：加入 */
+
+/* SECTION: 次按钮 */
 .flat-btn.secondary {
   width: 90px;
-  flex-shrink: 0; /* 防止按钮被挤压 */
+  flex-shrink: 0;
   background-color: #FFFFFF;
   color: #4A2A33;
   border: 1.5px solid #4A2A33;
@@ -148,7 +162,8 @@
   background-color: #FAF5F7;
 }
 
-/* --- 底部装饰 --- */
+
+/* SECTION: 页脚标语 */
 .footer-text {
   text-align: center;
   margin-top: 40px;
@@ -157,7 +172,9 @@
   letter-spacing: 2px;
 }
 
-/* 追加到 Home.css 底部 */
+
+/* SECTION: 用户状态栏 */
+/* NOTE: 欢迎语固定，不展示用户名，避免账号信息暴露到投屏或截图。 */
 .user-panel {
   display: flex;
   justify-content: space-between;

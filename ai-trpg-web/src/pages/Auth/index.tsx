@@ -5,22 +5,23 @@ import './Auth.css';
 
 export default function Auth() {
   const navigate = useNavigate();
+
+  // SECTION: 表单状态
+  // NOTE: 注册页已经删除昵称输入，账号只用于登录，游戏名由角色卡决定。
   const [isLoginMode, setIsLoginMode] = useState(true);
-  
-  // 表单状态：账号只用于登录与数据归属，跑团展示名统一来自角色卡
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-// 注意：这里加了 async，因为要等待后端服务器响应
+  // SECTION: 登录/注册提交
+  // NOTE: 两种模式复用一个 submit，先做前端轻校验，再交给后端做最终判断。
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isLoginMode) {
       if (!username || !password) return alert("请输入完整的账号和密码！");
-      
+
       try {
-        // --- 真实登录请求 ---
         const response = await fetch(apiUrl('/api/login'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -30,21 +31,21 @@ export default function Auth() {
         const data = await response.json();
         if (response.ok && data.success) {
           localStorage.setItem('trpg_username', data.username);
+          // NOTE: nickname 是旧版本字段，登录后清掉，避免继续影响 ROLL 归属。
           localStorage.removeItem('trpg_nickname');
           navigate('/hall');
         } else {
-          alert(data.error); // 密码错误等提示
+          alert(data.error);
         }
       } catch (error) {
         alert("无法连接到白玉楼引擎服务器，请检查终端状态！");
       }
-      
+
     } else {
       if (!username || !password || !confirmPassword) return alert("请填写完整的注册信息！");
       if (password !== confirmPassword) return alert("两次输入的密码不一致，请重新确认！");
-      
+
       try {
-        // --- 真实注册请求 ---
         const response = await fetch(apiUrl('/api/register'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -53,13 +54,13 @@ export default function Auth() {
         
         const data = await response.json();
         if (response.ok && data.success) {
-          // 注册成功，自动登录。跑团昵称之后由出战角色卡决定。
-          localStorage.setItem('trpg_username', data.username); 
+          // NOTE: 注册成功后直接进入大厅，减少“注册后还要再登录”的本地测试成本。
+          localStorage.setItem('trpg_username', data.username);
           localStorage.removeItem('trpg_nickname');
           alert("档案建立成功，即将进入大厅！");
           navigate('/hall');
         } else {
-          alert(data.error); // 账号重复等提示
+          alert(data.error);
         }
       } catch (error) {
         alert("无法连接到白玉楼引擎服务器，请检查终端状态！");
@@ -75,11 +76,15 @@ export default function Auth() {
           <p className="subtitle">HAKUGYOKUROU ENGINE</p>
         </div>
 
+        {/* SECTION: 登录/注册切换 */}
+        {/* NOTE: 两个标签高度和阴影在 CSS 中与提交按钮风格对齐。 */}
         <div className="auth-tabs">
           <button className={`tab-btn ${isLoginMode ? 'active' : ''}`} onClick={() => setIsLoginMode(true)} type="button">登 录</button>
           <button className={`tab-btn ${!isLoginMode ? 'active' : ''}`} onClick={() => setIsLoginMode(false)} type="button">注 册</button>
         </div>
 
+        {/* SECTION: 账号表单 */}
+        {/* NOTE: 注册模式只额外出现确认密码，不再收集昵称。 */}
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="input-group">
             <label>登录账号 (Username)</label>
@@ -100,8 +105,6 @@ export default function Auth() {
               value={password} onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-
-          {/* 注册模式专属：确认密码 */}
           {!isLoginMode && (
             <div className="input-group">
               <label>确认密钥 (Confirm)</label>

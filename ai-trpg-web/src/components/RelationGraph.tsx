@@ -1,23 +1,21 @@
 import React, { useRef } from 'react';
 import './RelationGraph.css'; 
-
-// 1. 稍微修改一下类型名称并导出，让外面的 Game 也能认识它们
 export type GraphNode = { id: string; x: number; y: number; name: string };
 export type GraphEdge = { id: string; source: string; target: string; label: string };
 
-// 2. 定义一个“接口”，声明我们要向父组件索要哪些数据和修改工具
+// SECTION: 组件输入
+// NOTE: 节点和边由 Game 持有，RelationGraph 只负责编辑交互，避免页签切换时状态丢失。
 interface Props {
   nodes: GraphNode[];
   setNodes: React.Dispatch<React.SetStateAction<GraphNode[]>>;
   edges: GraphEdge[];
   setEdges: React.Dispatch<React.SetStateAction<GraphEdge[]>>;
 }
-
-// 3. 在函数参数里接收这些工具（注意这里不再使用自己的 useState 了）
 export default function RelationGraph({ nodes, setNodes, edges, setEdges }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // 添加新节点
+  // SECTION: 节点创建
+  // NOTE: 新节点用时间戳生成临时 ID，后续迁入数据库时可替换为服务端 ID。
   const handleAddNode = () => {
     const newNode: GraphNode = {
       id: `node_${Date.now()}`,
@@ -28,17 +26,14 @@ export default function RelationGraph({ nodes, setNodes, edges, setEdges }: Prop
     setNodes([...nodes, newNode]);
   };
 
-  // ... 往下原有的逻辑完全不用动，一直到文件末尾 ...
-
-  // 双击节点重命名
+  // SECTION: 文本编辑
+  // NOTE: 这里先用 prompt 保持轻量，之后可以换成自定义弹窗以统一 UI。
   const handleDoubleClickNode = (id: string, currentName: string) => {
     const newName = prompt('输入人物名称:', currentName);
     if (newName) {
       setNodes(nodes.map(n => n.id === id ? { ...n, name: newName } : n));
     }
   };
-
-  // 双击边重命名关系
   const handleDoubleClickEdge = (id: string, currentLabel: string) => {
     const newLabel = prompt('输入人物关系:', currentLabel);
     if (newLabel) {
@@ -46,10 +41,10 @@ export default function RelationGraph({ nodes, setNodes, edges, setEdges }: Prop
     }
   };
 
-  // --- 拖拽核心逻辑 ---
+  // SECTION: 拖拽生命周期
+  // NOTE: dataTransfer 只存 nodeId，真正的数据仍从 React 状态读取。
   const handleDragStart = (e: React.DragEvent, nodeId: string) => {
     e.dataTransfer.setData('nodeId', nodeId);
-    // 设置拖拽时的透明度视觉反馈
     setTimeout(() => (e.target as HTMLElement).style.opacity = '0.5', 0);
   };
 
@@ -57,26 +52,24 @@ export default function RelationGraph({ nodes, setNodes, edges, setEdges }: Prop
     (e.target as HTMLElement).style.opacity = '1';
   };
 
-  // 在画布上移动节点或建立连线
+  // SECTION: 拖放落点处理
+  // NOTE: 同一个 drop 分支支持删除、建立关系、移动位置三种行为。
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const draggedId = e.dataTransfer.getData('nodeId');
     if (!draggedId) return;
-
-    // 检查是否拖到了垃圾桶上
     const targetElement = e.target as HTMLElement;
     if (targetElement.closest('.trash-zone')) {
+      // NOTE: 删除节点时必须同时移除所有相关边，避免悬空关系。
       setNodes(nodes.filter(n => n.id !== draggedId));
       setEdges(edges.filter(edge => edge.source !== draggedId && edge.target !== draggedId));
       return;
     }
-
-    // 检查是否拖到了另一个节点上 (建立连线)
     const targetNodeElement = targetElement.closest('.graph-node');
     if (targetNodeElement) {
       const targetId = targetNodeElement.getAttribute('data-id');
       if (targetId && targetId !== draggedId) {
-        // 检查是否已经存在反向或正向连线
+        // NOTE: 当前只阻止同向重复连线，反向关系允许表达不同含义。
         const exists = edges.find(edge => (edge.source === draggedId && edge.target === targetId));
         if (!exists) {
           setEdges([...edges, { id: `edge_${Date.now()}`, source: draggedId, target: targetId, label: '关系' }]);
@@ -84,18 +77,18 @@ export default function RelationGraph({ nodes, setNodes, edges, setEdges }: Prop
         return;
       }
     }
-
-    // 如果只是在画布上移动位置
     if (canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left - 30; // 减去圆形半径的一半以便鼠标居中
+      // NOTE: 节点视觉尺寸约 60px，减去半径可让鼠标落点位于节点中心。
+      const x = e.clientX - rect.left - 30;
       const y = e.clientY - rect.top - 30;
       setNodes(nodes.map(n => n.id === draggedId ? { ...n, x, y } : n));
     }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // 必须阻止默认事件才能允许放置
+    // NOTE: 浏览器默认不允许 drop，必须阻止默认行为。
+    e.preventDefault();
   };
 
   return (
@@ -110,9 +103,7 @@ export default function RelationGraph({ nodes, setNodes, edges, setEdges }: Prop
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
-        {/* SVG 层用于绘制连线 */}
         <svg className="relation-svg">
-          {/* 定义箭头标记 */}
           <defs>
             <marker id="arrow" markerWidth="10" markerHeight="10" refX="28" refY="3" orient="auto" markerUnits="strokeWidth">
               <path d="M0,0 L0,6 L9,3 z" fill="#FF8FAB" />
@@ -122,8 +113,7 @@ export default function RelationGraph({ nodes, setNodes, edges, setEdges }: Prop
             const source = nodes.find(n => n.id === edge.source);
             const target = nodes.find(n => n.id === edge.target);
             if (!source || !target) return null;
-            
-            // 简单连线计算 (加上半径偏移量 30)
+            // NOTE: 节点坐标是左上角，连线需要偏移到圆心。
             const sx = source.x + 30; const sy = source.y + 30;
             const tx = target.x + 30; const ty = target.y + 30;
             const midX = (sx + tx) / 2; const midY = (sy + ty) / 2;
@@ -139,8 +129,6 @@ export default function RelationGraph({ nodes, setNodes, edges, setEdges }: Prop
             );
           })}
         </svg>
-
-        {/* DOM 层用于渲染可拖拽节点 */}
         {nodes.map(node => (
           <div
             key={node.id}
@@ -156,8 +144,6 @@ export default function RelationGraph({ nodes, setNodes, edges, setEdges }: Prop
             {node.name}
           </div>
         ))}
-
-        {/* 垃圾桶区域 */}
         <div className="trash-zone flat-box">
           🗑️ 拖至此处删除
         </div>

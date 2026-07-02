@@ -9,6 +9,8 @@ type SelectOption = {
   label: string;
 };
 
+// SECTION: 自定义下拉框
+// NOTE: 原生 select 的展开层无法统一浏览器样式，因此这里用 button 列表模拟。
 function StyledSelect({
   value,
   options,
@@ -23,6 +25,7 @@ function StyledSelect({
   onChange: (value: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  // NOTE: selected 只负责展示文案；真正的选中值仍由父组件持有。
   const selected = options.find(option => option.value === value);
 
   return (
@@ -50,6 +53,7 @@ function StyledSelect({
               className={`styled-select-option ${option.value === value ? 'selected' : ''}`}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
+                // NOTE: 先通知父组件，再关闭菜单，避免失焦时吞掉点击事件。
                 onChange(option.value);
                 setIsOpen(false);
               }}
@@ -67,29 +71,32 @@ function StyledSelect({
 export default function Lobby() {
   const navigate = useNavigate();
   const { roomId } = useParams();
-  
-  // --- 核心修改：将玩家列表变成实时同步的状态 ---
+
+  // SECTION: 大厅状态
+  // NOTE: 房主身份由后端 ownerName 广播决定，前端不自行猜测。
   const [roomPlayers, setRoomPlayers] = useState<any[]>([]);
-  const [isOwner, setIsOwner] = useState(false); // 标记我自己是不是房主
-  const [roomOwnerName, setRoomOwnerName] = useState(''); // 新增：记住房主的名字
+  const [isOwner, setIsOwner] = useState(false);
+  const [roomOwnerName, setRoomOwnerName] = useState('');
 
-  // --- 新增：真实账号与多角色卡状态体系 ---
-  // 1. 角色卡管理状态：联机展示名统一来自出战角色
-  const [characterList, setCharacterList] = useState<any[]>([]); // 该账号下的所有角色卡
-  const [activeCharacter, setActiveCharacter] = useState<any>(null); // 本局选中的上场角色
+  // SECTION: 角色与存档状态
+  // NOTE: activeCharacter 决定玩家在大厅和游戏内的展示名，也是 ROLL 归属依据。
+  const [characterList, setCharacterList] = useState<any[]>([]);
+  const [activeCharacter, setActiveCharacter] = useState<any>(null);
   const [isCharactersLoaded, setIsCharactersLoaded] = useState(false);
-
-  // --- 4. 新增：战役存档系统状态 ---
   const [saveList, setSaveList] = useState<any[]>([]);
   const [selectedSaveId, setSelectedSaveId] = useState('');
   const [selectedScriptId, setSelectedScriptId] = useState('peach');
 
+  // SECTION: 剧本选项
+  // NOTE: 当前只作为 UI 选择保留，AI 实际模型和提示词仍由后端配置控制。
   const scriptOptions = [
     { value: 'peach', label: '桃花岛历险记' },
     { value: 'ctms', label: 'CTMS货舱危机' },
     { value: 'custom', label: '自定义空白团' },
   ];
 
+  // SECTION: 角色卡加载
+  // NOTE: 加载完成前不 join_lobby，避免用“未知调查员”占位写入房间玩家列表。
   const loadCharacters = useCallback(async () => {
     const username = localStorage.getItem('trpg_username');
     if (!username) {
@@ -103,6 +110,7 @@ export default function Lobby() {
       const data = await res.json();
       const cards = data.success ? (data.cards || []) : [];
       const savedCharId = localStorage.getItem('trpg_current_char_id');
+      // NOTE: 优先恢复上次选中的角色；没有缓存时默认使用第一张卡。
       const selected = cards.find((card: any) => card.id === savedCharId) || cards[0] || null;
 
       setCharacterList(cards);
@@ -119,7 +127,8 @@ export default function Lobby() {
     }
   }, []);
 
-  // 页面加载时，顺便去服务器把这个房主名下的所有存档拉下来
+  // SECTION: 存档列表加载
+  // NOTE: 存档只供房主选择，普通玩家仍会看到等待配置提示。
   useEffect(() => {
     const fetchSaves = async () => {
       const username = localStorage.getItem('trpg_username');
@@ -139,14 +148,17 @@ export default function Lobby() {
   useEffect(() => {
     loadCharacters();
   }, [loadCharacters]);
-  
-  // 3. 核心：跑团网络身份统一绑定角色卡名
-  const myName = activeCharacter?.name || '未知调查员'; 
+
+  // SECTION: 当前玩家身份
+  // NOTE: myName 必须是角色卡姓名，不能回退到登录昵称，否则 ROLL 指令会匹配失败。
+  const myName = activeCharacter?.name || '未知调查员';
   const myCharacter = useMemo(
     () => activeCharacter || { name: myName, role: "暂无角色", hp: "-", san: "-", mp: "-" },
     [activeCharacter, myName]
   );
 
+  // SECTION: 下拉选项派生
+  // NOTE: useMemo 减少每次输入聊天时重建选项数组。
   const characterOptions = useMemo(
     () => [
       { value: '', label: '-- 请选择出战角色 --' },
@@ -166,18 +178,19 @@ export default function Lobby() {
     [saveList]
   );
 
+  // SECTION: 大厅 Socket 同步
+  // NOTE: 角色卡加载完成后才加入房间，并把角色摘要交给后端维护玩家列表。
   useEffect(() => {
     if (!roomId || !isCharactersLoaded) return;
     ensureSocketConnected();
-
-    // B. 听广播：只要有人进出，后端发来新名单，就立刻刷新界面
     const handleLobbyUpdate = (data: any) => {
       setRoomPlayers(data.players);
-      setRoomOwnerName(data.ownerName); // 存下后端传来的房主名
-      setIsOwner(myName === data.ownerName); // 靠我的名字和房主名字比对来解锁权限！
+      setRoomOwnerName(data.ownerName);
+      setIsOwner(myName === data.ownerName);
     };
 
     const handleLobbyChatReceive = (msg: any) => {
+      // NOTE: 闲聊消息不持久化，只在当前大厅会话中广播显示。
       setChatMessages(prev => [...prev, msg]);
     };
 
@@ -188,15 +201,11 @@ export default function Lobby() {
     socket.on('lobby_update', handleLobbyUpdate);
     socket.on('lobby_chat_receive', handleLobbyChatReceive);
     socket.on('go_to_game', handleGoToGame);
-
-    // A. 进页面第一件事：向后端报到，加入大厅
     emitWhenConnected('join_lobby', {
       roomId,
       playerName: myName,
       characterInfo: myCharacter
     });
-
-    // D. 销毁组件时卸载监听
     return () => {
       socket.off('lobby_update', handleLobbyUpdate);
       socket.off('go_to_game', handleGoToGame);
@@ -204,23 +213,26 @@ export default function Lobby() {
     };
   }, [roomId, myName, myCharacter, isCharactersLoaded, navigate]);
 
-  // --- 新增：大厅闲聊状态 ---
+  // SECTION: 大厅闲聊状态
+  // NOTE: 初始两条消息只是 UI 占位，不会写入后端日志。
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState([
     { id: 1, sender: '系统', text: '欢迎来到房间。', isSystem: true },
     { id: 2, sender: '玩家A', text: '房主搞快点，我的骰子已经饥渴难耐了！', isSystem: false }
   ]);
 
+  // SECTION: 大厅聊天发送
+  // NOTE: 发送后只清空本地输入，显示由 lobby_chat_receive 广播统一追加。
   const handleLobbyChat = () => {
     if (!chatInput.trim()) return;
     ensureSocketConnected();
     const msgData = { id: Date.now(), sender: myName, text: chatInput, isSystem: false };
-    
-    // 关键：把消息通过对讲机发给后端广播！
     emitWhenConnected('lobby_chat_send', { roomId, msg: msgData });
     setChatInput('');
   };
 
+  // SECTION: 退出大厅
+  // NOTE: 使用 ack + 300ms 兜底，避免网络抖动时用户卡在大厅页。
   const handleExitLobby = () => {
     if (!roomId || !socket.connected) {
       navigate('/hall');
@@ -251,9 +263,10 @@ export default function Lobby() {
       </div>
 
       <div className="lobby-content">
-        {/* 左侧：参数配置与玩家列表 */}
         <div className="lobby-left-panel flat-box">
           <h3 className="section-title">剧本配置</h3>
+          {/* SECTION: 房主配置区 */}
+          {/* NOTE: 非房主不显示配置表单，避免误以为能更改剧本或存档。 */}
           {isOwner ? (
             <div className="config-form">
               <label>选择剧本设定</label>
@@ -276,6 +289,8 @@ export default function Lobby() {
           )}
 
           <h3 className="section-title" style={{ marginTop: '25px', marginBottom: '10px' }}>我的调查员档案</h3>
+          {/* SECTION: 出战角色选择 */}
+          {/* NOTE: 切换角色会同步 localStorage，并通过 join_lobby effect 更新后端玩家身份。 */}
           <div className="character-panel flat-box" style={{ background: '#f5f5f5', padding: '15px', border: '1px dashed #ccc', borderRadius: '4px' }}>
             {characterList.length === 0 ? (
               <div style={{ textAlign: 'center' }}>
@@ -301,8 +316,6 @@ export default function Lobby() {
                     }
                   }}
                 />
-
-                {/* 2. 右侧三个等宽的操作按钮容器 */}
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button 
                     className="flat-btn secondary small" 
@@ -312,7 +325,7 @@ export default function Lobby() {
                   >
                     编辑
                   </button>
-                  
+
                   <button 
                     className="flat-btn secondary small" 
                     style={{ width: '65px', padding: '6px 0', textAlign: 'center', opacity: activeCharacter ? 1 : 0.5, cursor: activeCharacter ? 'pointer' : 'not-allowed' }}
@@ -346,6 +359,8 @@ export default function Lobby() {
           </div>
 
           <h3 className="section-title" style={{ marginTop: '30px' }}>玩家状态</h3>
+          {/* SECTION: 玩家列表 */}
+          {/* NOTE: key 混合角色名和 socket id，兼顾同名角色测试与连接刷新。 */}
           <ul className="player-list">
             {roomPlayers.map(player => (
               <li key={`${player.characterName || player.name}-${player.id}`} className="player-item">
@@ -360,8 +375,6 @@ export default function Lobby() {
               </li>
             ))}
           </ul>
-
-          {/* 根据是否是房主，渲染不同的按钮逻辑 */}
           {isOwner ? (
             <button 
               className="flat-btn primary start-btn" 
@@ -379,10 +392,10 @@ export default function Lobby() {
             </button>
           )}
         </div>
-
-        {/* 右侧：闲聊区 */}
         <div className="lobby-right-panel flat-box">
           <h3 className="section-title">闲聊频道</h3>
+          {/* SECTION: 大厅聊天 */}
+          {/* NOTE: 这里只是开局前沟通，不进入正式房间日志和 AI 上下文。 */}
           <div className="chat-box">
             {chatMessages.map(msg => (
               <div key={msg.id} className={`chat-msg ${msg.isSystem ? 'system' : ''}`}>

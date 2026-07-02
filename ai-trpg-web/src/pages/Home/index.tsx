@@ -4,13 +4,20 @@ import './Home.css';
 
 export default function Home() {
   const navigate = useNavigate();
+
+  // SECTION: 加入房间输入
+  // NOTE: 房间号保持 6 位纯数字，和创建房间的随机规则一致。
   const [joinId, setJoinId] = useState('');
 
+  // SECTION: 创建房间
+  // NOTE: 当前房间 ID 由前端随机生成；上线前可改成后端生成避免碰撞。
   const handleCreateRoom = () => {
     const randomId = Math.floor(100000 + Math.random() * 900000).toString();
     navigate(`/lobby/${randomId}`);
   };
 
+  // SECTION: 加入房间
+  // NOTE: 这里只校验长度，房间是否存在由 Socket 大厅状态自然创建/同步。
   const handleJoinRoom = () => {
     if (joinId.length === 6) {
       navigate(`/lobby/${joinId}`);
@@ -19,11 +26,13 @@ export default function Home() {
     }
   };
 
+  // SECTION: 退出登录
+  // NOTE: 同时清理当前角色 ID，避免下个账号继承上个账号的出战角色。
   const handleLogout = () => {
     localStorage.removeItem('trpg_username');
     localStorage.removeItem('trpg_nickname');
     localStorage.removeItem('trpg_current_char_id');
-    navigate('/'); // 踢回登录页
+    navigate('/');
   };
 
   return (
@@ -34,8 +43,9 @@ export default function Home() {
           <p className="subtitle">HAKUGYOKUROU ENGINE</p>
         </div>
 
+        {/* SECTION: 大厅入口操作 */}
+        {/* NOTE: 欢迎语固定为“Hello，调查员。”，不再展示账号或昵称。 */}
         <div className="action-group">
-          {/* --- 新增：用户欢迎面板与退出按钮 --- */}
           <div className="user-panel">
             <span className="greeting">Hello，调查员。</span>
             <button className="logout-btn" onClick={handleLogout}>退出登录</button>

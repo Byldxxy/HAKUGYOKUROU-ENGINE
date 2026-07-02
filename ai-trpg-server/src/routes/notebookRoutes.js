@@ -3,6 +3,8 @@ const notebookRepository = require('../repositories/notebookRepository');
 
 const router = express.Router();
 
+// SECTION: 读取战役笔记
+// NOTE: 笔记按 roomId + username 隔离，便于多人同房各自记录线索。
 router.get('/', (req, res) => {
   const { roomId, username } = req.query;
   if (!roomId || !username) {
@@ -15,6 +17,8 @@ router.get('/', (req, res) => {
   });
 });
 
+// SECTION: 保存战役笔记
+// NOTE: 前端做防抖提交；后端仍做结构兜底，避免异常 payload 写坏文件。
 router.put('/', (req, res, next) => {
   try {
     const { roomId, username, notebook } = req.body;

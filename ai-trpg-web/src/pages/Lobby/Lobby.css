@@ -1,3 +1,5 @@
+/* SECTION: 大厅画布 */
+/* NOTE: Lobby 使用双栏布局，因此页面 padding 比登录/首页更大。 */
 .lobby-container {
   min-height: 100vh;
   padding: 40px;
@@ -8,7 +10,9 @@
   color: #4A2A33;
 }
 
-/* 统一的扁平硬阴影卡片 */
+
+/* SECTION: 通用实体卡片 */
+/* NOTE: 大厅面板和部分内嵌块复用该类，保持边框与粉色投影统一。 */
 .flat-box {
   background: #FFFFFF;
   border: 1.5px solid #4A2A33;
@@ -16,22 +20,26 @@
   border-radius: 4px;
 }
 
+/* SECTION: 顶部房间栏 */
 .lobby-header {
   padding: 15px 30px;
   display: flex;
-  justify-content: space-between; /* 核心：把文本和按钮分别推向两端 */
-  align-items: center; /* 核心：垂直居中对齐 */
+  justify-content: space-between;
+  align-items: center;
 }
 .lobby-header h2 { margin: 0; font-size: 1.4rem; letter-spacing: 1px; }
 .highlight-text { color: #FF8FAB; font-weight: 900; }
 
-/* 补上小尺寸按钮的样式 */
-.flat-btn.small { 
-  height: 36px; 
-  padding: 0 15px; 
-  font-size: 0.85rem; 
+
+/* SECTION: 小按钮修正 */
+.flat-btn.small {
+  height: 36px;
+  padding: 0 15px;
+  font-size: 0.85rem;
 }
 
+/* SECTION: 大厅主体双栏 */
+/* NOTE: 高度扣除 header，左右面板各自内部滚动。 */
 .lobby-content {
   display: flex;
   gap: 24px;
@@ -53,7 +61,8 @@
   letter-spacing: 1px;
 }
 
-/* --- 核心：风格化下拉菜单 --- */
+
+/* SECTION: 剧本/存档配置表单 */
 .config-form {
   display: flex;
   flex-direction: column;
@@ -66,8 +75,10 @@
   margin-top: 5px;
 }
 
+/* SECTION: 旧原生 select 样式 */
+/* NOTE: 已改用 StyledSelect，新代码优先不要再使用 flat-select。 */
 .flat-select {
-  appearance: none; /* 清除系统默认样式 */
+  appearance: none;
   -webkit-appearance: none;
   background-color: #FAF5F7;
   border: 1.5px solid #4A2A33;
@@ -79,7 +90,7 @@
   cursor: pointer;
   outline: none;
   transition: all 0.2s;
-  /* 自定义内嵌 SVG 箭头 */
+
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A2A33' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 15px center;
@@ -94,6 +105,8 @@
   transform: translate(-2px, -2px);
 }
 
+/* SECTION: 自定义下拉框 */
+/* NOTE: 用绝对定位菜单模拟浏览器下拉，以匹配项目实体按钮风格。 */
 .styled-select {
   position: relative;
   width: 100%;
@@ -205,7 +218,9 @@
   font-weight: 900;
 }
 
-/* 玩家列表 */
+
+/* SECTION: 玩家状态列表 */
+/* NOTE: 列表高度随左侧面板伸缩，玩家过多时只滚动列表区域。 */
 .player-list {
   list-style: none;
   flex: 1;
@@ -232,7 +247,9 @@
 .status-dot.ready { background-color: #FF8FAB; }
 .status-dot.unready { background-color: #FAF5F7; }
 
-/* 聊天区 */
+
+/* SECTION: 大厅闲聊 */
+/* NOTE: 聊天不持久化，样式只服务开局前交流。 */
 .chat-box {
   flex: 1;
   border: 1.5px solid #4A2A33;
@@ -247,5 +264,6 @@
 .chat-msg.system span { color: #A0858D; }
 .chat-input-area { display: flex; gap: 10px; }
 
-/* 复用按钮逻辑 */
+
+/* SECTION: 发车按钮 */
 .start-btn { margin-top: 15px; }

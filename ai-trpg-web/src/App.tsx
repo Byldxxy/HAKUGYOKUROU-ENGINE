@@ -1,4 +1,3 @@
-// src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Auth from './pages/Auth'; 
 import Home from './pages/Home';
@@ -6,25 +5,23 @@ import Lobby from './pages/Lobby';
 import Game from './pages/Game';
 import CreateCharacter from './pages/CreateCharacter';
 
-// 注意：刚才写在外面的代码已经被删掉了
-
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 默认打开网站先进入登录/注册页 */}
+        {/* SECTION: 入口路由 */}
+        {/* NOTE: / 是登录/注册页，登录成功后进入大厅首页 /hall。 */}
         <Route path="/" element={<Auth />} />
-        
-        {/* 登录成功后进入的大厅 */}
         <Route path="/hall" element={<Home />} />
-        
+
+        {/* SECTION: 房间与游戏路由 */}
+        {/* NOTE: roomId 是大厅和游戏页共同的房间上下文。 */}
         <Route path="/lobby/:roomId" element={<Lobby />} />
         <Route path="/game/:roomId" element={<Game />} />
 
-        {/* 👇 把它移动到这里！必须包裹在 <Routes> 内部，且在兜底规则的上方 👇 */}
+        {/* SECTION: 角色卡路由 */}
+        {/* NOTE: 新建和编辑共用同一页，编辑数据通过 navigate state 传入。 */}
         <Route path="/create-character" element={<CreateCharacter />} />
-
-        {/* 未知路径统一重定向到登录页 */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

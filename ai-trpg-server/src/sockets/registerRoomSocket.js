@@ -1,9 +1,16 @@
 const roomLogRepository = require('../repositories/roomLogRepository');
 const saveRepository = require('../repositories/saveRepository');
 const aiService = require('../services/aiService');
+const {
+  parseRollRequests,
+  parseRollActionSkill,
+  isRollResultMessage,
+} = require('../domain/directives');
 
 const liveRooms = {};
 
+// SECTION: 大厅广播
+// NOTE: liveRooms 是内存态，广播时只发送前端需要展示的房主和玩家列表。
 const emitLobbyUpdate = (io, roomId) => {
   const room = liveRooms[roomId];
   if (!room) return;
@@ -14,6 +21,8 @@ const emitLobbyUpdate = (io, roomId) => {
   });
 };
 
+// SECTION: 大厅玩家快照
+// NOTE: playerName 现在等同于角色卡姓名；accountName 字段暂时保留给旧数据兼容。
 const buildLobbyPlayer = ({ socketId, playerName, characterInfo = {}, existingPlayer = {} }) => ({
   ...existingPlayer,
   id: socketId,
@@ -28,6 +37,8 @@ const buildLobbyPlayer = ({ socketId, playerName, characterInfo = {}, existingPl
   fullData: characterInfo.fullData || existingPlayer.fullData,
 });
 
+// SECTION: 角色卡兼容读取
+// NOTE: fullData 可能来自角色卡完整结构，也可能来自旧的扁平结构。
 const getSyncedCharacterName = (fullData) => {
   return fullData?.basicInfo?.name || fullData?.fullData?.basicInfo?.name || fullData?.name;
 };
@@ -36,25 +47,10 @@ const getSyncedRole = (fullData) => {
   return fullData?.basicInfo?.occupation || fullData?.fullData?.basicInfo?.occupation || fullData?.role || '未知职业';
 };
 
-const parseExpectedRollers = (dmMessage) => {
-  const rollRegex = /<<ROLL:(.*?):(.*?)(?:>>|>)/g;
-  const expectedRollers = new Set();
-  let match;
-
-  while ((match = rollRegex.exec(dmMessage || '')) !== null) {
-    expectedRollers.add(match[2].trim());
-  }
-
-  return expectedRollers;
-};
-
-const parseRollActionSkill = (message) => {
-  const match = String(message || '').match(/^\[对\s*(.*?)\s*进行检定\]/);
-  return match?.[1]?.trim() || '';
-};
-
-const hasRollResultInCurrentRound = ({ lines, playerName, skillName }) => {
-  if (!skillName) return false;
+// SECTION: 重复检定拦截
+// NOTE: 新请求优先使用 rollId；旧日志没有 rollId 时回退到“角色 + 技能”判断。
+const hasRollResultInCurrentRound = ({ lines, playerName, skillName, rollId }) => {
+  if (!skillName && !rollId) return false;
 
   const lastDmIndex = lines.map((line) => line.type).lastIndexOf('dm_reply');
   const currentRound = lines.slice(lastDmIndex + 1);
@@ -62,11 +58,16 @@ const hasRollResultInCurrentRound = ({ lines, playerName, skillName }) => {
   return currentRound.some((line) => (
     line.type === 'player_action' &&
     line.playerName === playerName &&
-    parseRollActionSkill(line.content) === skillName &&
-    String(line.content || '').includes('D100 =')
+    isRollResultMessage(line.content) &&
+    (
+      (rollId && line.rollId === rollId) ||
+      (!rollId && parseRollActionSkill(line.content) === skillName)
+    )
   ));
 };
 
+// SECTION: 玩家名解析
+// NOTE: AI 输出的是角色卡姓名，但历史字段里可能叫 name、accountName 或 characterName。
 const resolvePlayerName = (room, targetName) => {
   const target = (targetName || '').trim();
   const player = room?.players.find((item) => (
@@ -80,45 +81,132 @@ const resolvePlayerName = (room, targetName) => {
   return player?.name || player?.characterName || player?.accountName || null;
 };
 
+// SECTION: 房间玩家名单
+// NOTE: 回合状态只关心当前可行动的展示名，过滤掉空值避免锁定异常。
+const getRoomPlayerNames = (room) => {
+  return (room?.players || []).map((player) => player.name || player.characterName || player.accountName).filter(Boolean);
+};
+
+// SECTION: 当前回合切片
+// NOTE: 最后一条 DM 之后的所有日志都属于当前玩家行动/检定回合。
+const getCurrentRound = (lines) => {
+  const lastDmIndex = lines.map((line) => line.type).lastIndexOf('dm_reply');
+  return {
+    lastDmIndex,
+    lastDmMessage: lastDmIndex !== -1 ? lines[lastDmIndex].content : '',
+    currentRound: lines.slice(lastDmIndex + 1),
+  };
+};
+
+// SECTION: 检定结果定位
+// NOTE: turn_state 需要知道每个 ROLL 是否已有结果，才能决定是否继续锁输入框。
+const findRollResultLine = ({ currentRound, playerName, skillName, rollId }) => {
+  return currentRound.find((line) => (
+    line.type === 'player_action' &&
+    line.playerName === playerName &&
+    isRollResultMessage(line.content) &&
+    (
+      (rollId && line.rollId === rollId) ||
+      (!line.rollId && parseRollActionSkill(line.content) === skillName)
+    )
+  ));
+};
+
+// NOTE: 回合状态由后端统一推导，前端只负责展示和锁定输入。
+const buildTurnState = ({ roomId, room, lines }) => {
+  const playerNames = getRoomPlayerNames(room);
+  const { lastDmIndex, lastDmMessage, currentRound } = getCurrentRound(lines);
+  const rollRequests = parseRollRequests(lastDmMessage).map((request) => {
+    const playerName = resolvePlayerName(room, request.player) || request.player;
+    // NOTE: rollId 必须稳定可复算，刷新后前端才能把结果回填到同一个判定框。
+    const rollId = `${lastDmIndex}-${request.index}-${playerName}-${request.skill}`;
+    const resultLine = findRollResultLine({
+      currentRound,
+      playerName,
+      skillName: request.skill,
+      rollId,
+    });
+
+    return {
+      id: rollId,
+      index: request.index,
+      skill: request.skill,
+      player: playerName,
+      originalPlayer: request.player,
+      resolved: Boolean(resultLine),
+      result: resultLine?.content || '',
+    };
+  });
+
+  // NOTE: 玩家普通行动不包含 D100；检定结果属于 ROLL 流程，不算作普通发言。
+  const pendingRolls = rollRequests.filter((request) => !request.resolved);
+  const actionLines = currentRound.filter((line) => line.type === 'player_action' && !isRollResultMessage(line.content));
+  const actedPlayers = Array.from(new Set(actionLines.map((line) => line.playerName)));
+  const pendingPlayers = playerNames.filter((name) => !actedPlayers.includes(name));
+
+  if (rollRequests.length > 0) {
+    // NOTE: 只要 DM 发出了 ROLL，本轮就进入检定门；全部投完后等待 AI 结算。
+    return {
+      roomId,
+      mode: pendingRolls.length > 0 ? 'waiting_rolls' : 'waiting_dm',
+      inputLocked: true,
+      players: playerNames,
+      actedPlayers,
+      pendingPlayers: [],
+      rollRequests,
+      pendingRolls,
+      pendingRollPlayers: Array.from(new Set(pendingRolls.map((request) => request.player))),
+    };
+  }
+
+  return {
+    roomId,
+    mode: pendingPlayers.length > 0 ? 'waiting_players' : 'waiting_dm',
+    inputLocked: pendingPlayers.length === 0,
+    players: playerNames,
+    actedPlayers,
+    pendingPlayers,
+    rollRequests: [],
+    pendingRolls: [],
+    pendingRollPlayers: [],
+  };
+};
+
+// SECTION: 回合状态广播
+// NOTE: 每次玩家进房、同步角色、行动、AI 回复后都应广播，保证刷新/重连能恢复锁定状态。
+const emitTurnState = (io, roomId) => {
+  const room = liveRooms[roomId];
+  if (!room) return null;
+
+  const lines = roomLogRepository.readRoomLines(roomId);
+  const turnState = buildTurnState({ roomId, room, lines });
+  io.to(roomId).emit('turn_state', turnState);
+  return turnState;
+};
+
+// SECTION: AI 触发条件
+// NOTE: 不直接读取前端状态，而是复用 buildTurnState，确保广播状态和触发条件一致。
 const shouldTriggerDm = ({ room, lines }) => {
   if (!room || room.players.length === 0) return false;
 
-  const lastDmIndex = lines.map((line) => line.type).lastIndexOf('dm_reply');
-  const lastDmMessage = lastDmIndex !== -1 ? lines[lastDmIndex].content : '';
-  const currentRound = lines.slice(lastDmIndex + 1);
-
-  const expectedRollers = parseExpectedRollers(lastDmMessage);
-  const validExpectedRollers = [...expectedRollers]
-    .map((name) => resolvePlayerName(room, name))
-    .filter(Boolean);
-
-  if (validExpectedRollers.length > 0) {
-    const actualRollers = new Set(
-      currentRound
-        .filter((line) => (line.content || '').includes('D100 ='))
-        .map((line) => line.playerName)
-    );
-
-    const allRolled = validExpectedRollers.every((player) => actualRollers.has(player));
-    if (!allRolled) {
-      console.log(`⏳ [等待检定] 还需要等待: ${validExpectedRollers.filter((p) => !actualRollers.has(p)).join(', ')}`);
+  const turnState = buildTurnState({ roomId: undefined, room, lines });
+  if (turnState.rollRequests.length > 0) {
+    if (turnState.pendingRolls.length > 0) {
+      console.log(`⏳ [等待检定] 还需要等待: ${turnState.pendingRollPlayers.join(', ')}`);
+      return false;
     }
-    return allRolled;
+    return true;
   }
 
-  const actedPlayers = new Set(
-    currentRound
-      .filter((line) => line.type === 'player_action')
-      .map((line) => line.playerName)
-  );
-
-  const allActed = actedPlayers.size >= room.players.length;
+  const allActed = turnState.pendingPlayers.length === 0;
   if (!allActed) {
-    console.log(`⏳ [等待发言] 房间共 ${room.players.length} 人，当前已有 ${actedPlayers.size} 人行动`);
+    console.log(`⏳ [等待发言] 房间共 ${room.players.length} 人，当前已有 ${turnState.actedPlayers.length} 人行动`);
   }
   return allActed;
 };
 
+// SECTION: 玩家离房
+// NOTE: 主动离开和断线共用同一逻辑；房间空了就销毁内存状态。
 const removePlayerFromRoom = ({ io, socket, roomId, playerName, reason = '离开' }) => {
   const room = liveRooms[roomId];
   if (!room) return false;
@@ -147,6 +235,8 @@ const registerRoomSocket = (io) => {
   io.on('connection', (socket) => {
     console.log(`⚡ 新玩家已连接，连接 ID: ${socket.id}`);
 
+    // SECTION: 大厅加入
+    // NOTE: 大厅身份以角色卡姓名为准；同一 socket 或同一角色名重复进入时更新旧条目。
     socket.on('join_lobby', ({ roomId, playerName, characterInfo }) => {
       socket.join(roomId);
 
@@ -168,6 +258,7 @@ const registerRoomSocket = (io) => {
 
       if (existingPlayerIndex !== -1) {
         const existingPlayer = room.players[existingPlayerIndex];
+        // NOTE: 房主切换角色名时，ownerName 必须跟着迁移，否则会丢房主权限。
         const wasOwner = [existingPlayer.name, existingPlayer.accountName, existingPlayer.characterName].includes(room.ownerName);
         room.players[existingPlayerIndex] = buildLobbyPlayer({
           socketId: socket.id,
@@ -183,11 +274,16 @@ const registerRoomSocket = (io) => {
       emitLobbyUpdate(io, roomId);
     });
 
+    // SECTION: 游戏房间加入
+    // NOTE: 游戏页加入后立刻补发 turn_state，让刷新后的输入锁保持正确。
     socket.on('join_room', (roomId) => {
       socket.join(roomId);
       emitLobbyUpdate(io, roomId);
+      emitTurnState(io, roomId);
     });
 
+    // SECTION: 角色同步
+    // NOTE: 参数 nickname 是旧命名，现在实际传入角色卡姓名。
     socket.on('sync_character', ({ roomId, nickname, fullData }) => {
       socket.join(roomId);
       const room = liveRooms[roomId];
@@ -203,6 +299,7 @@ const registerRoomSocket = (io) => {
       const role = getSyncedRole(fullData);
 
       if (player) {
+        // NOTE: 同一个玩家进入游戏页后 socket.id 会变化，这里用最新连接覆盖旧连接。
         const wasOwner = [player.name, player.accountName, player.characterName].includes(room.ownerName);
         player.id = socket.id;
         player.name = nickname;
@@ -216,6 +313,7 @@ const registerRoomSocket = (io) => {
         player.role = role;
         if (wasOwner) room.ownerName = nickname;
       } else {
+        // NOTE: 允许游戏页直接同步角色，以兜底大厅玩家列表丢失或后端重启后的情况。
         room.players.push({
           id: socket.id,
           name: nickname,
@@ -231,9 +329,12 @@ const registerRoomSocket = (io) => {
       }
 
       emitLobbyUpdate(io, roomId);
+      emitTurnState(io, roomId);
       console.log(`🔄 玩家 ${nickname} 的角色卡已同步至房间 ${roomId}`);
     });
 
+    // SECTION: 房主发车
+    // NOTE: 新游戏会清空旧日志；加载存档会把存档 JSONL 恢复成当前房间日志。
     socket.on('host_start_game', ({ roomId, loadSaveId }) => {
       const room = liveRooms[roomId];
       const player = room?.players.find((item) => item.id === socket.id);
@@ -258,6 +359,8 @@ const registerRoomSocket = (io) => {
       io.to(roomId).emit('lobby_chat_receive', msg);
     });
 
+    // SECTION: 主动离开
+    // NOTE: ack 用于让前端不用等 disconnect，也能立刻返回大厅。
     socket.on('leave_room', ({ roomId, playerName }, ack) => {
       if (!roomId) {
         if (typeof ack === 'function') ack({ success: false });
@@ -267,30 +370,36 @@ const registerRoomSocket = (io) => {
       if (typeof ack === 'function') ack({ success: true });
     });
 
+    // SECTION: 玩家行动入口
+    // NOTE: 普通行动和骰子结果共用入口，isRoll 用于区分日志角色和 AI 触发条件。
     socket.on('player_action', async (data) => {
-      const { roomId, playerName, message, isRoll } = data;
+      const { roomId, playerName, message, isRoll, rollId } = data;
       const room = liveRooms[roomId];
       const linesBeforeAction = roomLogRepository.readRoomLines(roomId);
 
       if (isRoll) {
         const skillName = parseRollActionSkill(message);
-        if (hasRollResultInCurrentRound({ lines: linesBeforeAction, playerName, skillName })) {
+        // NOTE: 这里是刷新后防重复投骰的最后防线，前端按钮锁不能作为安全依据。
+        if (hasRollResultInCurrentRound({ lines: linesBeforeAction, playerName, skillName, rollId })) {
           console.log(`🛑 [重复检定拦截] ${playerName} 已完成 ${skillName} 检定，忽略重复骰子`);
-          socket.emit('roll_rejected', { reason: 'duplicate_roll', skillName });
+          socket.emit('roll_rejected', { reason: 'duplicate_roll', skillName, rollId });
           return;
         }
       }
 
-      roomLogRepository.appendAction({ roomId, playerName, content: message });
+      roomLogRepository.appendAction({ roomId, playerName, content: message, rollId });
       console.log(`💾 [房间 ${roomId}] 收到行动: ${playerName}`);
 
       io.to(roomId).emit('new_message', {
         role: isRoll ? 'roll' : 'player',
         sender: playerName,
         content: message,
+        rollId,
       });
 
       const lines = roomLogRepository.readRoomLines(roomId);
+      // NOTE: 先广播 turn_state，让所有客户端立刻看到“等待谁”的最新状态。
+      emitTurnState(io, roomId);
       if (!shouldTriggerDm({ room, lines })) return;
 
       console.log('✅ [触发条件满足] 呼叫 AI...');
@@ -303,6 +412,7 @@ const registerRoomSocket = (io) => {
           sender: '系统 DM',
           content: dmReplyContent,
         });
+        emitTurnState(io, roomId);
       } catch (error) {
         console.error('❌ AI 接口调用失败:', error.message);
         io.to(roomId).emit('new_message', {
@@ -310,9 +420,12 @@ const registerRoomSocket = (io) => {
           sender: '系统 DM',
           content: '（星舰通讯受阻...）',
         });
+        emitTurnState(io, roomId);
       }
     });
 
+    // SECTION: 断线清理
+    // NOTE: 当前版本断线即移出房间；后续如果做断线重连，需要改成保留席位。
     socket.on('disconnect', () => {
       for (const roomId in liveRooms) {
         if (removePlayerFromRoom({ io, socket, roomId, reason: '断开连接' })) break;
