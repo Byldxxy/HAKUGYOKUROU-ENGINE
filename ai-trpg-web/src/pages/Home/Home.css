@@ -1,0 +1,191 @@
+/* --- 页面基础环境 --- */
+.home-container {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FAF5F7; /* 极浅的暖灰粉色，高级留白 */
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+/* --- 核心扁平卡片 --- */
+.boutique-card {
+  width: 100%;
+  max-width: 420px;
+  background: #FFFFFF;
+  padding: 50px 40px;
+  /* 扁平化设计的灵魂：细边框 + 实体偏移阴影 */
+  border: 1.5px solid #4A2A33;
+  box-shadow: 8px 8px 0px #FFC2D1;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+/* --- 标题排版 --- */
+.header-group {
+  text-align: center;
+  margin-bottom: 45px;
+}
+
+.title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #4A2A33; /* 深勃艮第红，代替死板的纯黑 */
+  margin: 0 0 8px 0;
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  font-size: 0.75rem;
+  color: #A0858D;
+  letter-spacing: 4px;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* --- 操作区布局 --- */
+.action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* 按钮基础统一样式 */
+.flat-btn {
+  height: 50px;
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 主按钮：创建房间 */
+.flat-btn.primary {
+  width: 100%;
+  background-color: #FF8FAB;
+  color: #FFFFFF;
+  border: 1.5px solid #4A2A33;
+  box-shadow: 4px 4px 0px #4A2A33;
+}
+
+.flat-btn.primary:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #4A2A33;
+}
+
+.flat-btn.primary:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0px #4A2A33;
+}
+
+/* 分割线 */
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 25px 0;
+  color: #D4C3C7;
+  font-size: 0.85rem;
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: #EFE6E8;
+}
+.divider span {
+  padding: 0 15px;
+}
+
+/* --- 修复后的加入房间输入区 --- */
+.join-row {
+  display: flex;
+  width: 100%;
+  gap: 12px;
+  box-sizing: border-box; /* 严防溢出 */
+}
+
+.flat-input {
+  flex: 1;
+  width: 0; /* 强迫 flex 元素遵守父级宽度，防止撑破 */
+  height: 50px;
+  border: 1.5px solid #D4C3C7;
+  border-radius: 4px;
+  padding: 0 15px;
+  font-size: 1rem;
+  color: #4A2A33;
+  text-align: center;
+  transition: border-color 0.2s;
+  background: #FFFFFF;
+  outline: none;
+}
+
+.flat-input:focus {
+  border-color: #FF8FAB;
+}
+
+.flat-input::placeholder {
+  color: #D4C3C7;
+  font-weight: 300;
+}
+
+/* 次按钮：加入 */
+.flat-btn.secondary {
+  width: 90px;
+  flex-shrink: 0; /* 防止按钮被挤压 */
+  background-color: #FFFFFF;
+  color: #4A2A33;
+  border: 1.5px solid #4A2A33;
+}
+
+.flat-btn.secondary:hover {
+  background-color: #FAF5F7;
+}
+
+/* --- 底部装饰 --- */
+.footer-text {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 0.8rem;
+  color: #C2B0B5;
+  letter-spacing: 2px;
+}
+
+/* 追加到 Home.css 底部 */
+.user-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1.5px dashed #EFE6E8;
+}
+
+.greeting {
+  font-size: 1.05rem;
+  color: #4A2A33;
+  font-weight: bold;
+}
+.greeting .highlight-text {
+  color: #FF8FAB;
+}
+
+.logout-btn {
+  background: transparent;
+  border: none;
+  color: #A0858D;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+.logout-btn:hover {
+  color: #d81b60;
+}

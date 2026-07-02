@@ -1,0 +1,430 @@
+/* src/pages/CreateCharacter/CreateCharacter.css */
+
+/* 1. 全局容器与布局架构 */
+.create-char-container {
+  min-height: 100vh;
+  padding: 40px;
+  display: flex;
+  justify-content: center;
+  background-color: #FAF5F7; /* 奶粉灰底色 */
+  color: #4A2A33; /* 勃艮第酒红文字 */
+}
+
+.char-workspace {
+  display: flex;
+  width: 100%;
+  max-width: 1400px;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* 2. 左侧固定侧边栏 (粘性定位) */
+.char-sidebar {
+  flex: 0 0 220px;
+  height: calc(100vh - 80px); /* 高度自适应屏幕 */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* 顶部分布标题页签，底部分布按钮 */
+  padding: 24px 20px;
+  position: sticky;
+  top: 40px;
+  box-sizing: border-box;
+}
+
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.sidebar-title {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.5;
+  text-align: center;
+  padding-bottom: 20px;
+  border-bottom: 1.5px dashed #EFE6E8;
+}
+
+.sidebar-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar-tabs .tab-btn {
+  background: transparent;
+  border: 1.5px solid transparent;
+  padding: 12px;
+  text-align: center;
+  font-weight: bold;
+  color: #A0858D;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%; 
+  box-sizing: border-box; /* 保证内边距不会把宽度撑破 */
+}
+
+.sidebar-tabs .tab-btn:hover {
+  background: #EFE6E8;
+  color: #4A2A33;
+}
+
+.sidebar-tabs .tab-btn.active {
+  background: #4A2A33;
+  color: #FFFFFF;
+  border-color: #4A2A33;
+  box-shadow: 4px 4px 0px #FFC2D1;
+  transform: translate(-2px, -2px);
+}
+
+/* --- 彻底解决侧边栏底部按钮不对齐的终极方案 --- */
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%; /* 确保父容器本身是满宽的 */
+}
+
+/* 增加选择器权重，并强制覆盖全局样式 */
+.sidebar-bottom button.flat-btn {
+  width: 100% !important; /* 强制满宽，无视一切全局设置 */
+  box-sizing: border-box !important; /* 严格控制盒模型 */
+  margin: 0 !important; /* 清除任何可能导致错位的边距 */
+  display: block !important; /* 强制变为块级元素 */
+  text-align: center;
+}
+
+
+/* --- 给动态技能表新增一点样式 --- */
+.skill-input.text {
+  width: 140px;
+  text-align: left;
+}
+.stat-highlight {
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+.error-text {
+  color: #c62828 !important;
+}
+
+/* 3. 右侧动态内容区 */
+.char-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 30px;
+  min-height: calc(100vh - 80px); /* 保证内容太少时也撑开高度 */
+}
+
+.section-title {
+  font-size: 1.1rem;
+  margin: 0 0 15px 0;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid #EFE6E8;
+  letter-spacing: 1px;
+}
+
+/* 4. 统一扁平化输入框组件 */
+.form-row {
+  display: flex;
+  gap: 24px;
+  margin-top: 15px;
+}
+
+.form-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-item.small {
+  flex: 0 0 120px;
+}
+
+.form-item label {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #A0858D;
+  letter-spacing: 1px;
+}
+
+.flat-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 15px;
+  font-size: 1rem;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  background-color: #FAF5F7;
+  color: #4A2A33;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.flat-input:focus {
+  background-color: #FFFFFF;
+  box-shadow: 4px 4px 0px #FFC2D1;
+  transform: translate(-2px, -2px);
+}
+
+textarea.flat-input {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+}
+
+/* 5. 立绘上传组件 */
+.avatar-upload-box {
+  width: 200px;
+  height: 280px;
+  border: 2px dashed #A0858D;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #FAF5F7;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.avatar-upload-box:hover {
+  border-color: #FF8FAB;
+  background-color: #FFFFFF;
+  box-shadow: 4px 4px 0px #FFC2D1;
+}
+
+.avatar-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-placeholder {
+  color: #A0858D;
+  font-weight: bold;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.upload-placeholder span {
+  font-size: 2rem;
+  color: #FF8FAB;
+}
+
+/* 6. 核心属性与骰子网格 */
+/* 将网格调整为更灵活的模式 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 依然是4列 */
+  gap: 15px;
+  margin-top: 20px;
+  align-items: stretch;
+}
+
+/* 关键：让属性说明框占据剩余的所有列，并与幸运框并排 */
+.attr-desc-box {
+    background: #FFFFFF;
+    border: 1.5px solid #EFE6E8;
+    padding: 20px;
+    /* 不再使用 margin-top，而是让它成为网格的一部分 */
+    grid-column: span 3; /* 让它横跨 3 个格子，刚好填满 LUC 右侧的空位 */
+    font-size: 0.9rem;
+    color: #4A2A33;
+    line-height: 1.6;
+    border-radius: 4px;
+}
+.attr-desc-box b { color: #FF8FAB; }
+
+
+.stat-box {
+  background: #FAF5F7;
+  border: 1.5px solid #EFE6E8;
+  border-radius: 4px;
+  padding: 15px 10px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.stat-box:hover {
+  background: #FFFFFF;
+  border-color: #4A2A33;
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0px #FFC2D1;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #A0858D;
+  margin-bottom: 5px;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 900;
+  color: #4A2A33;
+}
+
+.stat-value.high { color: #FF8FAB; }
+.stat-value.low { color: #A0858D; opacity: 0.6; }
+
+/* 7. 技能表格样式 */
+.skill-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.skill-table th, .skill-table td {
+  border-bottom: 1.5px solid #EFE6E8;
+  padding: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.skill-table th { color: #A0858D; font-weight: bold; }
+.skill-table td { color: #4A2A33; font-weight: 600; }
+.skill-input { width: 50px; text-align: center; padding: 5px; }
+
+/* --- 基础属性生成模式切换 --- */
+.stat-mode-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 15px;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* 萌新引导说明框 */
+.info-box {
+  background-color: #EFE6E8;
+  border-left: 4px solid #FF8FAB;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  color: #4A2A33;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* 购点模式下，属性框变成可输入的样式 */
+/* 移除之前的 dashed 线和箭头，使其看起来像纯文本输入 */
+.stat-input {
+  width: 100%;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 900;
+  color: #4A2A33;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  padding: 5px 0;
+  /* 去除 input type="number" 的箭头 */
+  -moz-appearance: textfield; 
+}
+.stat-input::-webkit-outer-spin-button,
+.stat-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stat-input:focus {
+  border-bottom: 2px solid #FF8FAB;
+  color: #FF8FAB;
+}
+
+/* 强制让投掷按钮变短 */
+.btn-short {
+  width: auto !important;
+  padding: 10px 20px !important;
+}
+
+/* 购点上限控制区 */
+.point-buy-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FAF5F7;
+  padding: 10px 15px;
+  border: 1.5px solid #EFE6E8;
+  border-radius: 4px;
+}
+
+
+/* 保证不论是 div 还是 input，显示出的盒子高度完全一致 */
+.stat-box {
+  background: #FAF5F7;
+  border: 1.5px solid #EFE6E8;
+  border-radius: 4px;
+  padding: 15px 10px;
+  text-align: center;
+  position: relative; /* 为骰子按钮的绝对定位提供父容器 */
+  /*min-height: 85px;  强制设定最小高度，防止抖动 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 幸运专属骰子按钮：固定在右上角 */
+.luc-dice-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  padding: 2px 6px !important;
+  font-size: 0.7rem !important;
+}
+
+/* 统一数值类：确保不论显示什么，占位空间都一样 */
+.stat-display-wrapper {
+  font-size: 26px;
+  font-weight: 900;
+  color: #4A2A33;
+  width: 100%;
+}
+
+/* 彻底隐藏技能输入框的上下箭头，让它看起来像纯文本 */
+.skill-input {
+  -moz-appearance: textfield;
+}
+
+.skill-input::-webkit-outer-spin-button,
+.skill-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* 技能表容器加点滚动条，因为技能现在有很多了 */
+.skill-table-container {
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1.5px solid #EFE6E8;
+  border-radius: 4px;
+}
+
+/* 优化表格头部，让它在滚动时吸顶 */
+.skill-table thead th {
+  position: sticky;
+  top: 0;
+  background-color: #FAF5F7;
+  z-index: 1;
+  border-bottom: 2px solid #EFE6E8;
+}

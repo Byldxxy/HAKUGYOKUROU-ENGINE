@@ -1,0 +1,59 @@
+.relation-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 15px;
+}
+
+.relation-toolbar { display: flex; gap: 10px; }
+.flat-btn.small { height: 36px; padding: 0 15px; }
+
+.relation-canvas {
+  flex: 1;
+  position: relative;
+  border: 1.5px solid #D4C3C7;
+  background-color: #FFFFFF;
+  border-radius: 4px;
+  overflow: hidden;
+  /* 添加微弱的点阵背景增加画布质感 */
+  background-image: radial-gradient(#EFE6E8 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+.relation-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; /* SVG 自身不阻挡拖拽事件，但内部的连线/文本可以 */
+}
+.relation-svg g { pointer-events: all; }
+
+.graph-node {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%; /* 变成圆形 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-align: center;
+  background-color: #FFFFFF;
+  box-shadow: 3px 3px 0px #FFC2D1;
+  user-select: none;
+  cursor: grab;
+}
+.graph-node:active { cursor: grabbing; }
+
+.trash-zone {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  padding: 15px 25px;
+  background-color: #FAF5F7;
+  color: #d81b60;
+  font-weight: bold;
+  border-color: #d81b60;
+  box-shadow: 4px 4px 0px rgba(216, 27, 96, 0.2);
+}

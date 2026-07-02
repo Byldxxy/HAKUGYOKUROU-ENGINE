@@ -1,0 +1,251 @@
+.lobby-container {
+  min-height: 100vh;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: #FAF5F7;
+  color: #4A2A33;
+}
+
+/* 统一的扁平硬阴影卡片 */
+.flat-box {
+  background: #FFFFFF;
+  border: 1.5px solid #4A2A33;
+  box-shadow: 6px 6px 0px #FFC2D1;
+  border-radius: 4px;
+}
+
+.lobby-header {
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between; /* 核心：把文本和按钮分别推向两端 */
+  align-items: center; /* 核心：垂直居中对齐 */
+}
+.lobby-header h2 { margin: 0; font-size: 1.4rem; letter-spacing: 1px; }
+.highlight-text { color: #FF8FAB; font-weight: 900; }
+
+/* 补上小尺寸按钮的样式 */
+.flat-btn.small { 
+  height: 36px; 
+  padding: 0 15px; 
+  font-size: 0.85rem; 
+}
+
+.lobby-content {
+  display: flex;
+  gap: 24px;
+  height: calc(100vh - 150px);
+}
+.lobby-left-panel, .lobby-right-panel {
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+}
+.lobby-left-panel { flex: 1.2; }
+.lobby-right-panel { flex: 1; }
+
+.section-title {
+  font-size: 1.1rem;
+  margin: 0 0 15px 0;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid #EFE6E8;
+  letter-spacing: 1px;
+}
+
+/* --- 核心：风格化下拉菜单 --- */
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.config-form label {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #A0858D;
+  margin-top: 5px;
+}
+
+.flat-select {
+  appearance: none; /* 清除系统默认样式 */
+  -webkit-appearance: none;
+  background-color: #FAF5F7;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  padding: 12px 15px;
+  font-size: 1rem;
+  color: #4A2A33;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  /* 自定义内嵌 SVG 箭头 */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A2A33' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  background-size: 16px;
+}
+
+.flat-select:hover {
+  background-color: #FFFFFF;
+}
+.flat-select:focus {
+  box-shadow: 4px 4px 0px #4A2A33;
+  transform: translate(-2px, -2px);
+}
+
+.styled-select {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  outline: none;
+}
+
+.character-panel .styled-select {
+  flex: 1;
+}
+
+.styled-select-trigger {
+  width: 100%;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #FAF5F7;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  color: #4A2A33;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 0 16px 0 18px;
+  text-align: left;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.styled-select-trigger span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.styled-select.open .styled-select-trigger,
+.styled-select:focus-within .styled-select-trigger {
+  background: #FFFFFF;
+  box-shadow: 4px 4px 0px #4A2A33;
+  transform: translate(-2px, -2px);
+}
+
+.styled-select.disabled .styled-select-trigger {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.styled-select-arrow {
+  flex: 0 0 auto;
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.styled-select-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #FFFFFF;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  box-shadow: 6px 6px 0px #FFC2D1;
+  padding: 8px;
+}
+
+.styled-select-option {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #FFFFFF;
+  border: 1.5px solid transparent;
+  border-radius: 4px;
+  color: #4A2A33;
+  cursor: pointer;
+  font-size: 0.98rem;
+  font-weight: 800;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.styled-select-option + .styled-select-option {
+  margin-top: 6px;
+}
+
+.styled-select-option:hover {
+  background: #FAF5F7;
+  border-color: #EFE6E8;
+}
+
+.styled-select-option.selected {
+  background: #FF8FAB;
+  border-color: #4A2A33;
+  color: #FFFFFF;
+}
+
+.styled-select-check {
+  flex: 0 0 auto;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+/* 玩家列表 */
+.player-list {
+  list-style: none;
+  flex: 1;
+  overflow-y: auto;
+}
+.player-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  border: 1.5px solid #EFE6E8;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+.player-info { display: flex; align-items: center; gap: 10px; font-weight: bold; }
+.player-role { color: #A0858D; font-size: 0.9rem; }
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid #4A2A33;
+}
+.status-dot.ready { background-color: #FF8FAB; }
+.status-dot.unready { background-color: #FAF5F7; }
+
+/* 聊天区 */
+.chat-box {
+  flex: 1;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 15px;
+  overflow-y: auto;
+  background: #FAF5F7;
+}
+.chat-msg { margin-bottom: 10px; font-size: 0.95rem; line-height: 1.5; }
+.chat-msg span { font-weight: 800; margin-right: 5px; }
+.chat-msg.system span { color: #A0858D; }
+.chat-input-area { display: flex; gap: 10px; }
+
+/* 复用按钮逻辑 */
+.start-btn { margin-top: 15px; }

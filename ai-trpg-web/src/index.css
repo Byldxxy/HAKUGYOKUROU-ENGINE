@@ -1,0 +1,23 @@
+/* src/index.css */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* 定义全局粉色系色板 */
+  --theme-bg-base: #FFF0F5;       /* 极浅的淡紫粉背景 */
+  --theme-panel-bg: rgba(255, 235, 240, 0.7); /* 半透明毛玻璃面板背景 */
+  --theme-primary: #FF8FAB;       /* 主按钮高亮色 */
+  --text-main: #5C3A41;           /* 深玫瑰色主文本 */
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--theme-bg-base);
+  color: var(--text-main);
+  /* 这里以后可以加一张高清的粉色系二次元全屏背景图 */
+  /* background-image: url('./assets/bg.jpg'); */
+  /* background-size: cover; */
+}

@@ -1,0 +1,247 @@
+.game-container {
+  height: 100vh;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  background-color: #FAF5F7;
+  color: #4A2A33;
+  position: relative; /* 为弹窗提供定位基准 */
+}
+
+.flat-btn.small { height: 36px; padding: 0 15px; font-size: 0.85rem; }
+.game-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 24px; }
+.room-info { font-weight: 900; letter-spacing: 1px; font-size: 1.1rem; }
+
+.game-body {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* --- 左侧边栏重构 --- */
+.game-sidebar {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.my-character-panel {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* 赋予可点击元素的交互反馈 */
+.clickable {
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.clickable:hover {
+  transform: translate(-2px, -2px);
+}
+
+.avatar-box {
+  width: 100%;
+  aspect-ratio: 1 / 1; /* 改为正方形更契合现代UI */
+  background-color: #FAF5F7;
+  border: 1.5px solid #4A2A33;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+}
+
+.stats-board { display: flex; flex-direction: column; gap: 8px; }
+.stat-item { display: flex; align-items: center; gap: 10px; }
+.stat-label { font-weight: 800; font-size: 0.8rem; width: 35px; }
+
+.stat-bar-bg {
+  flex: 1;
+  height: 12px;
+  background-color: #FAF5F7;
+  border: 1.5px solid #4A2A33;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.stat-bar-fill { height: 100%; border-right: 1.5px solid #4A2A33; transition: width 0.3s ease; }
+.stat-bar-fill.hp { background-color: #FF8FAB; }
+.stat-bar-fill.san { background-color: #4cd137; }
+.stat-bar-fill.mp { background-color: #8fb8ff; } /* 魔法值用清爽的蓝色 */
+
+/* 新增：状态条后面的数字样式 */
+.stat-value {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #A0858D;
+  width: 45px;
+  text-align: right;
+  font-family: monospace;
+}
+
+/* 队友列表区域 */
+.teammates-section { display: flex; flex-direction: column; gap: 10px; }
+.section-subtitle { margin: 0; font-size: 0.9rem; color: #A0858D; border-bottom: 1px solid #D4C3C7; padding-bottom: 5px; }
+
+.teammate-card {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: #FFFFFF;
+}
+.teammate-name { font-weight: bold; font-size: 1rem; border-bottom: 1.5px dashed #EFE6E8; padding-bottom: 4px; }
+.teammate-mini-stats { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; font-family: monospace; }
+.mini-stat.hp { color: #d81b60; }
+.mini-stat.san { color: #A0858D; }
+.mini-stat.mp { color: #4b7bec; }
+
+/* --- 右侧主舞台 --- */
+.game-main { flex: 1; display: flex; flex-direction: column; padding: 0; }
+.chat-history { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; }
+.message { max-width: 75%; display: flex; flex-direction: column; gap: 6px; }
+.sender-name { font-size: 0.85rem; font-weight: 800; color: #A0858D; margin-left: 2px; }
+.message-content { padding: 15px 20px; line-height: 1.6; font-size: 0.95rem; border: 1.5px solid #4A2A33; border-radius: 4px; }
+
+.message.dm { align-self: flex-start; }
+.message.dm .message-content { background-color: #FFFFFF; box-shadow: 4px 4px 0px #FFC2D1; }
+.message.player { align-self: flex-end; }
+.message.player .sender-name { text-align: right; }
+.message.player .message-content { background-color: #FF8FAB; color: #FFFFFF; box-shadow: 4px 4px 0px #4A2A33; }
+.message.roll { align-self: center; text-align: center; max-width: 90%; }
+.message.roll .message-content { background-color: #FAF5F7; font-weight: bold; box-shadow: none; border-style: dashed; }
+
+/* --- 修复溢出的底部输入区 --- */
+.control-panel {
+  display: flex;
+  gap: 15px;
+  padding: 20px 30px;
+  border-top: 1.5px solid #4A2A33;
+  background-color: #FFFFFF;
+  align-items: stretch; /* 底部对齐，防止文本框变高时按钮错位 */
+}
+
+/* 修复后的多行文本框样式 */
+.flat-textarea {
+  flex: 1 1 auto; /* 核心修复 1：明确告诉 Flex 容器，它才是需要填满空间的那个 */
+  width: 100%;    /* 核心修复 2：加一道保险，强制占据剩余宽度 */
+  min-height: 50px;
+  max-height: 150px;
+  resize: vertical;
+  border: 1.5px solid #D4C3C7;
+  border-radius: 4px;
+  padding: 12px 15px;
+  font-size: 1rem;
+  color: #4A2A33;
+  outline: none;
+  background: #FAF5F7;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: border-color 0.2s;
+}
+
+.flat-textarea:focus { 
+  border-color: #FF8FAB; 
+  background: #FFFFFF; 
+}
+
+/* 修复后的发送按钮 */
+.send-btn { 
+  flex: 0 0 120px; /* 核心修复 3：禁止按钮在 Flex 布局中伸缩，死死按在 120px */
+  width: 120px !important; /* 核心修复 4：用 !important 强制覆盖掉全局的 100% 宽度 */
+  height: auto; 
+}
+
+/* --- 弹窗样式 (Modal) --- */
+.modal-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(74, 42, 51, 0.4); /* 半透明遮罩 */
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-content {
+  width: 400px;
+  max-width: 90%;
+  padding: 30px;
+  position: relative;
+  /* 继承了 flat-box 的背景、边框和阴影 */
+}
+
+.close-btn {
+  position: absolute;
+  top: 15px; right: 15px;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #A0858D;
+  cursor: pointer;
+}
+.close-btn:hover { color: #d81b60; }
+
+.modal-title { margin-top: 0; font-size: 1.4rem; border-bottom: 2px solid #FFC2D1; padding-bottom: 10px; margin-bottom: 20px; }
+.modal-desc { line-height: 1.6; margin-bottom: 10px; font-size: 0.95rem; }
+.stat-divider { height: 1.5px; background: #EFE6E8; margin: 15px 0; }
+.skill-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.skill-tag { background: #FAF5F7; border: 1.5px solid #4A2A33; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; }
+.modal-warning { color: #d81b60; font-size: 0.85rem; font-weight: bold; margin-top: 20px; font-style: italic; }
+
+/* --- 笔记本弹窗专用样式 --- */
+.notebook-modal {
+  width: 85vw;
+  max-width: 1000px;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0; /* 清除默认 padding，由内部控制 */
+  position: relative;
+  overflow: hidden;
+}
+
+.notebook-tabs {
+  display: flex;
+  background-color: #FAF5F7;
+  border-bottom: 1.5px solid #4A2A33;
+}
+
+.tab-item {
+  padding: 15px 25px;
+  font-weight: 800;
+  cursor: pointer;
+  border-right: 1.5px solid #4A2A33;
+  transition: background-color 0.2s;
+}
+
+.tab-item:hover { background-color: #F0E6E9; }
+.tab-item.active { background-color: #FF8FAB; color: #FFFFFF; }
+
+.notebook-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.flat-textarea.full-height {
+  flex: 1;
+  max-height: none; /* 覆盖之前的最大高度限制 */
+  resize: none;
+}
+
+.clues-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; height: 100%; }
+.clues-hint { color: #d81b60; font-weight: bold; margin-bottom: 15px; font-size: 0.9rem; }
+.empty-state { text-align: center; color: #A0858D; margin-top: 50px; font-weight: bold; letter-spacing: 1px; }
+.clue-item { padding: 15px; background: #FAF5F7; border: 1px dashed #4A2A33; border-radius: 4px; line-height: 1.6; }
+.clue-idx { color: #FF8FAB; font-weight: bold; margin-right: 5px; }

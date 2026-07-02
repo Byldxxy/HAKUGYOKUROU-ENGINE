@@ -1,0 +1,186 @@
+/* src/pages/Auth/Auth.css */
+
+/* --- 页面基础环境 --- */
+.auth-container {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 18px;
+  background-color: #FAF5F7;
+  /* 硬核科技感：复古网格背景 */
+  background-image: linear-gradient(#EFE6E8 1px, transparent 1px),
+                    linear-gradient(90deg, #EFE6E8 1px, transparent 1px);
+  background-size: 30px 30px;
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+/* 核心登录面板卡片 */
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 50px 40px;
+  background: #FFFFFF;
+  border: 1.5px solid #4A2A33;
+  box-shadow: 8px 8px 0px #FFC2D1;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+/* --- 标题区域 --- */
+.auth-header {
+  text-align: center;
+  margin-bottom: 42px;
+}
+.auth-header .title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #4A2A33;
+  margin: 0 0 8px 0;
+  letter-spacing: 2px;
+  line-height: 1.15;
+}
+.auth-header .subtitle {
+  font-size: 0.75rem;
+  color: #A0858D;
+  letter-spacing: 4px;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* --- 登录/注册 切换 Tab --- */
+.auth-tabs {
+  display: flex;
+  margin-bottom: 28px;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #FFFFFF;
+  box-shadow: 4px 4px 0px #4A2A33;
+}
+
+.auth-tabs .tab-btn {
+  flex: 1;
+  height: 50px;
+  background: #FFFFFF;
+  border: none;
+  border-right: 1.5px solid #4A2A33;
+  color: #4A2A33;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.auth-tabs .tab-btn:last-child {
+  border-right: none;
+}
+.auth-tabs .tab-btn:hover {
+  background: #FAF5F7;
+  color: #4A2A33;
+}
+.auth-tabs .tab-btn.active {
+  background: #FF8FAB;
+  color: #FFFFFF;
+}
+
+/* --- 表单与输入框排版 --- */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #A0858D;
+  text-align: left;
+}
+
+/* 核心修复：登录页输入框不依赖其他页面的 .flat-input */
+.auth-input {
+  width: 100% !important; 
+  height: 50px !important;
+  box-sizing: border-box !important;
+  padding: 0 15px;
+  font-size: 1rem;
+  line-height: normal;
+  border: 1.5px solid #D4C3C7;
+  border-radius: 4px;
+  background-color: #FFFFFF;
+  color: #4A2A33;
+  outline: none;
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.auth-input:focus {
+  border-color: #FF8FAB;
+  background: #FFFBFC;
+}
+
+.auth-input::placeholder {
+  color: #D4C3C7;
+  font-weight: 300;
+}
+
+/* 提交按钮 */
+.submit-btn {
+  margin-top: 16px;
+  width: 100%;
+  height: 50px;
+  background-color: #FF8FAB;
+  color: #FFFFFF;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  box-shadow: 4px 4px 0px #4A2A33;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.submit-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #4A2A33;
+}
+
+.submit-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 #4A2A33;
+}
+
+/* --- 底部装饰 --- */
+.auth-footer {
+  text-align: center;
+  margin-top: 36px;
+  font-size: 0.8rem;
+  color: #C2B0B5;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .auth-card {
+    padding: 42px 26px;
+  }
+
+  .auth-header .title {
+    font-size: 1.9rem;
+  }
+
+  .auth-header .subtitle {
+    font-size: 0.68rem;
+    letter-spacing: 3px;
+  }
+}
