@@ -169,7 +169,7 @@ npm run check
 - 大厅角色卡拉取已集中到 `loadCharacters`；入房 Socket 上报会等待角色卡加载完成，避免占位玩家重复进房。
 - 前端已集中使用 `src/socket.ts` 的 Socket.IO 客户端。
 - 战役笔记已持久化到本地 JSON 文件。
-- 前端会清理旧的 `trpg_nickname` localStorage 缓存，但业务逻辑不再依赖它。
+- 前端会清理旧的 `trpg_nickname` localStorage 缓存，因为业务逻辑不再依赖它。
 - 角色卡职业数据和技能模板已抽到 `src/data/`，写卡流程已具备职业公式、固定技能和两级自选联动。
 - Lobby 自定义下拉已抽成共享组件，并复用于角色卡编辑器。
 - 账号密码改为 Node `scrypt` 哈希，旧明文账号支持脚本迁移和首次登录自动迁移。
