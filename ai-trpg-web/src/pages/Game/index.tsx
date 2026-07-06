@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Game.css';
 import RelationGraph, { type GraphNode, type GraphEdge } from '../../components/RelationGraph';
-import { apiUrl } from '../../config';
+import { apiFetch } from '../../config';
 import { emitWhenConnected, ensureSocketConnected, socket } from '../../socket';
 import {
   parseRollRequests,
@@ -86,7 +86,7 @@ export default function Game() {
     const fetchRoomHistory = async () => {
       setTurnState(null);
       try {
-        const res = await fetch(apiUrl(`/api/room_history?roomId=${roomId}`));
+        const res = await apiFetch(`/api/room_history?roomId=${roomId}`);
         const data = await res.json();
 
         if (data.success && data.messages.length > 0) {
@@ -104,17 +104,16 @@ export default function Game() {
   }, [roomId]);
 
   // SECTION: 手动存档
-  // NOTE: 当前存档以房间日志为主体，username 用于把存档归到当前账号名下。
+  // NOTE: 当前存档以房间日志为主体，服务端按登录会话归属存档。
   const handleSaveGame = async () => {
     const saveName = window.prompt('请输入存档名称：', `桃花岛战役_${new Date().toLocaleDateString()}`);
     if (!saveName) return;
 
-    const username = localStorage.getItem('trpg_username');
     try {
-      const res = await fetch(apiUrl('/api/saves'), {
+      const res = await apiFetch('/api/saves', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, roomId, saveName })
+        body: JSON.stringify({ roomId, saveName })
       });
       const data = await res.json();
       if (data.success) {
@@ -162,7 +161,6 @@ export default function Game() {
     if (!inputText.trim()) return;
     emitWhenConnected('player_action', {
       roomId: roomId,
-      playerName: myCharacter.name,
       message: inputText
     });
     setInputText('');
@@ -196,7 +194,6 @@ export default function Game() {
     const rollMessage = `掷出了 D100 = ${roll} / ${skillValue}，结果：【${result}】`;
     emitWhenConnected('player_action', {
       roomId: roomId,
-      playerName: myCharacter.name,
       message: `[对 ${skillName} 进行检定]：${rollMessage}`,
       rollId,
       isRoll: true
@@ -208,7 +205,7 @@ export default function Game() {
   const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
 
   // SECTION: 战役笔记加载
-  // NOTE: 笔记按 roomId + username 读取，同一账号在不同房间有独立笔记。
+  // NOTE: 笔记按 roomId + 登录会话读取，同一账号在不同房间有独立笔记。
   useEffect(() => {
     const fetchNotebook = async () => {
       const username = localStorage.getItem('trpg_username');
@@ -216,8 +213,7 @@ export default function Game() {
 
       setIsNotebookLoaded(false);
       try {
-        const params = new URLSearchParams({ roomId, username });
-        const res = await fetch(apiUrl(`/api/notebooks?${params.toString()}`));
+        const res = await apiFetch(`/api/notebooks?roomId=${encodeURIComponent(roomId)}`);
         const data = await res.json();
         if (data.success && data.notebook) {
           setFreeNotes(data.notebook.freeNotes || '');
@@ -247,12 +243,11 @@ export default function Game() {
 
     saveNotebookTimerRef.current = window.setTimeout(async () => {
       try {
-        await fetch(apiUrl('/api/notebooks'), {
+        await apiFetch('/api/notebooks', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             roomId,
-            username,
             notebook: {
               freeNotes,
               clues,
@@ -318,7 +313,7 @@ export default function Game() {
       }
 
       try {
-        const res = await fetch(apiUrl(`/api/characters?username=${username}`));
+        const res = await apiFetch('/api/characters');
         const data = await res.json();
         if (data.success) {
           const targetChar = data.cards.find((c: any) => c.id === charId);
@@ -357,7 +352,6 @@ export default function Game() {
             });
             emitWhenConnected('sync_character', {
               roomId,
-              nickname: full.basicInfo.name,
               fullData: targetChar
             });
           }

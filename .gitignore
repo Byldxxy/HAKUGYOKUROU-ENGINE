@@ -9,6 +9,11 @@ dist-ssr/
 ai-trpg-web/dist/
 ai-trpg-web/dist-ssr/
 
+# Local archives may contain secrets and runtime data
+*.zip
+*.tar
+*.tar.gz
+
 # Environment and local secrets
 .env
 .env.*

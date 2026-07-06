@@ -1,72 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Lobby.css';
-import { apiUrl } from '../../config';
+import { apiFetch } from '../../config';
 import { emitWhenConnected, ensureSocketConnected, socket } from '../../socket';
-
-type SelectOption = {
-  value: string;
-  label: string;
-};
-
-// SECTION: 自定义下拉框
-// NOTE: 原生 select 的展开层无法统一浏览器样式，因此这里用 button 列表模拟。
-function StyledSelect({
-  value,
-  options,
-  placeholder,
-  disabled = false,
-  onChange,
-}: {
-  value: string;
-  options: SelectOption[];
-  placeholder?: string;
-  disabled?: boolean;
-  onChange: (value: string) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  // NOTE: selected 只负责展示文案；真正的选中值仍由父组件持有。
-  const selected = options.find(option => option.value === value);
-
-  return (
-    <div
-      className={`styled-select ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
-      tabIndex={disabled ? -1 : 0}
-      onBlur={() => setIsOpen(false)}
-    >
-      <button
-        type="button"
-        className="styled-select-trigger"
-        disabled={disabled}
-        onClick={() => setIsOpen(prev => !prev)}
-      >
-        <span>{selected?.label || placeholder || '请选择'}</span>
-        <span className="styled-select-arrow">⌄</span>
-      </button>
-
-      {isOpen && !disabled && (
-        <div className="styled-select-menu">
-          {options.map(option => (
-            <button
-              type="button"
-              key={option.value}
-              className={`styled-select-option ${option.value === value ? 'selected' : ''}`}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                // NOTE: 先通知父组件，再关闭菜单，避免失焦时吞掉点击事件。
-                onChange(option.value);
-                setIsOpen(false);
-              }}
-            >
-              <span>{option.label}</span>
-              {option.value === value && <span className="styled-select-check">✓</span>}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+import StyledSelect from '../../components/StyledSelect';
 
 export default function Lobby() {
   const navigate = useNavigate();
@@ -106,7 +43,7 @@ export default function Lobby() {
 
     try {
       setIsCharactersLoaded(false);
-      const res = await fetch(apiUrl(`/api/characters?username=${username}`));
+      const res = await apiFetch('/api/characters');
       const data = await res.json();
       const cards = data.success ? (data.cards || []) : [];
       const savedCharId = localStorage.getItem('trpg_current_char_id');
@@ -134,7 +71,7 @@ export default function Lobby() {
       const username = localStorage.getItem('trpg_username');
       if (username) {
         try {
-          const res = await fetch(apiUrl(`/api/saves?username=${username}`));
+          const res = await apiFetch('/api/saves');
           const data = await res.json();
           if (data.success) setSaveList(data.saves || []);
         } catch (e) {
@@ -203,7 +140,6 @@ export default function Lobby() {
     socket.on('go_to_game', handleGoToGame);
     emitWhenConnected('join_lobby', {
       roomId,
-      playerName: myName,
       characterInfo: myCharacter
     });
     return () => {
@@ -246,7 +182,7 @@ export default function Lobby() {
       navigate('/hall');
     };
 
-    socket.emit('leave_room', { roomId, playerName: myName }, finishExit);
+    socket.emit('leave_room', { roomId }, finishExit);
     window.setTimeout(finishExit, 300);
   };
 
@@ -333,9 +269,8 @@ export default function Lobby() {
                     onClick={async () => {
                       if (!activeCharacter) return;
                       if (window.confirm(`确定要永久销毁档案 [${activeCharacter.name}] 吗？(撕卡不可逆)`)) {
-                        const username = localStorage.getItem('trpg_username');
                         try {
-                          await fetch(apiUrl(`/api/characters/${username}/${activeCharacter.id}`), { method: 'DELETE' });
+                          await apiFetch(`/api/characters/${activeCharacter.id}`, { method: 'DELETE' });
                           await loadCharacters();
                         } catch (err) {
                           alert("撕卡失败，请检查星舰网络连接！");

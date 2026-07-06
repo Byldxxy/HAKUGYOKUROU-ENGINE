@@ -7,6 +7,14 @@ export const socket = io(SOCKET_URL, {
   // NOTE: 手动连接，页面确认 roomId/角色信息后再 join，避免空身份提前入房。
   autoConnect: false,
   transports: ['websocket'],
+  withCredentials: true,
+});
+
+socket.on('connect_error', (error) => {
+  if (error.message !== 'unauthorized') return;
+  localStorage.removeItem('trpg_username');
+  localStorage.removeItem('trpg_current_char_id');
+  if (window.location.pathname !== '/') window.location.assign('/');
 });
 
 // SECTION: 连接兜底

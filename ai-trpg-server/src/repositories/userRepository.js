@@ -10,7 +10,7 @@ const normalizeUsers = (data) => {
 };
 
 // SECTION: 用户读取
-// NOTE: 当前原型直接明文读取本地 JSON；上线前必须替换为哈希密码和数据库。
+// NOTE: 新账号只保存 passwordHash；旧 password 字段由登录流程完成一次性迁移。
 const readUsers = () => normalizeUsers(readJson(config.paths.usersFile, []));
 
 // SECTION: 用户写入
@@ -27,7 +27,7 @@ const findByUsername = (username) => {
 
 // SECTION: 创建账号
 // NOTE: nickname 字段只为兼容旧结构保留，游戏内展示名统一来自角色卡。
-const createUser = ({ username, nickname, password }) => {
+const createUser = ({ username, nickname, passwordHash }) => {
   const users = readUsers();
   if (users.find((user) => user.username === username)) {
     const error = new Error('该登录账号已被其他调查员注册！');
@@ -38,7 +38,7 @@ const createUser = ({ username, nickname, password }) => {
   const newUser = {
     username,
     nickname,
-    password,
+    passwordHash,
     characterCard: null,
   };
   users.push(newUser);
@@ -46,8 +46,20 @@ const createUser = ({ username, nickname, password }) => {
   return newUser;
 };
 
+const migratePasswordHash = (username, passwordHash) => {
+  const users = readUsers();
+  const userIndex = users.findIndex((user) => user.username === username);
+  if (userIndex === -1) return false;
+
+  users[userIndex] = { ...users[userIndex], passwordHash };
+  delete users[userIndex].password;
+  writeUsers(users);
+  return true;
+};
+
 module.exports = {
   readUsers,
   findByUsername,
   createUser,
+  migratePasswordHash,
 };

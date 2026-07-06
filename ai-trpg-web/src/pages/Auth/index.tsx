@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiUrl } from '../../config';
+import { apiFetch } from '../../config';
 import './Auth.css';
 
 export default function Auth() {
@@ -22,7 +22,7 @@ export default function Auth() {
       if (!username || !password) return alert("请输入完整的账号和密码！");
 
       try {
-        const response = await fetch(apiUrl('/api/login'), {
+        const response = await apiFetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -46,7 +46,7 @@ export default function Auth() {
       if (password !== confirmPassword) return alert("两次输入的密码不一致，请重新确认！");
 
       try {
-        const response = await fetch(apiUrl('/api/register'), {
+        const response = await apiFetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })

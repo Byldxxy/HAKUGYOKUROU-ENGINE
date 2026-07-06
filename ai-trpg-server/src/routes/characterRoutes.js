@@ -6,20 +6,18 @@ const router = express.Router();
 // SECTION: 角色卡列表
 // NOTE: username 来自登录账号，用于区分不同玩家的角色档案。
 router.get('/', (req, res) => {
-  const { username } = req.query;
-  if (!username) return res.json({ success: false, cards: [] });
-
-  res.json({ success: true, cards: characterRepository.listByUsername(username) });
+  res.json({ success: true, cards: characterRepository.listByUsername(req.user.username) });
 });
 
 // SECTION: 保存角色卡
 // NOTE: 同一个接口同时处理新建和编辑，是否更新由 cardData.id 判断。
 router.post('/', (req, res, next) => {
   try {
-    const { username, cardData } = req.body;
-    if (!username || !cardData) {
-      return res.status(400).json({ success: false, message: '缺少账号或卡片数据' });
+    const { cardData } = req.body;
+    if (!cardData) {
+      return res.status(400).json({ success: false, message: '缺少卡片数据' });
     }
+    const username = req.user.username;
 
     // NOTE: repository 会返回归一化后的摘要，前端用它刷新大厅角色下拉框。
     const { card, created } = characterRepository.saveForUsername(username, cardData);
@@ -31,9 +29,10 @@ router.post('/', (req, res, next) => {
 });
 
 // SECTION: 删除角色卡
-// NOTE: 删除只影响角色库，不会回溯修改已产生的房间日志。
-router.delete('/:username/:id', (req, res) => {
-  const { username, id } = req.params;
+// NOTE: 账号来自认证会话，URL 只接收角色 ID。
+router.delete('/:id', (req, res) => {
+  const { id } = req.params;
+  const username = req.user.username;
   const deleted = characterRepository.deleteForUsername(username, id);
 
   if (!deleted) {

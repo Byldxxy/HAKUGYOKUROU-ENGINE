@@ -1,0 +1,21 @@
+[Unit]
+Description=Hakugyokurou AI TRPG Server
+After=network.target
+
+[Service]
+Type=simple
+User=hakugyokurou
+Group=hakugyokurou
+WorkingDirectory=/opt/hakugyokurou/ai-trpg-server
+EnvironmentFile=/opt/hakugyokurou/ai-trpg-server/.env
+ExecStart=/usr/bin/node app.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/hakugyokurou/ai-trpg-server
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,5 @@
 const config = require('../config');
+const crypto = require('crypto');
 const { readJson, writeJson } = require('../storage/jsonFile');
 
 // SECTION: 角色库读取
@@ -59,7 +60,7 @@ const saveForUsername = (username, cardData) => {
     return { card: db[username][existingIndex], created: false };
   }
 
-  const id = `char_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const id = `char_${crypto.randomUUID()}`;
   const newCard = deriveCharacterSummary(cardData, id);
   db[username].push(newCard);
   writeCharacters(db);

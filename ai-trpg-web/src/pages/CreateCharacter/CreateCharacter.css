@@ -126,7 +126,18 @@
   flex-direction: column;
   gap: 24px;
   padding: 30px;
-  min-height: calc(100vh - 80px);
+  height: calc(100vh - 80px);
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.char-main-area.occupation-tab-active {
+  overflow: hidden;
+}
+
+.char-main-area.basic-tab-active {
+  overflow: hidden;
 }
 
 .section-title {
@@ -135,6 +146,265 @@
   padding-bottom: 10px;
   border-bottom: 1.5px solid #EFE6E8;
   letter-spacing: 1px;
+}
+
+/* SECTION: 基本信息单页布局 */
+.basic-page {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 210px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.basic-page > .section-title {
+  margin: 0;
+}
+
+.basic-identity-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 20px;
+}
+
+.basic-page .avatar-upload-box {
+  width: 200px;
+  height: 100%;
+}
+
+.basic-identity-fields {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.basic-page .form-row {
+  gap: 16px;
+  margin: 0;
+}
+
+.basic-page .form-item {
+  gap: 6px;
+}
+
+.basic-page .form-item.small {
+  flex-basis: 100px;
+}
+
+.basic-page .form-item label {
+  font-size: 0.76rem;
+  letter-spacing: 0;
+}
+
+.basic-page .flat-input {
+  height: 50px;
+  padding: 8px 12px;
+  font-size: 1rem;
+}
+
+.derived-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: 50px;
+  margin-top: auto;
+  border: 1.5px solid #EFE6E8;
+  border-radius: 4px;
+  background: #FAF5F7;
+  box-sizing: border-box;
+}
+
+.derived-stat-strip > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  text-align: center;
+}
+
+.derived-stat-strip > div + div {
+  border-left: 1.5px solid #EFE6E8;
+}
+
+.derived-stat-strip span,
+.derived-stat-strip strong {
+  display: block;
+}
+
+.derived-stat-strip span {
+  color: #A0858D;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.derived-stat-strip strong {
+  margin-top: 1px;
+  color: #4A2A33;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.basic-attributes-section {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  padding-top: 12px;
+  border-top: 1.5px dashed #EFE6E8;
+}
+
+.basic-page .stat-mode-header {
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 8px;
+}
+
+.basic-page .stat-mode-header > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.basic-page .stat-mode-header .section-title {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+
+.basic-page .mode-toggle {
+  margin: 0;
+}
+
+.basic-page .mode-toggle .flat-btn,
+.basic-page .stat-mode-header > .flat-btn {
+  height: 42px;
+  padding: 7px 12px !important;
+  white-space: nowrap;
+}
+
+.stat-mode-action {
+  height: 44px;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.stat-mode-action > .flat-btn,
+.stat-mode-action .point-buy-control {
+  height: 44px;
+  box-sizing: border-box;
+}
+
+.stat-mode-action > .flat-btn {
+  padding: 0 18px !important;
+}
+
+.stat-mode-action .point-buy-control {
+  gap: 9px;
+  padding: 5px 10px;
+}
+
+.stat-mode-action .point-buy-control label,
+.stat-mode-action .point-buy-control span {
+  color: #A0858D;
+  font-size: 0.72rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.stat-mode-action .point-buy-control .flat-input {
+  width: 76px;
+  height: 30px;
+  padding: 3px 8px;
+  text-align: center;
+}
+
+.stat-mode-action .point-buy-control strong {
+  color: #FF8FAB;
+  font-size: 1rem;
+}
+
+.basic-page .info-box {
+  height: 38px;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  margin-bottom: 9px;
+  padding: 0 12px;
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+
+.basic-page .stats-grid {
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(72px, 1fr));
+  gap: 8px;
+  margin-top: 0;
+}
+
+.basic-page .stat-box {
+  min-height: 0;
+  padding: 34px 12px 44px;
+  justify-content: center;
+  border-color: #E7DADD;
+}
+
+.basic-page .stat-label {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.basic-page .stat-label span {
+  margin: 0 3px;
+  color: #FF8FAB;
+}
+
+.basic-page .stat-description {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  left: 12px;
+  padding-top: 7px;
+  border-top: 1px solid #EFE6E8;
+  color: #A0858D;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.basic-page .stat-display-wrapper,
+.basic-page .stat-input {
+  font-size: 1.55rem;
+}
+
+.basic-page .stat-input {
+  height: auto;
+  padding: 0;
+}
+
+.basic-page .luc-dice-btn {
+  top: 8px;
+  right: 8px;
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 30px !important;
+  padding: 0 !important;
+  border-radius: 4px;
+  font-size: 0.82rem !important;
+  line-height: 1;
 }
 
 
@@ -181,6 +451,13 @@
   background-color: #FFFFFF;
   box-shadow: 4px 4px 0px #FFC2D1;
   transform: translate(-2px, -2px);
+}
+
+.flat-input:disabled {
+  background: #EFE6E8;
+  color: #A0858D;
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 textarea.flat-input {
@@ -248,20 +525,6 @@ textarea.flat-input {
 }
 
 
-.attr-desc-box {
-    background: #FFFFFF;
-    border: 1.5px solid #EFE6E8;
-    padding: 20px;
-
-    grid-column: span 3;
-    font-size: 0.9rem;
-    color: #4A2A33;
-    line-height: 1.6;
-    border-radius: 4px;
-}
-.attr-desc-box b { color: #FF8FAB; }
-
-
 /* SECTION: 属性卡片 */
 .stat-box {
   background: #FAF5F7;
@@ -297,8 +560,275 @@ textarea.flat-input {
 .stat-value.low { color: #A0858D; opacity: 0.6; }
 
 
-/* SECTION: 技能表 */
-/* NOTE: 表格列和 TSX 中的 skill 字段一一对应。 */
+/* SECTION: 技能页头 */
+.skill-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid #EFE6E8;
+}
+
+.skill-page-header .section-title {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.compact-career-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.compact-career-control strong,
+.compact-career-control small {
+  display: block;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.compact-career-control strong {
+  color: #4A2A33;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.compact-career-control small {
+  margin-top: 2px;
+  color: #A0858D;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+/* SECTION: 职业技能自选 */
+.choice-panel,
+.choice-group {
+  border: 1.5px solid #EFE6E8;
+  border-radius: 4px;
+  background: #FAF5F7;
+}
+
+.choice-panel {
+  margin-top: 10px;
+  padding: 12px 14px;
+}
+
+.choice-groups-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rule-box-title {
+  margin-bottom: 10px;
+  color: #FF8FAB;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.choice-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.skill-list-section {
+  margin-top: 12px;
+}
+
+.skill-list-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.compact-budget-group {
+  display: flex;
+  gap: 7px;
+}
+
+.skill-toolbar-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.compact-budget {
+  display: flex;
+  min-width: 104px;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 9px;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  background: #FFFFFF;
+  box-shadow: 3px 3px 0 #FFC2D1;
+  white-space: nowrap;
+}
+
+.compact-budget span,
+.compact-budget small {
+  color: #A0858D;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.compact-budget strong {
+  color: #FF8FAB;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.compact-budget.danger strong {
+  color: #c62828;
+}
+
+.skill-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  background: #FFFFFF;
+  color: #4A2A33;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.skill-tag.fixed {
+  background: #4A2A33;
+  color: #FFFFFF;
+}
+
+.skill-tag.chosen {
+  background: #FF8FAB;
+  color: #FFFFFF;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #4A2A33;
+}
+
+.skill-tag.muted {
+  border-color: #EFE6E8;
+  color: #A0858D;
+}
+
+.choice-empty {
+  grid-column: 1 / -1;
+  color: #A0858D;
+  font-weight: 800;
+}
+
+.choice-group {
+  padding: 12px;
+}
+
+.choice-group-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: #4A2A33;
+  font-weight: 900;
+}
+
+.choice-group-header span {
+  color: #FF8FAB;
+}
+
+.choice-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(140px, 0.8fr) auto;
+  gap: 10px;
+  align-items: stretch;
+  margin-bottom: 10px;
+}
+
+.choice-row.single-menu {
+  grid-template-columns: minmax(300px, 1fr) auto;
+}
+
+.choice-subtype-slot {
+  position: relative;
+  min-width: 0;
+  height: 52px;
+}
+
+.choice-custom-input {
+  width: 100%;
+  height: 52px;
+  min-height: 52px;
+  padding-right: 42px;
+  margin: 0;
+}
+
+.choice-custom-cancel {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #A0858D;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1.2rem;
+  font-weight: 900;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.choice-custom-cancel:hover {
+  background: #EFE6E8;
+  color: #4A2A33;
+}
+
+.skill-name-main {
+  font-weight: 900;
+}
+
+.skill-row-badge {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 34px;
+  padding: 2px 6px;
+  border: 1.5px solid #EFE6E8;
+  border-radius: 4px;
+  color: #A0858D;
+  font-size: 0.65rem;
+  font-weight: 900;
+}
+
+.skill-row-badge.fixed {
+  border-color: #4A2A33;
+  background: #4A2A33;
+  color: #FFFFFF;
+}
+
+.skill-row-badge.chosen {
+  border-color: #FF8FAB;
+  background: #FF8FAB;
+  color: #FFFFFF;
+}
+
+.skill-row-badge.muted {
+  background: #FAF5F7;
+}
+
+.occupation-skill-row { background: rgba(255, 143, 171, 0.1); }
+
 .skill-table {
   width: 100%;
   border-collapse: collapse;
@@ -436,10 +966,12 @@ textarea.flat-input {
 
 
 .skill-table-container {
-  max-height: 500px;
+  max-height: 620px;
   overflow-y: auto;
   border: 1.5px solid #EFE6E8;
   border-radius: 4px;
+  padding: 10px;
+  background: #FAF5F7;
 }
 
 
@@ -449,4 +981,399 @@ textarea.flat-input {
   background-color: #FAF5F7;
   z-index: 1;
   border-bottom: 2px solid #EFE6E8;
+}
+
+/* SECTION: 紧凑技能卡片 */
+/* NOTE: 桌面端双列排列，减少完整技能库带来的纵向滚动距离。 */
+.skill-grid-legend {
+  display: none;
+}
+
+.skill-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.compact-skill-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(300px, 2fr);
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1.5px solid #EFE6E8;
+  border-radius: 4px;
+  background: #FFFFFF;
+}
+
+.compact-skill-card.occupation-skill-row {
+  border-color: #FF8FAB;
+  box-shadow: 3px 3px 0 #FFC2D1;
+}
+
+.compact-skill-heading,
+.compact-skill-actions,
+.compact-skill-values {
+  display: flex;
+  align-items: center;
+}
+
+.compact-skill-heading {
+  min-width: 0;
+  min-height: 30px;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
+}
+
+.compact-skill-heading .skill-name-main {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.compact-skill-actions { flex: 0 0 auto; gap: 4px; }
+
+.compact-skill-values {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(42px, 1fr));
+  gap: 5px;
+}
+
+.compact-skill-values label {
+  min-width: 0;
+  text-align: center;
+}
+
+.compact-skill-values label > span {
+  display: block;
+  margin-bottom: 1px;
+  color: #A0858D;
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.compact-skill-values .skill-input {
+  width: 100%;
+  height: 27px;
+  padding: 2px 3px;
+  font-size: 0.78rem;
+}
+
+.compact-skill-values label > strong {
+  display: flex;
+  height: 27px;
+  align-items: center;
+  justify-content: center;
+  color: #4A2A33;
+  font-size: 0.82rem;
+}
+
+.compact-skill-values .skill-total strong {
+  color: #FF8FAB;
+  font-size: 0.95rem;
+}
+
+.compact-skill-heading .skill-input.text {
+  width: 100%;
+  height: 28px;
+  padding: 3px 6px;
+  font-size: 0.74rem;
+}
+
+.skill-remove-btn {
+  border: 0;
+  background: transparent;
+  color: #A0858D;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+@media (max-width: 1050px) {
+  .skill-page-header { flex-wrap: wrap; }
+  .compact-career-control { margin-left: auto; }
+  .choice-groups-grid { grid-template-columns: 1fr; }
+  .skill-card-grid { grid-template-columns: 1fr; }
+  .skill-list-toolbar { flex-wrap: wrap; }
+  .compact-budget-group { flex: 1 1 100%; }
+  .compact-budget { flex: 1; }
+  .skill-toolbar-actions { width: 100%; }
+}
+
+
+/* SECTION: 职业列表页头 */
+/* NOTE: 新页签以资料库形态呈现，不和“职业与技能”的加点表混在一起。 */
+.occupation-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.occupation-hint {
+  margin: -6px 0 0;
+  color: #A0858D;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.occupation-count {
+  min-width: 120px;
+  padding: 12px 16px;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  background: #FAF5F7;
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 4px 4px 0 #FFC2D1;
+  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, color 0.18s ease;
+}
+
+.occupation-count:hover {
+  transform: translate(-1px, -1px);
+}
+
+.occupation-count:active {
+  transform: translate(2px, 2px);
+}
+
+.occupation-count.id-mode {
+  background: #FAF5F7;
+  box-shadow: 4px 4px 0 #FFC2D1;
+}
+
+.occupation-count.points-mode {
+  background: #FF8FAB;
+  box-shadow: 4px 4px 0 #4A2A33;
+}
+
+.occupation-count span {
+  display: block;
+  color: #FF8FAB;
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.occupation-count.points-mode span {
+  color: #FFFFFF;
+}
+
+.occupation-count small {
+  color: #A0858D;
+  font-weight: 800;
+}
+
+.occupation-count.points-mode small {
+  color: #FFFFFF;
+}
+
+
+/* SECTION: 职业检索 */
+/* NOTE: 搜索框和清空按钮固定在列表上方，适合快速按技能反查职业。 */
+.occupation-search-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.occupation-search {
+  text-align: left;
+}
+
+
+/* SECTION: 职业浏览工作区 */
+/* NOTE: 左列表右详情，避免原 Excel 横向列过多造成阅读压力。 */
+.occupation-workspace {
+  --occupation-panel-height: 620px;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.9fr) minmax(420px, 1.6fr);
+  gap: 20px;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: stretch;
+  padding: 0 8px 8px 0;
+}
+
+.occupation-list {
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  border: 1.5px solid #EFE6E8;
+  border-radius: 4px;
+  background: #FAF5F7;
+  padding: 10px;
+}
+
+.occupation-list-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1.5px solid transparent;
+  border-radius: 4px;
+  background: #FFFFFF;
+  color: #4A2A33;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.occupation-list-item + .occupation-list-item {
+  margin-top: 8px;
+}
+
+.occupation-list-item:hover,
+.occupation-list-item.active {
+  border-color: #4A2A33;
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 #FFC2D1;
+}
+
+.occupation-list-item.active {
+  background: #FF8FAB;
+  color: #FFFFFF;
+}
+
+.occupation-list-id {
+  flex: 0 0 42px;
+  color: inherit;
+  font-weight: 900;
+  opacity: 0.75;
+}
+
+.occupation-list-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.occupation-list-main strong,
+.occupation-list-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.occupation-list-main strong {
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.occupation-list-main small {
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.72;
+}
+
+.occupation-empty {
+  padding: 40px 12px;
+  text-align: center;
+  color: #A0858D;
+  font-weight: 800;
+}
+
+
+/* SECTION: 职业详情面板 */
+/* NOTE: 详情面板把 Excel 的多列信息拆成语义块，更适合网页阅读和后续自动套用。 */
+.occupation-detail {
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  background: #FFFFFF;
+  box-shadow: 6px 6px 0 #FFC2D1;
+  padding: 24px;
+}
+
+.occupation-detail-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1.5px dashed #EFE6E8;
+}
+
+.occupation-id {
+  color: #FF8FAB;
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.occupation-detail-title h4 {
+  margin: 6px 0 0;
+  color: #4A2A33;
+  font-size: 1.6rem;
+  line-height: 1.25;
+}
+
+.occupation-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.occupation-meta-card {
+  padding: 14px;
+  border: 1.5px solid #EFE6E8;
+  border-radius: 4px;
+  background: #FAF5F7;
+}
+
+.occupation-meta-card span {
+  display: block;
+  margin-bottom: 6px;
+  color: #A0858D;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.occupation-meta-card strong {
+  color: #4A2A33;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.occupation-section {
+  padding-top: 18px;
+  border-top: 1.5px solid #EFE6E8;
+}
+
+.occupation-section + .occupation-section {
+  margin-top: 18px;
+}
+
+.occupation-section h5 {
+  margin: 0 0 10px;
+  color: #FF8FAB;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.occupation-section p {
+  margin: 0;
+  color: #4A2A33;
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.8;
+}
+
+.occupation-description {
+  white-space: pre-line;
 }

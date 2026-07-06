@@ -1,4 +1,5 @@
 const path = require('path');
+const crypto = require('crypto');
 const config = require('../config');
 const { ensureDir, readJson, writeJson } = require('../storage/jsonFile');
 const roomLogRepository = require('./roomLogRepository');
@@ -29,10 +30,14 @@ const listByUsername = (username) => {
   return meta[username] || [];
 };
 
+const findOwnedSave = (username, saveId) => {
+  return listByUsername(username).find((save) => save.id === saveId) || null;
+};
+
 // SECTION: 创建存档
 // NOTE: 先复制房间日志，再写元数据，防止列表里出现不存在的存档文件。
 const createSave = ({ username, roomId, saveName }) => {
-  const saveId = `save_${Date.now()}`;
+  const saveId = `save_${crypto.randomUUID()}`;
   const copied = roomLogRepository.copyLogTo(roomId, getSavePath(saveId));
   if (!copied) {
     const error = new Error('房间尚无行动记录，无法存档。');
@@ -54,5 +59,6 @@ const createSave = ({ username, roomId, saveName }) => {
 module.exports = {
   getSavePath,
   listByUsername,
+  findOwnedSave,
   createSave,
 };

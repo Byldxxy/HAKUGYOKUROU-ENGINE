@@ -1,6 +1,8 @@
 const roomLogRepository = require('../repositories/roomLogRepository');
 const saveRepository = require('../repositories/saveRepository');
 const aiService = require('../services/aiService');
+const characterRepository = require('../repositories/characterRepository');
+const { isValidRoomId } = require('../domain/validation');
 const {
   parseRollRequests,
   parseRollActionSkill,
@@ -8,6 +10,20 @@ const {
 } = require('../domain/directives');
 
 const liveRooms = {};
+const getOwnedCharacter = (username, characterId) => {
+  if (!characterId) return null;
+  return characterRepository.listByUsername(username).find((card) => card.id === characterId) || null;
+};
+
+const consumeSocketQuota = (socket, max = 30, windowMs = 10_000) => {
+  const now = Date.now();
+  const quota = !socket.data.eventQuota || socket.data.eventQuota.resetAt <= now
+    ? { count: 0, resetAt: now + windowMs }
+    : socket.data.eventQuota;
+  quota.count += 1;
+  socket.data.eventQuota = quota;
+  return quota.count <= max;
+};
 
 // SECTION: 大厅广播
 // NOTE: liveRooms 是内存态，广播时只发送前端需要展示的房主和玩家列表。
@@ -17,17 +33,26 @@ const emitLobbyUpdate = (io, roomId) => {
 
   io.to(roomId).emit('lobby_update', {
     ownerName: room.ownerName,
-    players: room.players,
+    players: room.players.map((player) => ({
+      id: player.id,
+      name: player.name,
+      characterId: player.characterId,
+      characterName: player.characterName,
+      role: player.role,
+      hp: player.hp,
+      san: player.san,
+      mp: player.mp,
+    })),
   });
 };
 
 // SECTION: 大厅玩家快照
 // NOTE: playerName 现在等同于角色卡姓名；accountName 字段暂时保留给旧数据兼容。
-const buildLobbyPlayer = ({ socketId, playerName, characterInfo = {}, existingPlayer = {} }) => ({
+const buildLobbyPlayer = ({ socketId, username, characterInfo = {}, existingPlayer = {} }) => ({
   ...existingPlayer,
   id: socketId,
-  name: playerName,
-  accountName: playerName,
+  name: characterInfo.name,
+  accountName: username,
   characterId: characterInfo.id || existingPlayer.characterId,
   characterName: characterInfo.name || existingPlayer.characterName,
   role: characterInfo.role || existingPlayer.role || '暂无角色',
@@ -233,16 +258,32 @@ const removePlayerFromRoom = ({ io, socket, roomId, playerName, reason = '离开
 
 const registerRoomSocket = (io) => {
   io.on('connection', (socket) => {
+    const username = socket.data.user.username;
+    socket.use((event, next) => {
+      if (socket.data.user.expiresAt <= Math.floor(Date.now() / 1000)) {
+        socket.disconnect(true);
+        return;
+      }
+      next();
+    });
     console.log(`⚡ 新玩家已连接，连接 ID: ${socket.id}`);
 
     // SECTION: 大厅加入
     // NOTE: 大厅身份以角色卡姓名为准；同一 socket 或同一角色名重复进入时更新旧条目。
-    socket.on('join_lobby', ({ roomId, playerName, characterInfo }) => {
+    socket.on('join_lobby', ({ roomId, characterInfo = {} }) => {
+      if (!isValidRoomId(roomId) || !consumeSocketQuota(socket)) return;
+      const ownedCharacter = getOwnedCharacter(username, characterInfo.id);
+      if (!ownedCharacter) {
+        socket.emit('session_error', { reason: 'invalid_character' });
+        return;
+      }
+      const playerName = ownedCharacter.name;
       socket.join(roomId);
 
       if (!liveRooms[roomId]) {
         liveRooms[roomId] = {
           ownerName: playerName,
+          ownerAccount: username,
           players: [],
         };
         console.log(`🏠 玩家 ${playerName} 创建了新房间: ${roomId} 并成为房主`);
@@ -251,9 +292,7 @@ const registerRoomSocket = (io) => {
       const room = liveRooms[roomId];
       const existingPlayerIndex = room.players.findIndex((player) => (
         player.id === socket.id ||
-        player.accountName === playerName ||
-        player.name === playerName ||
-        player.characterName === playerName
+        player.accountName === username
       ));
 
       if (existingPlayerIndex !== -1) {
@@ -262,36 +301,50 @@ const registerRoomSocket = (io) => {
         const wasOwner = [existingPlayer.name, existingPlayer.accountName, existingPlayer.characterName].includes(room.ownerName);
         room.players[existingPlayerIndex] = buildLobbyPlayer({
           socketId: socket.id,
-          playerName,
-          characterInfo,
+          username,
+          characterInfo: ownedCharacter,
           existingPlayer,
         });
         if (wasOwner) room.ownerName = playerName;
       } else {
-        room.players.push(buildLobbyPlayer({ socketId: socket.id, playerName, characterInfo }));
+        room.players.push(buildLobbyPlayer({ socketId: socket.id, username, characterInfo: ownedCharacter }));
       }
 
+      socket.data.roomId = roomId;
       emitLobbyUpdate(io, roomId);
     });
 
     // SECTION: 游戏房间加入
     // NOTE: 游戏页加入后立刻补发 turn_state，让刷新后的输入锁保持正确。
     socket.on('join_room', (roomId) => {
+      if (!isValidRoomId(roomId) || !consumeSocketQuota(socket)) return;
       socket.join(roomId);
+      socket.data.roomId = roomId;
       emitLobbyUpdate(io, roomId);
       emitTurnState(io, roomId);
     });
 
     // SECTION: 角色同步
     // NOTE: 参数 nickname 是旧命名，现在实际传入角色卡姓名。
-    socket.on('sync_character', ({ roomId, nickname, fullData }) => {
+    socket.on('sync_character', ({ roomId, fullData }) => {
+      if (!isValidRoomId(roomId) || !consumeSocketQuota(socket)) return;
+      const characterId = fullData?.id || fullData?.fullData?.id;
+      const ownedCharacter = getOwnedCharacter(username, characterId);
+      if (!ownedCharacter) {
+        socket.emit('session_error', { reason: 'invalid_character' });
+        return;
+      }
+      const nickname = ownedCharacter.name;
+      fullData = ownedCharacter;
       socket.join(roomId);
+      if (!liveRooms[roomId]) {
+        liveRooms[roomId] = { ownerName: nickname, ownerAccount: username, players: [] };
+      }
       const room = liveRooms[roomId];
-      if (!room) return;
 
       let player = room.players.find((item) => (
         item.id === socket.id ||
-        item.accountName === nickname ||
+        item.accountName === username ||
         item.name === nickname ||
         item.characterName === nickname
       ));
@@ -303,7 +356,7 @@ const registerRoomSocket = (io) => {
         const wasOwner = [player.name, player.accountName, player.characterName].includes(room.ownerName);
         player.id = socket.id;
         player.name = nickname;
-        player.accountName = nickname;
+        player.accountName = username;
         player.fullData = fullData;
         player.characterId = fullData?.id || player.characterId;
         player.characterName = characterName || player.characterName;
@@ -317,7 +370,7 @@ const registerRoomSocket = (io) => {
         room.players.push({
           id: socket.id,
           name: nickname,
-          accountName: nickname,
+          accountName: username,
           characterId: fullData?.id,
           characterName,
           fullData,
@@ -330,18 +383,24 @@ const registerRoomSocket = (io) => {
 
       emitLobbyUpdate(io, roomId);
       emitTurnState(io, roomId);
+      socket.data.roomId = roomId;
       console.log(`🔄 玩家 ${nickname} 的角色卡已同步至房间 ${roomId}`);
     });
 
     // SECTION: 房主发车
     // NOTE: 新游戏会清空旧日志；加载存档会把存档 JSONL 恢复成当前房间日志。
     socket.on('host_start_game', ({ roomId, loadSaveId }) => {
+      if (!isValidRoomId(roomId) || !consumeSocketQuota(socket)) return;
       const room = liveRooms[roomId];
       const player = room?.players.find((item) => item.id === socket.id);
 
-      if (!room || !player || player.name !== room.ownerName) return;
+      if (!room || !player || room.ownerAccount !== username) return;
 
       if (loadSaveId) {
+        if (!saveRepository.findOwnedSave(username, loadSaveId)) {
+          socket.emit('session_error', { reason: 'invalid_save' });
+          return;
+        }
         const loaded = roomLogRepository.loadLogFrom(roomId, saveRepository.getSavePath(loadSaveId));
         if (loaded) {
           console.log(`📂 房主加载了存档 ${loadSaveId}，房间 ${roomId} 恢复记忆`);
@@ -356,25 +415,41 @@ const registerRoomSocket = (io) => {
     });
 
     socket.on('lobby_chat_send', ({ roomId, msg }) => {
-      io.to(roomId).emit('lobby_chat_receive', msg);
+      if (!isValidRoomId(roomId) || !consumeSocketQuota(socket)) return;
+      const player = liveRooms[roomId]?.players.find((item) => item.id === socket.id && item.accountName === username);
+      const text = String(msg?.text || '').trim().slice(0, 1000);
+      if (!player || !text) return;
+      io.to(roomId).emit('lobby_chat_receive', {
+        id: Date.now(),
+        sender: player.name,
+        text,
+        isSystem: false,
+      });
     });
 
     // SECTION: 主动离开
     // NOTE: ack 用于让前端不用等 disconnect，也能立刻返回大厅。
-    socket.on('leave_room', ({ roomId, playerName }, ack) => {
+    socket.on('leave_room', ({ roomId }, ack) => {
       if (!roomId) {
         if (typeof ack === 'function') ack({ success: false });
         return;
       }
-      removePlayerFromRoom({ io, socket, roomId, playerName, reason: '主动离开' });
+      removePlayerFromRoom({ io, socket, roomId, playerName: username, reason: '主动离开' });
       if (typeof ack === 'function') ack({ success: true });
     });
 
     // SECTION: 玩家行动入口
     // NOTE: 普通行动和骰子结果共用入口，isRoll 用于区分日志角色和 AI 触发条件。
     socket.on('player_action', async (data) => {
-      const { roomId, playerName, message, isRoll, rollId } = data;
+      if (!consumeSocketQuota(socket, 12, 10_000)) return;
+      const { roomId, isRoll, rollId } = data;
+      if (!isValidRoomId(roomId)) return;
       const room = liveRooms[roomId];
+      const player = room?.players.find((item) => item.id === socket.id && item.accountName === username);
+      if (!room || !player) return;
+      const playerName = player.name;
+      const message = String(data.message || '').trim().slice(0, 4000);
+      if (!message) return;
       const linesBeforeAction = roomLogRepository.readRoomLines(roomId);
 
       if (isRoll) {

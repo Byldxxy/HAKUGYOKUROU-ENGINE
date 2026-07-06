@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
+import { apiFetch } from '../../config';
+import { socket } from '../../socket';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -28,10 +30,16 @@ export default function Home() {
 
   // SECTION: 退出登录
   // NOTE: 同时清理当前角色 ID，避免下个账号继承上个账号的出战角色。
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await apiFetch('/api/logout', { method: 'POST' });
+    } catch {
+      // NOTE: 即使网络失败也清理本地状态，避免共用设备残留上一个账号。
+    }
     localStorage.removeItem('trpg_username');
     localStorage.removeItem('trpg_nickname');
     localStorage.removeItem('trpg_current_char_id');
+    socket.disconnect();
     navigate('/');
   };
 
