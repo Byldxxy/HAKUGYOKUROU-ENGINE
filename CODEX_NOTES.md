@@ -1,274 +1,279 @@
-# Codex Notes
+# CODEX 开发笔记
+
+本文面向继续维护本项目的开发者，记录当前真实实现、关键约束、已完成工作和下一步优先级。用户使用与运行方式见根目录 `README.md`，部署操作见 `deploy/README.md`。
 
-这份笔记记录我对当前工程的读码结论，方便后续继续协作时快速接上。
+## 当前快照
 
-## 总览
+- 整理日期：2026-07-07
+- 最近 Git 标签：`V0.3.1`
+- 当前工作区：包含标签后的大量未发布改动，提交前必须逐项检查 `git diff`
+- 主要开发方向：角色卡重构、房规联动、线上环境配置与大厅身份修复
+- 自动化测试：尚未形成完整测试套件
+- 最近验证：前端生产构建、后端 JavaScript 语法检查和主要房规流程曾通过；仍需进行完整双浏览器回归
 
-项目根目录下有两个子项目：
+## 系统地图
 
-- `ai-trpg-web`：Vite React 前端，页面入口在 `src/App.tsx`。
-- `ai-trpg-server`：Node 后端，入口在 `app.js`，核心逻辑已拆到 `src/`。
+### 前端路由
 
-前端路由：
+| 路由 | 页面 | 职责 |
+| --- | --- | --- |
+| `/` | Auth | 注册、登录、会话恢复 |
+| `/hall` | Home | 选卡、编辑角色卡、创建或加入房间 |
+| `/lobby/:roomId` | Lobby | 剧本和房规、玩家列表、选卡与开局 |
+| `/game/:roomId` | Game | 行动、回合、AI 主持、检定和战役笔记 |
+| `/create-character` | CreateCharacter | 新建或编辑调查员 |
 
-- `/`：登录/注册页，组件 `src/pages/Auth/index.tsx`
-- `/hall`：主页大厅入口，组件 `src/pages/Home/index.tsx`
-- `/lobby/:roomId`：房间大厅，组件 `src/pages/Lobby/index.tsx`
-- `/game/:roomId`：游戏主舞台，组件 `src/pages/Game/index.tsx`
-- `/create-character`：COC 7th 角色卡编辑器，组件 `src/pages/CreateCharacter/index.tsx`
+### 后端分层
 
-## 运行模型
+- `app.js`：进程入口和 HTTP / Socket.IO 装配。
+- `src/config/`：环境变量读取与生产配置校验。
+- `src/routes/`：认证、角色卡、笔记、存档和历史接口。
+- `src/services/`：认证、角色、笔记、存档和房间历史业务。
+- `src/repositories/`：JSON / JSONL 文件读写。
+- `src/sockets/registerRoomSocket.js`：大厅、游戏、回合和实时事件。
+- `src/domain/roomRules.js`：服务端房规默认值与归一化。
+- `src/ai/`：系统提示词和 AI 调用。
 
-后端监听 `3000`，前端 Vite 固定监听 `5174`。当前前端请求通过 `src/config.ts` 指向：
+前端对应的房规定义位于 `ai-trpg-web/src/domain/roomRules.ts`。修改字段时必须同步前后端，不能只改类型或 UI。
 
-- REST：`http://localhost:5174/api/...`
-- Socket：`http://localhost:5174`
+## 核心约束
 
-`vite.config.ts` 已配置 dev proxy，将 `/api` 和 `/socket.io` 转发到 `http://localhost:3000`。
+### 身份与认证
 
-生产环境前端默认使用 `window.location.origin`，由 Nginx 同源代理 `/api` 和 `/socket.io`。部署模板在根目录 `deploy/`。
+- `username` 是登录账号，不是角色名。
+- 游戏内显示名优先使用所选角色卡的 `name`；无角色卡时大厅显示账号名并标记“无角色卡”。
+- REST 身份只信任签名 HttpOnly Cookie。
+- Socket 身份来自握手 Cookie，不能信任客户端传来的 `accountName`、`isHost` 或角色所有者字段。
+- 角色卡选择必须由服务端按当前账号校验所有权。
+- 前端遇到 401 会清理本地会话并返回登录页。
 
-## 认证与安全边界
+### 房间与在线状态
 
-- `src/services/securityService.js` 使用 Node `crypto.scryptSync` 保存密码哈希，并签发 HMAC-SHA256 会话 Cookie。
-- Cookie 名为 `trpg_session`，使用 `HttpOnly + SameSite=Lax`；生产环境强制 `Secure`。
-- `src/middleware/authenticate.js` 同时服务 REST 与 Socket.IO，认证身份写入 `req.user` / `socket.data.user`。
-- 私有 REST 路由不再信任 query/body 中的 `username`，统一使用会话账号。
-- Socket `join_lobby` / `sync_character` 只接受当前账号拥有的角色 ID，姓名、职业和资源值从服务器角色库读取。
-- `player_action`、大厅聊天、离房和房主权限都按已认证 socket 与房间内部玩家记录判断。
-- 存档加载会通过 `saveRepository.findOwnedSave` 校验所有权，避免任意 saveId 和路径型输入。
-- 大厅 `lobby_update` 只广播公开摘要，不再发送 `fullData` / `accountName`。
-- 旧 `users.json` 可运行 `npm run migrate:passwords` 一次性迁移；未迁移账号首次登录也会自动升级。
-- 生产环境缺少 32 字符以上 `SESSION_SECRET`、使用 `CORS_ORIGIN=*` 或缺少 `API_KEY` 时后端拒绝启动。
-- 根 `.gitignore` 已忽略 zip/tar 归档；本地 `ai-trpg-server/backend-update.zip` 含 `.env` 与运行数据，不得上传或部署到 Web 可访问目录。
+- 房间号为六位数字。
+- `liveRooms` 当前只存在于后端内存；服务重启后房间状态消失。
+- 房主由创建房间时的登录账号确定。
+- 玩家可无角色卡进入大厅，但开始游戏前的有效性约束仍应由业务规则统一校验。
+- 玩家主动离开或 Socket 断开后会从在线列表移除；房间无人时删除。
+- 当前断线即离开，没有重连宽限期或预留席位。
 
-## 后端结构地图
+### 房规语义
 
-`ai-trpg-server/app.js` 只负责：
+默认房规：
 
-- 初始化 Express、HTTP server、Socket.IO
-- 注册 REST routes
-- 注册 Socket handlers
-- 挂载错误处理中间件
-- 启动监听
+```text
+pointBuyLimit = 480
+occupationSkillLimit = 80
+interestSkillLimit = 70
+```
 
-后端 `src/`：
+- 购点上限不包含 LUC。
+- 从大厅进入角色卡编辑时，房主设定的购点上限必须锁定；从 Home 自由编辑时允许调整。
+- 本职技能上限判断的是该技能最终可分配值：`初始 + 职业 + 兴趣`。
+- 非本职技能使用兴趣技能上限，同样判断 `初始 + 职业 + 兴趣`。
+- 上限按技能是否属于当前职业分类，不按点数来源分类。
+- 成长点不参与上述上限。
 
-- `config/`：读取 `.env`，集中管理端口、CORS、OpenAI、文件路径。
-- `routes/`：`authRoutes`、`characterRoutes`、`saveRoutes`、`roomHistoryRoutes`。
-- `routes/notebookRoutes.js`：按 `roomId + username` 保存/读取战役笔记。
-- `repositories/`：`users.json`、`characters.json`、`logs/*.jsonl`、`saves/meta.json`、`notebooks.json` 的读写边界。
-- `services/aiService.js`：OpenAI-compatible Chat Completions 调用。
-- `ai/systemPrompt.js`：白玉楼引擎 KP 系统提示词。
-- `sockets/registerRoomSocket.js`：房间、回合、发车、断线、AI 触发逻辑。
-- `storage/jsonFile.js`：JSON/JSONL 原子写入和读取工具。
+### 成长点
 
-Socket 事件：
+- 当前所有技能的成长点均只读且为 0。
+- 加载旧角色卡时也会把历史成长值归一化为 0。
+- `calculateSkillGrowth(skill, { pastExperience })` 是预留公式入口，目前返回 0。
+- 未来只能由“过去经历”等规则计算成长点，不应恢复为手工输入。
+- 游戏技能总值仍保留 `base + job + interest + grow`，以便未来接入公式。
 
-- `join_lobby`：进入大厅，若房间不存在则创建房间并绑定房主名
-- `join_room`：进入游戏房间并广播房间玩家列表
-- `sync_character`：游戏页同步出战角色数据
-- `host_start_game`：房主开始游戏，支持新开或加载存档
-- `lobby_chat_send` / `lobby_chat_receive`：大厅闲聊
-- `player_action`：玩家行动、骰子结果、日志写入、AI 触发判断
-- `new_message`：后端向游戏页广播玩家/骰子/DM 消息
-- `turn_state`：后端广播明确回合状态，包含 `waiting_players`、`waiting_rolls`、`waiting_dm`、待行动玩家、待掷骰玩家和检定结果
-- `disconnect`：玩家断线，从内存房间移除；房间无人则销毁
+## 关键数据流
 
-## 前端数据流
+### 登录与页面恢复
 
-登录成功后写入 localStorage：
+1. Auth 调用登录接口，服务端设置签名 Cookie。
+2. 前端只保存必要的登录状态，不保存可信身份凭证。
+3. 刷新后通过会话接口恢复账号。
+4. Socket 使用 `withCredentials` 和同一 Cookie 建立连接。
 
-- `trpg_username`：账号唯一 ID
-- `trpg_current_char_id`：大厅选中的出战角色 ID
+### 选卡、房规与角色卡编辑
 
-当前身份模型：
+1. Home 拉取当前账号角色卡。
+2. 玩家可先选卡，再创建或加入房间；也可点击编辑。
+3. Lobby 加入时发送角色卡 ID，服务端重新校验所有权并返回公开玩家摘要。
+4. 房主通过 `update_room_config` 修改剧本和三项上限。
+5. Lobby 内编辑或新建角色卡时，通过路由状态传入 `roomRules` 和 `lockRoomLimits`。
+6. CreateCharacter 按房规限制购点和技能最终分配值。
+7. 保存后返回大厅，重新选择或同步角色卡。
 
-- 账号只用于登录、角色卡归属、战役笔记归属和存档归属。
-- 注册页不再要求昵称，首页欢迎语固定为 `Hello，调查员。`。
-- 跑团内展示名、玩家列表名、回合锁、ROLL 归属和 Socket `playerName` 统一使用当前出战角色卡姓名。
-- 前端只会清理旧缓存 `trpg_nickname`，不再读取它参与业务判断。
+### 游戏回合
 
-大厅页读取当前账号角色卡，选择出战角色后写入 `trpg_current_char_id`。开始游戏后跳转 `/game/:roomId`。
-`Lobby` 会等角色卡加载完成后再发送 `join_lobby`，避免先用占位名加入、随后切换成角色名造成重复玩家。
+1. 玩家通过 `player_action` 提交行动。
+2. 服务端维护本轮已行动玩家和待检定状态。
+3. 所有需要行动的玩家完成后，进入 AI 主持回复阶段。
+4. AI 回复通过 `new_message` 广播，并同步新的 `turn_state`。
+5. 任一玩家仍有待完成检定时，所有人的行动输入都应保持锁定。
 
-游戏页根据 `trpg_username` 和 `trpg_current_char_id` 拉取完整角色卡，转换出：
+### ROLL 指令
 
-- 基础属性检定项：力量、体质、体型、敏捷、外貌、智力、灵感、意志、教育、幸运、理智、SAN
-- 技能成功率：`base + job + interest + grow`
-- HP、SAN、MP 当前值与上限
+- 格式：`<<ROLL:技能名:角色名>>`
+- 一条 AI 回复可包含多个 ROLL 标签，必须全部解析，不能只处理第一个。
+- 每个检定生成稳定 `rollId`，结果写入房间历史。
+- 客户端刷新后根据历史结果恢复已完成状态，不能再次投掷。
+- 当前随机数仍由客户端生成，这是明确的反作弊风险。
 
-## 回合与骰子逻辑
-
-协议解析：
+### STAT 指令
 
-- 后端 `src/domain/directives.js` 和前端 `src/domain/directives.ts` 共同维护 `ROLL`、`STAT` 和骰子结果的解析规则。
-- 页面和 Socket 不再各写一套主要正则；后续扩展 `CLUE`、`SCENE` 等指令时优先扩展 domain 层。
+- 格式由前后端各自的指令解析器支持。
+- 当前只更新游戏界面中的角色状态展示。
+- 尚未写回角色仓库或独立战役状态，刷新和跨存档一致性需要补齐。
 
-后端判断是否触发 AI：
+## 角色卡实现
+
+### 职业
+
+- 数据文件：`ai-trpg-web/src/data/cocOccupations.ts`
+- 当前包含 230 项从半自动卡整理的职业资料。
+- 支持搜索、序号/职业点排序、详情和职业套用。
+- 职业点公式根据当前属性计算，“或”分支取较高值。
+- 当前部分职业规则仍通过文本解析推断固定技能和自选组，复杂规则存在误判风险。
+
+### 技能
 
-- 如果上一条 DM 消息含 `<<ROLL:技能:角色卡姓名>>`，等待所有被点名且仍在房间内的角色提交 `D100 =` 结果。
-- 如果没有检定要求，等待房间内所有玩家都提交一次 `player_action`。
-- 条件满足后读取最后 15 条日志，组装为 Chat Completions 上下文，调用模型。
-- 每次进入房间、同步角色、玩家行动、AI 回复后，后端都会广播 `turn_state`。前端优先按这个状态锁定输入框，本地聊天历史推导只作为兜底。
+- 数据文件：`ai-trpg-web/src/data/cocSkills.ts`
+- 技能统一使用中文显示，“自然”归一为“博物学”。
+- 支持固定本职技能、社交技能自选、个人/时代特长和自定义技能。
+- 技艺、科学、外语、射击等上级技能支持预设或自定义子类型。
+- 职业固定的具体子技能不可编辑或删除；玩家自选或自定义项才允许移除。
+- 技能卡已压缩为单行式加点布局，包含初始、职业、兴趣、成长和总值。
+
+### 基本信息
 
-前端游戏页会解析 DM 消息：
+- 单页展示身份、年代、住地、故乡、头像入口、派生属性和九项基础属性。
+- 支持 COC 7th 随机投掷与购点模式。
+- 属性卡显示中英文简称、数值和游戏作用说明。
+- 头像目前只有预览入口，没有完成文件上传和持久化。
+
+### 维护风险
+
+`CreateCharacter/index.tsx` 已超过一千行，状态、职业解析、技能规则和 UI 混在同一页面。继续增加功能前应先拆分，否则规则回归会越来越难定位。
+
+建议拆为：
 
-- `<<ROLL:技能:角色卡姓名>>`：剥离指令，只有本地 `myCharacter.name` 匹配时渲染可点击检定按钮。
-- `<<STAT:角色卡姓名:HP|SAN|MP:+/-数字>>`：剥离指令，渲染状态变更提示，并更新本地角色/队友状态。
+- `characterRules/`：属性、点数、上限和成长公式
+- `occupationRules/`：结构化职业技能与选择组
+- `components/BasicInfoPanel`
+- `components/OccupationPanel`
+- `components/SkillAllocationPanel`
+- `hooks/useCharacterDraft`
+
+## 已完成
 
-Socket 房间身份细节：
+### 基础工程
+
+- 前后端配置集中化，开发和生产环境分离。
+- Vite 同源代理，Socket.IO 不再写死公网或 localhost 地址。
+- PM2 单实例、Nginx、systemd 备选、备份脚本和生产变量模板。
+- 根目录忽略真实环境变量、运行数据和敏感文件。
 
-- `join_lobby` 的 `playerName` 来自大厅当前出战角色卡姓名。
-- `sync_character` 的 `nickname` 参数名是旧命名，当前传入的也是角色卡姓名。
-- 后端 `registerRoomSocket.js` 仍保留 `accountName` 字段兼容旧数据，但现在它实际会与角色名保持一致。
-- 后端匹配同一玩家时会比较 `socket.id`、`name`、`accountName`、`characterName`，因此重连、退出和切换角色会尽量更新现有玩家条目。
-- 房主切换出战角色后，`ownerName` 会同步更新，避免房主权限丢失。
+### 安全与数据边界
 
-## 角色卡编辑器
-
-`CreateCharacter` 支持：
-
-- 基本信息、职业、时代、住地、故乡
-- 随机投掷属性和购点模式
-- COC 7th 常用技能表、自定义技能、子类型技能
-- 职业点、兴趣点余额计算，职业点优先按职业列表公式实时计算
-- 背景、重要之人、恐惧症、经历、资产等文本字段
-
-当前编辑模式从 `location.state?.character` 读取旧卡；保存时向 `/api/characters` POST，后端用传入 `id` 判断更新还是新建。
-
-### 最新页面状态（2026-07-06）
-
-- 基本信息页使用 `.basic-tab-active` 关闭右侧内部滚动，`.basic-page` 在当前工作区高度内分配身份区和属性区。
-- 身份输入框与派生属性条统一为 `50px` 高；派生属性条通过 `margin-top: auto` 与头像下沿对齐。
-- 九项属性按 `statOrder` 固定顺序渲染，标题来自 `statLabels`，用途说明来自 `statDescriptions`，避免对象键顺序随重新骰点变化。
-- 属性区为 3×3 等高网格；随机/购点操作统一放在 `44px` 高的 `.stat-mode-action` 中，模式说明用 flex 垂直居中。
-- 技能页标题栏右上角显示紧凑职业摘要；重复的职业规则说明块已经删除，自选槽使用横向网格。
-- 技能卡采用桌面双列、卡内单行布局；职业固定/自选技能不能在卡片上改名或删除，真正手建技能仍可编辑。
-- 三个点数预算块位于技能列表左侧，右侧提供添加自定义技能和清空全部投入按钮；清空只重置 job/interest/grow。
-- `src/components/StyledSelect.tsx` 与 `StyledSelect.css` 是 Lobby 和角色卡共用的下拉组件。
-
-### 角色卡职业列表
-
-已新增 `ai-trpg-web/src/data/cocOccupations.ts`：
-
-- 数据来源是用户提供的《COC七版规则空白卡CY20.02.2.xlsx》中的“职业列表”工作表。
-- 数据整理为 `COC_OCCUPATIONS`，字段包括 `id`、`name`、`creditRange`、`pointFormula`、`skills`、`contacts`、`description`。
-- `/create-character` 左侧新增“职业列表”页签，位于“背景与资产”下面。
-- 职业列表支持搜索职业名、技能、点数公式、联系人和描述。
-- 右上角 `xx / 230 项` 计数框现在也是排序按钮：
-  - 白框粉色阴影：按原始序号排序。
-  - 粉框黑色阴影：按当前角色属性计算出的职业点数排序。
-- 职业点公式支持 `教育×4`、`教育×2＋力量或敏捷×2` 等格式；含“或”时取当前较高属性。
-- 点击“套用职业”会写入 `basicInfo.occupation`，并把职业信用评级范围写入 `bgInfo.credit`。
-
-### 角色卡技能加点页
-
-最新一版重构集中在 `ai-trpg-web/src/pages/CreateCharacter/index.tsx` 和 `CreateCharacter.css`：
-
-- 技能页顶部为“标题 + 右上职业摘要”，下方职业自选槽横向排列，点数预算放在技能列表工具栏。
-- 本职点不再固定为 `EDU×4`；若当前职业可在 `COC_OCCUPATIONS` 找到，则使用该职业 `pointFormula` 实时计算。
-- 职业技能文本会解析成：
-  - 固定本职技能，例如 `会计`、`法律`、`图书馆使用`。
-  - 社交技能自选，例如 `两项社交技能（取悦、话术、恐吓、说服）`。
-  - 任意技能/个人或时代特长自选。
-  - 子类型技能，例如 `技艺（表演）`、`科学（生物学，化学）`、`外语`、`格斗（斗殴）`、`射击（手枪）`。
-- 固定技能和已选择的自选技能会自动补进 `skills[]`，并在技能表中排在前面。
-- 技能卡使用 `固定`、`自选`、`普通` 徽标区分来源，桌面双列排列，单卡内容压成一条横向记录。
-- 职业投入只开放给当前本职技能；普通技能的职业投入默认锁定。
-- 为兼容旧卡，如果某个普通技能旧数据中已经有职业投入，则输入框不会被完全锁死，方便用户清零或迁移。
-- 兴趣点和成长点仍可投任意技能。
-- 职业自选槽状态保存到 `fullData.occupationSkillChoices`，重新编辑角色卡时可恢复选择。
-- 保存结构仍保留兼容的 `skills[]`，所以游戏页 `base + job + interest + grow` 的读取方式不需要同步改动。
-- 技能显示名已统一为中文；旧英文后缀和旧别名由 `normalizePersistedSkillName` 在编辑时迁移。
-- 技艺、科学、外语、格斗、射击、驾驶、生存、学识使用上级分类 + 子技能的两级选择；预设子技能维护在 `specialtySubtypeOptions`。
-- 选择“自定义...”时输入框会原位替换第二级菜单，不增加新行；最终保存真实名称，如 `外语:阿拉伯语`。
-- `ai-trpg-web/src/data/cocSkills.ts` 不再保存 `自定义①/②/③` 伪技能，旧的空白占位记录会被过滤。
-
-当前技能解析辅助函数在 `CreateCharacter/index.tsx` 顶部，包括：
-
-- `calculateOccupationPoints`：解析职业点公式。
-- `parseOccupationSkillRules`：从职业技能文本解析固定技能和自选槽。
-- `normalizeSkillName`：把中文职业表技能映射到角色卡技能名。
-- `normalizeSubtypedSkillName`：生成 `技艺:表演`、`科学:生物学` 这类子类型技能。
-- `createDefaultSkills`：从 `src/data/cocSkills.ts` 生成完整默认技能模板。
-
-这版已通过：
-
-- `npm run build`
-- `git diff --check`
-
-尚未做浏览器人工验收。接手时建议重点看“职业与技能”页的视觉密度、移动端/窄屏表现，以及典型职业的解析是否符合预期。
-
-## 关系图与笔记
-
-`src/components/RelationGraph.tsx` 是无外部依赖的 DOM + SVG 小工具：
-
-- 新建人物节点
-- 拖动节点移动位置
-- 将节点拖到另一个节点上建立有向关系
-- 双击节点/边重命名
-- 拖到垃圾桶删除节点及相关边
-
-`Game` 把关系图节点和边状态提升到父组件，避免切换笔记 tab 时丢失。自由笔记、关键线索、关系图节点和边会通过 `/api/notebooks` 自动持久化到 `ai-trpg-server/notebooks.json`。
-
-笔记保存粒度：
-
-- key：`roomId + username`
-- 内容：`freeNotes`、`clues`、`graphNodes`、`graphEdges`、`updatedAt`
-
-## 已整理重复逻辑
-
-- `Lobby` 里原本有两段重复拉取角色卡的 `useEffect`，现在合并为 `loadCharacters`。
-- 删除角色卡后复用 `loadCharacters` 刷新列表和当前出战角色。
-- 大厅入房 Socket 上报会随着当前出战角色变化重新同步。
-- Auth 注册表单删除昵称字段，账号与跑团展示名彻底拆开。
-- Home 不再读取昵称，欢迎语固定为 `Hello，调查员。`。
-- Game 的发言、掷骰、回合等待、队友过滤都改为基于角色卡姓名。
-- Game 已接入后端 `turn_state`，不再完全依赖前端从聊天历史猜回合锁。
-- `ROLL` 已接入稳定 `rollId`，投骰提交、日志保存、重复拦截和结果回填优先按 `rollId` 匹配。
-- 角色卡职业列表已从 Excel 抽成前端结构化数据，避免继续依赖表格文件。
-- 角色卡技能页已经初步从“纯手填表格”改为“职业规则驱动 + 手动修正”的半自动写卡模式。
-
-## 已完成的架构整理
-
-- 后端从单文件拆到 `src/routes`、`src/repositories`、`src/services`、`src/sockets`、`src/storage`。
-- 前后端分别新增 `domain/directives`，集中维护 `ROLL`、`STAT` 和骰子结果解析。
-- 后端新增 `turn_state` 广播，显式描述当前处于等待玩家、等待掷骰或等待 DM 结算。
-- 前端 Socket 客户端集中在 `src/socket.ts`。
-- 根目录已初始化 Git 仓库并推送到 GitHub，`.env`、运行 JSON、日志、存档和依赖目录已在 `.gitignore` 中排除。
-
-## 空文件与可清理项
-
-- `src/assets/components/ChatBox.tsx` 是空文件。
-- `src/assets/components/PinkButton.tsx` 是空文件。
-- `ai-trpg-web/README.md` 仍是 Vite 模板说明。
-
-## 风险与后续优先级
-
-1. 把 repository 层从 JSON 文件替换为 PostgreSQL/MySQL，房间实时状态和可撤销会话迁到 Redis。
-2. 为 `users.json`、`characters.json`、`saves/meta.json` 增加更强并发写保护，直到数据库替换完成。
-3. 继续收敛 Socket 生命周期：现在已集中使用 `src/socket.ts`，但跨页面 join/leave 时机仍需要更系统的状态机。
-4. 补充自动测试：认证迁移、角色归属、Socket 伪造、房间回合、ROLL/STAT、notebook 保存。
-5. 当前 D100 结果仍由客户端生成；若需要防作弊，应把掷骰随机数与结果判定迁到后端。
-
-## 当前接力重点
-
-- 技能库已依据 `COC七版规则空白卡CY20.02.2.xlsx` 的人物卡技能区补齐，模板集中在 `ai-trpg-web/src/data/cocSkills.ts`。除基础技能外，现已包含技艺/格斗/射击/外语/科学等专业槽，以及克苏鲁神话、电子学、锁匠、操作重型机械、骑术、妙手、生存、驯兽、潜水、爆破、读唇、催眠、炮术、学识等扩展技能。
-- “自然”“自然学”和旧英文 `Natural World` 存档统一迁移并合并为“博物学”，旧版驾驶、斗殴、劝说、领航、秘教名称也会迁移到当前规范名称，保留原加点。
-- 技能加点区已由单列高表格改为桌面双列紧凑卡片，职业技能优先并以粉色边框突出；窄屏自动回落为单列。后续需要重点实测大量技能下的桌面高度、笔记本分辨率和移动端输入体验。
-- 技能页顶部已进一步压缩：移除重复固定技能标签与说明行，三个点数统计缩成技能列表工具栏内的小状态块。技能模板、职业解析、旧技能和旧自选槽均统一显示及保存为纯中文名称。
-- 专业技能自选已改为两级联动：第一栏选择普通技能或技艺/科学/外语/格斗/射击/驾驶/生存/学识等上级分类，第二栏选择预设子技能；选择“自定义...”后必须填写真实名称再添加。旧版 `自定义①/②/③` 伪技能已从模板和职业自选记录中过滤。
-
-角色卡写卡模块正在重构中，下一位接手时优先关注：
-
-1. 浏览器里实际打开 `/create-character`，检查“职业与技能”页新版布局是否符合现有粉色纸卡 UI。
-2. 用几个代表职业手测解析结果：
-   - `会计师`：固定技能 + 任意两项特长。
-   - `演员-戏剧演员`：`技艺（表演）` + 两项社交技能 + 任意特长。
-   - `精神病医生（古典）`：`科学（生物学，化学）` 应拆成两个科学子技能。
-   - `事务所侦探、保安`：公式 `教育×2＋力量或敏捷×2` 应取力量/敏捷较高者。
-3. 检查自选槽保存后重新编辑是否能恢复 `occupationSkillChoices`。
-4. 讨论是否需要把技能解析和 COC 默认技能表拆到独立 `data/` 或 `domain/` 文件；当前为了快速落地仍放在 `CreateCharacter/index.tsx` 顶部，文件已经偏大。
-5. 后续可以继续补“信用评级范围校验”“职业技能数目校验”“兴趣点推荐”等半自动卡功能。
-6. 当前 Git 工作区仍有未提交改动，至少涉及 `CreateCharacter/index.tsx`、`CreateCharacter.css`、Lobby 下拉重构、`src/components/StyledSelect.*`、`src/data/cocOccupations.ts` 与 `src/data/cocSkills.ts`；提交前先执行 `git status` 核对。
+- scrypt 密码哈希、旧密码迁移、登录限流。
+- HttpOnly 签名 Cookie 和生产配置校验。
+- REST 资源所有权检查和 Socket 会话认证。
+- 角色卡、笔记、存档使用仓库层统一读写。
+
+### 大厅和实时协作
+
+- 修复重复连接、幽灵玩家、离开后残留和重入识别问题。
+- 房主、无角色卡状态和公开玩家摘要由服务端统一生成。
+- 房规可配置、广播，并与角色卡编辑限制联动。
+- 回合输入锁定、多人 ROLL 解析、持久化防重复检定已完成。
+
+### 角色卡
+
+- 基本信息页和技能加点页完成第一轮紧凑重构。
+- 职业数据库、职业点计算、技能子类型和自选项联动。
+- 房规上限语义修正为按“本职/非本职技能”判断。
+- 成长点改为只读 0，并预留未来公式接口。
+- 处理按钮跨平台换行和多处下拉菜单原生样式问题。
+
+## 待完成
+
+### P0：先保证正确性
+
+1. 为以下流程补自动化测试：
+   - 注册、登录、旧密码迁移和会话过期
+   - 角色卡、笔记、存档所有权
+   - Socket 身份伪造、重复加入、退出和重连
+   - 房规更新、非房主拒绝和角色卡限制
+   - 多人回合、单人/多人 ROLL、防重复投掷
+   - 角色卡旧数据迁移和成长点归零
+2. 双浏览器完整回归：
+   - Home 选卡 → 入房 → 房主改规则 → 大厅编辑 → 开局
+   - 一人检定时全员锁定 → 完成后 AI 回复 → 新回合
+   - 刷新、主动退出、短暂断网和服务重启
+3. 将 D100 投掷移动到服务端。
+4. 将 STAT 结果写入服务端战役状态或角色快照。
+
+### P1：完善角色卡
+
+1. 把职业规则改为结构化定义，停止依赖技能描述文本推断。
+2. 对 230 个职业至少建立代表性规则测试，重点覆盖：
+   - “A 或 B”
+   - “任选 N 项”
+   - 固定子技能与自选子技能混合
+   - 信用评级范围
+3. 补齐保存前校验：
+   - 职业自选数量
+   - 特长数量
+   - 信用评级
+   - 点数池是否超支或残留
+   - 切换职业后的旧职业点清理
+4. 实现头像持久化。
+5. 设计“过去经历”数据后实现成长点公式。
+6. 拆分 CreateCharacter 大组件。
+
+### P1：让一局游戏能够结束
+
+当前 AI 只根据近期对话自由回复，没有强制剧情推进和结局条件。应新增：
+
+- 剧本元数据和角色入口
+- 场景/章节状态
+- 线索、地点、NPC 与已揭示信息
+- 强制检定和失败后果
+- 成功、失败、中止结局
+- AI 可见信息与玩家可见信息隔离
+- 可持久化的明确游戏状态机
+
+### P2：生产架构
+
+1. JSON / JSONL 迁移数据库，增加事务和并发保护。
+2. Redis 承担房间状态、在线成员、Socket.IO adapter 和多实例协调。
+3. 增加服务端会话撤销、设备管理和管理员审计。
+4. 为断线玩家提供重连宽限期和席位恢复。
+5. 建立 CI、结构化日志、脱敏、监控和告警。
+6. 清理空组件、Vite 示例文件、系统文件和剩余全局 CSS 污染。
+
+## 数据与隐私
+
+不要提交以下内容：
+
+- `ai-trpg-server/.env`
+- `ai-trpg-server/.env.production`
+- 真实 API Key、会话密钥、域名证书和服务器凭据
+- `users.json`、`characters.json`、`notebooks.json`
+- `logs/`、`saves/` 中的真实运行数据
+
+提交或打包前执行：
+
+```bash
+git status --short
+git diff --check
+git ls-files | rg '(^|/)(\.env|users\.json|characters\.json|notebooks\.json|logs/|saves/)'
+```
+
+最后一条命令应只出现明确允许提交的 `.example` 模板；发现真实数据时先停止提交并检查历史。
+
+## 接手顺序
+
+1. 阅读本文件的“核心约束”，不要先从 UI 推断业务规则。
+2. 检查 `git status` 和未提交差异，保留已有工作。
+3. 分别运行前端构建和后端检查。
+4. 用两个独立浏览器账号完成大厅与游戏回归。
+5. 优先补 P0 测试，再继续扩展角色卡或游戏逻辑。
+6. 功能稳定后同步维护 `README.md` 的已完成/待完成列表。

@@ -4,6 +4,7 @@ import './Lobby.css';
 import { apiFetch } from '../../config';
 import { emitWhenConnected, ensureSocketConnected, socket } from '../../socket';
 import StyledSelect from '../../components/StyledSelect';
+import { DEFAULT_ROOM_RULES, type RoomRules } from '../../domain/roomRules';
 
 export default function Lobby() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function Lobby() {
   const [saveList, setSaveList] = useState<any[]>([]);
   const [selectedSaveId, setSelectedSaveId] = useState('');
   const [selectedScriptId, setSelectedScriptId] = useState('peach');
+  const [roomRules, setRoomRules] = useState<RoomRules>(DEFAULT_ROOM_RULES);
 
   // SECTION: 剧本选项
   // NOTE: 当前只作为 UI 选择保留，AI 实际模型和提示词仍由后端配置控制。
@@ -87,12 +89,8 @@ export default function Lobby() {
   }, [loadCharacters]);
 
   // SECTION: 当前玩家身份
-  // NOTE: myName 必须是角色卡姓名，不能回退到登录昵称，否则 ROLL 指令会匹配失败。
-  const myName = activeCharacter?.name || '未知调查员';
-  const myCharacter = useMemo(
-    () => activeCharacter || { name: myName, role: "暂无角色", hp: "-", san: "-", mp: "-" },
-    [activeCharacter, myName]
-  );
+  // NOTE: 未选角色时 Lobby 暂用登录账号展示；进入游戏后仍必须使用角色卡姓名。
+  const myName = activeCharacter?.name || localStorage.getItem('trpg_username') || '未登录玩家';
 
   // SECTION: 下拉选项派生
   // NOTE: useMemo 减少每次输入聊天时重建选项数组。
@@ -124,6 +122,8 @@ export default function Lobby() {
       setRoomPlayers(data.players);
       setRoomOwnerName(data.ownerName);
       setIsOwner(myName === data.ownerName);
+      if (data.roomConfig?.scriptId) setSelectedScriptId(data.roomConfig.scriptId);
+      if (data.roomConfig?.rules) setRoomRules(data.roomConfig.rules);
     };
 
     const handleLobbyChatReceive = (msg: any) => {
@@ -135,19 +135,30 @@ export default function Lobby() {
       navigate(`/game/${roomId}`);
     };
 
+    const handleConnectError = (error: Error) => {
+      if (error.message === 'unauthorized') return;
+      console.error('Lobby 实时连接失败', error);
+    };
+
     socket.on('lobby_update', handleLobbyUpdate);
     socket.on('lobby_chat_receive', handleLobbyChatReceive);
     socket.on('go_to_game', handleGoToGame);
-    emitWhenConnected('join_lobby', {
-      roomId,
-      characterInfo: myCharacter
-    });
+    socket.on('connect_error', handleConnectError);
+    emitWhenConnected(
+      'join_lobby',
+      { roomId, characterInfo: { id: activeCharacter?.id || null } },
+      (result: { success?: boolean; reason?: string }) => {
+        if (result?.success) return;
+        console.error('加入 Lobby 失败', result?.reason || 'unknown');
+      }
+    );
     return () => {
       socket.off('lobby_update', handleLobbyUpdate);
       socket.off('go_to_game', handleGoToGame);
       socket.off('lobby_chat_receive', handleLobbyChatReceive);
+      socket.off('connect_error', handleConnectError);
     };
-  }, [roomId, myName, myCharacter, isCharactersLoaded, navigate]);
+  }, [roomId, myName, activeCharacter?.id, isCharactersLoaded, navigate]);
 
   // SECTION: 大厅闲聊状态
   // NOTE: 初始两条消息只是 UI 占位，不会写入后端日志。
@@ -165,6 +176,16 @@ export default function Lobby() {
     const msgData = { id: Date.now(), sender: myName, text: chatInput, isSystem: false };
     emitWhenConnected('lobby_chat_send', { roomId, msg: msgData });
     setChatInput('');
+  };
+
+  const updateRoomConfig = (scriptId: string, rules: RoomRules) => {
+    setSelectedScriptId(scriptId);
+    setRoomRules(rules);
+    socket.emit('update_room_config', { roomId, scriptId, rules });
+  };
+
+  const updateRoomRule = (key: keyof RoomRules, value: number) => {
+    updateRoomConfig(selectedScriptId, { ...roomRules, [key]: value });
   };
 
   // SECTION: 退出大厅
@@ -205,12 +226,28 @@ export default function Lobby() {
           {/* NOTE: 非房主不显示配置表单，避免误以为能更改剧本或存档。 */}
           {isOwner ? (
             <div className="config-form">
-              <label>选择剧本设定</label>
-              <StyledSelect
-                value={selectedScriptId}
-                options={scriptOptions}
-                onChange={setSelectedScriptId}
-              />
+              <div className="room-rule-grid">
+                <div className="room-rule-script">
+                  <label>选择剧本</label>
+                  <StyledSelect
+                    value={selectedScriptId}
+                    options={scriptOptions}
+                    onChange={(scriptId) => updateRoomConfig(scriptId, roomRules)}
+                  />
+                </div>
+                <label className="room-rule-field">
+                  <span>购点上限</span>
+                  <input type="number" min="100" max="1000" value={roomRules.pointBuyLimit} onChange={(event) => updateRoomRule('pointBuyLimit', Number(event.target.value))} />
+                </label>
+                <label className="room-rule-field">
+                  <span>职业技能上限</span>
+                  <input type="number" min="1" max="100" value={roomRules.occupationSkillLimit} onChange={(event) => updateRoomRule('occupationSkillLimit', Number(event.target.value))} />
+                </label>
+                <label className="room-rule-field">
+                  <span>兴趣技能上限</span>
+                  <input type="number" min="1" max="100" value={roomRules.interestSkillLimit} onChange={(event) => updateRoomRule('interestSkillLimit', Number(event.target.value))} />
+                </label>
+              </div>
 
               <label>选择存档</label>
               <StyledSelect
@@ -257,7 +294,9 @@ export default function Lobby() {
                     className="flat-btn secondary small" 
                     style={{ width: '65px', padding: '6px 0', textAlign: 'center', opacity: activeCharacter ? 1 : 0.5, cursor: activeCharacter ? 'pointer' : 'not-allowed' }}
                     disabled={!activeCharacter}
-                    onClick={() => activeCharacter && navigate('/create-character', { state: { character: activeCharacter } })}
+                    onClick={() => activeCharacter && navigate('/create-character', {
+                      state: { character: activeCharacter, roomRules, lockRoomLimits: true },
+                    })}
                   >
                     编辑
                   </button>
@@ -284,7 +323,9 @@ export default function Lobby() {
                   <button 
                     className="flat-btn secondary small" 
                     style={{ width: '65px', padding: '6px 0', textAlign: 'center' }}
-                    onClick={() => navigate('/create-character')}
+                    onClick={() => navigate('/create-character', {
+                      state: { roomRules, lockRoomLimits: true },
+                    })}
                   >
                     新建
                   </button>
@@ -306,7 +347,7 @@ export default function Lobby() {
                     {player.name === roomOwnerName ? ' 👑 (房主)' : ' 👥'}
                   </span>
                 </div>
-                <span className="player-role" style={{ color: player.role === '暂无角色' ? '#999' : '#333' }}>[{player.role || '暂无角色'}]</span>
+                <span className="player-role" style={{ color: player.role === '无角色卡' ? '#999' : '#333' }}>[{player.role || '无角色卡'}]</span>
               </li>
             ))}
           </ul>

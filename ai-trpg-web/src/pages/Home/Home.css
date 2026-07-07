@@ -16,7 +16,7 @@
 /* NOTE: 尺寸和登录卡片一致，减少用户从登录到大厅入口的视觉跳变。 */
 .boutique-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 480px;
   background: #FFFFFF;
   padding: 50px 40px;
 
@@ -24,6 +24,41 @@
   box-shadow: 8px 8px 0px #FFC2D1;
   border-radius: 4px;
   box-sizing: border-box;
+}
+
+/* SECTION: 入房前角色选择 */
+.home-character-panel {
+  margin-bottom: 20px;
+}
+
+.home-character-panel > label {
+  display: block;
+  margin-bottom: 8px;
+  color: #A0858D;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.home-character-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.home-character-row .styled-select,
+.home-character-row .styled-select-trigger,
+.home-character-row .edit-character-btn {
+  height: 50px;
+}
+
+.home-character-row .edit-character-btn {
+  width: 76px;
+}
+
+.home-character-row .edit-character-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 

@@ -1,56 +1,51 @@
-# 白玉楼 AI TRPG
+# 白玉楼 TRPG
 
-一个前后端分离的 AI 跑团原型项目。前端提供登录、房间大厅、COC 7th 角色卡、游戏主舞台、自动掷骰、战役笔记和人物关系图；后端提供账号/角色卡持久化、Socket.IO 实时房间、日志存档，以及兼容 OpenAI Chat Completions 的 AI KP 调用。
+白玉楼 TRPG 是一个面向 COC 7th 多人跑团的网页应用，包含账号系统、调查员角色卡、房间大厅、实时回合协作、AI 主持、战役存档与笔记关系图。
 
-## 项目结构
+> 最近 Git 标签为 `V0.3.1`。当前工作区还包含标签之后的角色卡、房规联动、部署配置与界面优化，尚未整理为新版本发布。
+
+## 项目状态
+
+项目目前适合本地联调和单实例在线测试，核心流程已经连通，但还不是可横向扩容的正式商业服务。
+
+- 已连通：注册登录 → 选择角色卡 → 创建或加入房间 → 房主设置规则 → 开始游戏 → 行动、检定、AI 回复与存档。
+- 当前存储：本地 JSON / JSONL 文件。
+- 当前房间：后端内存状态，服务重启后在线房间会丢失。
+- 当前部署：Nginx + PM2 单实例，HTTPS 域名接入方案已预留。
+
+## 工程结构
 
 ```text
 trpg/
-├── ai-trpg-web/       # React + TypeScript + Vite 前端
-├── ai-trpg-server/    # Express + Socket.IO + OpenAI 后端
-├── README.md          # 项目总说明
-└── CODEX_NOTES.md     # Codex 读码笔记与后续开发提示
+├── ai-trpg-web/       React + TypeScript + Vite 前端
+├── ai-trpg-server/    Express + Socket.IO 后端
+├── deploy/            Nginx、PM2、systemd 与备份模板
+├── README.md          项目使用说明与公开进度
+└── CODEX_NOTES.md     技术细节、约束与接手笔记
 ```
 
 ## 技术栈
 
-- 前端：React 19、TypeScript、Vite、React Router、Socket.IO Client
-- 后端：Node.js、Express 5、Socket.IO、OpenAI SDK、dotenv
-- 存储：本地 JSON 文件与 JSONL 日志文件
+- 前端：React 19、TypeScript、React Router、Socket.IO Client、Vite
+- 后端：Node.js、Express 5、Socket.IO、OpenAI SDK
+- 认证：HttpOnly 签名会话 Cookie、scrypt 密码哈希
+- 数据：JSON / JSONL 文件仓库
+- 部署：Nginx、PM2；systemd 作为备选
 
-## 本地启动
+## 本地运行
 
-### 1. 后端
+### 1. 启动后端
 
 ```bash
 cd ai-trpg-server
+cp .env.example .env
 npm install
 npm run dev
 ```
 
-后端默认监听：
+默认监听 `http://127.0.0.1:3000`。请在 `.env` 中填写实际 AI 服务配置，不要提交该文件。
 
-```text
-http://localhost:3000
-```
-
-后端需要 `ai-trpg-server/.env`，可参考 `ai-trpg-server/.env.example`：
-
-```env
-PORT=3000
-HOST=127.0.0.1
-CORS_ORIGIN=http://localhost:5174
-SESSION_SECRET=仅用于开发的随机字符串
-COOKIE_SECURE=false
-API_KEY=你的模型 API Key
-BASE_URL=https://api.openai.com/v1
-MODEL_NAME=gpt-3.5-turbo
-AI_TIMEOUT_MS=30000
-```
-
-`BASE_URL` 和 `MODEL_NAME` 可换成 DeepSeek 等兼容 OpenAI Chat Completions 的服务。
-
-### 2. 前端
+### 2. 启动前端
 
 ```bash
 cd ai-trpg-web
@@ -58,132 +53,107 @@ npm install
 npm run dev
 ```
 
-前端开发服务器固定监听：
+默认访问 `http://localhost:5174`。开发环境中的 HTTP 与 Socket.IO 请求由 Vite 代理到后端。
 
-```text
-http://localhost:5174
-```
-
-前端代码通过 `src/config.ts` 统一指向 `http://localhost:5174`，Vite dev proxy 会把 `/api` 和 `/socket.io` 转发到后端 `http://localhost:3000`。
-
-## 后端结构
-
-后端已经从单文件整理为分层结构：
-
-```text
-ai-trpg-server/
-├── app.js                    # 服务启动器
-├── src/
-│   ├── ai/                   # AI 系统提示词
-│   ├── config/               # 环境变量与路径配置
-│   ├── middleware/           # 通用中间件
-│   ├── repositories/         # 文件存储读写边界
-│   ├── routes/               # REST API 路由
-│   ├── services/             # AI 等业务服务
-│   ├── sockets/              # Socket.IO 房间逻辑
-│   └── storage/              # JSON/JSONL 文件工具
-├── users.json
-├── characters.json
-├── logs/
-└── saves/
-```
-
-## 主要功能
-
-- 账号注册与登录：`/api/register`、`/api/login`。账号只负责登录和数据归属，跑团展示名统一使用当前出战角色卡姓名
-- 服务健康检查：`/api/health`
-- 角色卡管理：创建、编辑、删除、选择出战角色
-- 战役笔记：`/api/notebooks` 按房间和账号保存自由笔记、关键线索、人物关系图
-- 大厅联机：创建 6 位房间号、加入房间、房主开始游戏、闲聊广播。玩家列表按角色卡姓名同步，退出、重连和切换角色会更新同一玩家条目
-- 游戏主舞台：回合发言、自动等待队友、AI DM 推进、历史记录恢复
-- COC 掷骰：AI 输出 `<<ROLL:技能名称:角色卡姓名>>` 后，对应角色卡客户端会渲染检定按钮并播报结果
-- 状态变更：AI 输出 `<<STAT:角色卡姓名:HP|SAN|MP:+/-数字>>` 后，前端更新角色状态
-- 回合状态：后端广播 `turn_state`，前端根据明确状态锁定输入框、等待玩家行动、等待掷骰或等待 AI 结算
-- 存档系统：按房间日志复制成存档，房主可从大厅加载
-- 战役笔记：自由笔记、右键提取关键线索、可拖拽人物关系图
-
-## 后端数据文件
-
-后端目前使用本地文件保存数据：
-
-- `ai-trpg-server/users.json`：账号、兼容旧字段的昵称和 scrypt 密码哈希。当前前端注册不再要求昵称
-- `ai-trpg-server/characters.json`：每个账号下的角色卡列表
-- `ai-trpg-server/logs/room_*.jsonl`：房间行动与 AI 回复日志
-- `ai-trpg-server/saves/meta.json`：存档元信息
-- `ai-trpg-server/saves/*.jsonl`：具体存档日志
-- `ai-trpg-server/notebooks.json`：每个账号在每个房间里的战役笔记、线索和关系图
-
-这些文件适合原型和小规模测试。密码哈希、会话鉴权和账号数据隔离已经接入；正式扩容前仍建议迁移到数据库。
-
-当前代码已经把文件读写封装进 `src/repositories/`。后续切换 PostgreSQL/MySQL/Redis 时，优先替换 repository 层，不需要直接改页面或 Socket 事件主体。
-
-## COC 7th 角色卡编辑器
-
-角色卡编辑器位于 `/create-character`，近期已完成一次面向半自动写卡的重构。
-
-### 已完成功能
-
-- 基本信息页采用无内部滚动的单屏布局，包含头像、身份资料、派生属性、随机投掷和购点模式。
-- 九项基础属性以 `STR | 力量` 等格式展示，并附带其在游戏中的简要用途；LUC 在购点模式下可单独投掷。
-- 职业列表来自《COC七版规则空白卡CY20.02.2.xlsx》，共 230 条，支持检索、详情查看、按序号/实时职业点排序和套用。
-- 职业点公式会结合当前属性计算，`力量或敏捷` 等公式会自动取较高值。
-- 技能库覆盖 Excel 人物卡中的基础与扩展技能；“自然/自然学”统一迁移为“博物学”，技能显示名统一使用中文。
-- 职业固定技能会自动加入角色卡且不可改名、删除；职业投入只开放给当前本职技能。
-- 职业自选采用两级联动：先选技艺、科学、外语、格斗、射击、驾驶、生存或学识等上级分类，再选预设/自定义子技能。
-- 旧版 `自定义①/②/③` 占位技能会被过滤；旧英文技能名和旧别名会在编辑时迁移到当前规范名称。
-- 技能加点区采用双列单行紧凑卡片，显示初始、职业、兴趣、成长和总值，并提供统一清空加点操作。
-- Lobby 与角色卡页共用 `src/components/StyledSelect.tsx`，下拉菜单不再依赖浏览器原生样式。
-
-### 待完善内容
-
-- 职业技能文本目前仍由启发式解析器处理，需要为复杂的“或/任选/至多”规则补结构化数据和测试。
-- 需要增加信用评级范围、职业技能数量、点数上限和自选槽完整性校验。
-- 需要系统测试旧角色卡迁移、职业切换后的残留点数，以及桌面/窄屏布局。
-- `CreateCharacter/index.tsx` 已经偏大，后续应把职业规则解析和技能领域逻辑拆入独立 `domain/` 模块。
-
-## 常用脚本
-
-前端：
+### 3. 常用命令
 
 ```bash
-npm run dev
-npm run build
-npm run lint
-npm run preview
+# 前端生产构建
+cd ai-trpg-web && npm run build
+
+# 后端语法检查
+cd ai-trpg-server && npm run check
+
+# 迁移旧版明文密码
+cd ai-trpg-server && npm run migrate:passwords
 ```
 
-后端：
+## 已完成
 
-```bash
-npm run dev
-npm run start
-npm run check
-```
+### 账号与安全
 
-## 已完成的整理
+- 注册、登录、退出与会话恢复。
+- 用户名限制为 3–32 位字母、数字、下划线、点或连字符；密码限制为 10–128 位。
+- scrypt 密码哈希与旧明文密码自动迁移。
+- HttpOnly、SameSite=Lax 的签名 Cookie；生产环境可配置 Secure。
+- 登录限流、REST 登录保护、角色卡和存档所有权校验。
+- Socket.IO 握手复用登录会话，客户端不再把账号身份作为可信来源。
+- 登录和注册密码框支持明文/密文切换。
 
-- 后端已拆成 routes、socket handlers、repositories、storage、ai service。
-- `ROLL` / `STAT` 指令解析已集中到前后端 `domain/directives` 模块，后续扩展协议优先改这里。
-- `ROLL` 请求已生成稳定 `rollId`，骰子结果按 `rollId` 回填与去重。
-- 后端已广播 `turn_state`，前端优先按明确回合状态锁定输入框。
-- 大厅角色卡拉取已集中到 `loadCharacters`；入房 Socket 上报会等待角色卡加载完成，避免占位玩家重复进房。
-- 前端已集中使用 `src/socket.ts` 的 Socket.IO 客户端。
-- 战役笔记已持久化到本地 JSON 文件。
-- 前端会清理旧的 `trpg_nickname` localStorage 缓存，因为业务逻辑不再依赖它。
-- 角色卡职业数据和技能模板已抽到 `src/data/`，写卡流程已具备职业公式、固定技能和两级自选联动。
-- Lobby 自定义下拉已抽成共享组件，并复用于角色卡编辑器。
-- 账号密码改为 Node `scrypt` 哈希，旧明文账号支持脚本迁移和首次登录自动迁移。
-- 登录态改为签名、HttpOnly、SameSite 会话 Cookie；生产环境启用 Secure Cookie。
-- 角色卡、笔记、存档和房间历史接口已要求认证，账号归属由服务端会话决定。
-- Socket 握手接入同一会话，角色名和角色数据从服务端角色库读取，无法由客户端伪造。
-- 大厅广播只发送公开角色摘要，不再向其他玩家泄露完整角色卡和账号字段。
-- 增加登录限流、安全响应头、请求体上限、房间号校验、UUID 数据 ID 和存档所有权校验。
-- `deploy/` 提供 Nginx HTTPS、systemd、备份和生产部署清单。
+### 大厅与房间
 
-## 待修改与上线风险
+- 六位房间号、房主身份、玩家加入/退出与大厅聊天。
+- 玩家可在进入房间前选择并编辑角色卡。
+- 未选择角色卡时允许进入大厅，并明确显示“无角色卡”。
+- 房主可配置剧本、购点上限、职业技能上限和兴趣技能上限。
+- 房规通过 Socket.IO 同步，并在大厅内编辑角色卡时锁定对应限制。
+- 离开或断线后清理在线玩家；空房间自动回收。
+- 自定义下拉菜单、跨平台按钮不换行与常用分辨率布局修正。
 
-- 本地 JSON/JSONL 仍不适合多实例和高并发，扩容前应迁入 PostgreSQL/MySQL。
-- 房间实时状态仍主要保存在后端内存，后端重启后需要玩家重新进房。
-- 当前只能运行一个后端实例；多实例前需要 Redis Socket.IO adapter 和共享房间状态。
-- 签名会话为无状态会话，服务端密钥轮换会让全部用户重新登录；未来可改为数据库/Redis 会话实现精细撤销。
-- 上线前必须运行旧密码迁移、配置真实 HTTPS 域名、强随机 `SESSION_SECRET`，并设置每日异机备份。
+### 调查员角色卡
+
+- 基本信息、COC 7th 随机投掷和购点模式、派生属性计算。
+- 230 项职业资料的检索、排序、详情查看和职业套用。
+- 职业点公式按角色属性计算，包含“或”取较高值。
+- 完整技能表、本职技能、自选技能、特长与技能子类型联动。
+- “自然”统一归一化为“博物学”。
+- 职业技能上限作用于本职技能的“初始 + 职业 + 兴趣”；兴趣技能上限作用于非本职技能。
+- 成长点目前只读且统一为 0，不参与加点上限；已预留未来“过去经历”公式入口。
+- 角色卡保存、读取、编辑、删除及旧数据兼容。
+
+### 游戏、存档与笔记
+
+- 玩家行动轮转、统一等待状态与 AI 主持回复。
+- `ROLL` 指令支持一次回复中向多名玩家分别发起检定。
+- 检定具有稳定 ID，结果持久化，刷新后不能重复投掷。
+- `STAT` 指令可在当前游戏界面更新角色展示状态。
+- 房间历史、手动存档与继续游戏。
+- 战役笔记持久化、人物关系图与编辑工作流。
+
+### 配置与部署
+
+- 前端统一使用同源 API 和 Socket.IO，开发环境通过 Vite 代理。
+- 后端按 `NODE_ENV` 读取 `.env` 或 `.env.production`。
+- 生产环境检查会话密钥、CORS 与 AI 密钥等关键配置。
+- 已提供 Nginx、PM2、systemd、备份及生产环境变量模板。
+
+## 数据文件
+
+后端运行时主要使用：
+
+- `users.json`：账号和密码摘要
+- `characters.json`：角色卡
+- `notebooks.json`：战役笔记
+- `logs/*.jsonl`：房间消息历史
+- `saves/`：存档元数据和快照
+
+这些文件可能包含账号资料和游戏内容。部署、打包或提交前必须检查，禁止把真实密钥、生产数据和用户隐私上传到 Git。
+
+## 待完成
+
+### P0：上线前必须处理
+
+- 为登录、角色卡所有权、Socket 身份、防伪造加入、房规同步、回合与检定流程补齐自动化测试。
+- 完整回归“选卡 → 入房 → 房规锁定编辑 → 开始游戏 → 检定 → 存档”流程，并覆盖 Windows 缩放与移动端布局。
+- 将 D100 随机数改为服务端生成，避免客户端篡改。
+- 将 `STAT` 变化持久化到服务端角色或战役状态，而不只更新当前界面。
+
+### P1：角色卡与游戏规则
+
+- 把职业规则从文本启发式解析升级为结构化数据，并为复杂“任选、或、至多”规则补测试。
+- 完善职业选择数量、信用评级、点数残留和切换职业后的数据校验。
+- 在“过去经历”功能确定后实现成长点公式；成长点继续独立于房规加点上限。
+- 实现头像文件上传与持久化，目前只有界面入口。
+- 拆分体积较大的角色卡页面，抽离职业解析、技能规则和展示组件。
+- 引入剧本、场景、线索、失败/成功条件与结局状态机，解决 AI 自由回复导致游戏无法自然结束的问题。
+
+### P2：长期工程化
+
+- 将 JSON / JSONL 迁移到数据库，并用 Redis 管理在线房间、会话与多实例广播。
+- 增加可撤销会话、预留席位和明确的 Socket 重连状态机。
+- 清理剩余全局 CSS 影响、空组件和 Vite 模板遗留文件。
+- 建立 CI、日志脱敏、监控、告警与自动备份恢复演练。
+
+## 部署文档
+
+生产环境模板和操作说明位于 [deploy/README.md](deploy/README.md)。该文档只负责部署步骤；本文件负责项目使用、能力范围和开发进度。

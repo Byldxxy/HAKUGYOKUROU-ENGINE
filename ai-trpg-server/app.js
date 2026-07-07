@@ -17,7 +17,7 @@ app.disable('x-powered-by');
 if (config.trustProxy) app.set('trust proxy', config.trustProxy);
 
 // SECTION: 跨域配置
-// NOTE: CORS_ORIGIN 在 .env 中配置；本地开发可用 *，上线应改为前端域名白名单。
+// NOTE: 开发模式读取 .env，PM2 生产模式读取 .env.production 中的 HTTPS 域名白名单。
 const corsOptions = {
   origin: config.corsOrigin,
   credentials: true,
@@ -52,7 +52,9 @@ app.use(errorHandler);
 registerRoomSocket(io);
 
 // SECTION: 服务启动
-// NOTE: 日志展示 localhost 方便本地复制，但 host 仍由 .env 决定。
 server.listen(config.port, config.host, () => {
-  console.log(`🚀 白玉楼引擎 (WebSocket) 后端已启动在 http://localhost:${config.port}`);
+  const origins = config.corsOrigin === '*' ? '*' : config.corsOrigin.join(', ');
+  console.log(`🚀 白玉楼引擎后端 [${config.nodeEnv}] 监听 http://${config.host}:${config.port}`);
+  console.log(`🔒 允许的前端来源: ${origins}`);
+  console.log(`⚙️ 已加载环境文件: ${config.envFileName}`);
 });

@@ -3,6 +3,7 @@ const saveRepository = require('../repositories/saveRepository');
 const aiService = require('../services/aiService');
 const characterRepository = require('../repositories/characterRepository');
 const { isValidRoomId } = require('../domain/validation');
+const { DEFAULT_ROOM_RULES, normalizeRoomRules } = require('../domain/roomRules');
 const {
   parseRollRequests,
   parseRollActionSkill,
@@ -33,6 +34,7 @@ const emitLobbyUpdate = (io, roomId) => {
 
   io.to(roomId).emit('lobby_update', {
     ownerName: room.ownerName,
+    roomConfig: room.config,
     players: room.players.map((player) => ({
       id: player.id,
       name: player.name,
@@ -48,19 +50,22 @@ const emitLobbyUpdate = (io, roomId) => {
 
 // SECTION: 大厅玩家快照
 // NOTE: playerName 现在等同于角色卡姓名；accountName 字段暂时保留给旧数据兼容。
-const buildLobbyPlayer = ({ socketId, username, characterInfo = {}, existingPlayer = {} }) => ({
-  ...existingPlayer,
-  id: socketId,
-  name: characterInfo.name,
-  accountName: username,
-  characterId: characterInfo.id || existingPlayer.characterId,
-  characterName: characterInfo.name || existingPlayer.characterName,
-  role: characterInfo.role || existingPlayer.role || '暂无角色',
-  hp: characterInfo.hp ?? existingPlayer.hp,
-  san: characterInfo.san ?? existingPlayer.san,
-  mp: characterInfo.mp ?? existingPlayer.mp,
-  fullData: characterInfo.fullData || existingPlayer.fullData,
-});
+const buildLobbyPlayer = ({ socketId, username, characterInfo = {}, existingPlayer = {} }) => {
+  const hasCharacterSelection = characterInfo.id !== null && characterInfo.id !== undefined;
+  return {
+    ...existingPlayer,
+    id: socketId,
+    name: characterInfo.name,
+    accountName: username,
+    characterId: hasCharacterSelection ? characterInfo.id : null,
+    characterName: hasCharacterSelection ? characterInfo.name : null,
+    role: characterInfo.role || '无角色卡',
+    hp: characterInfo.hp ?? '-',
+    san: characterInfo.san ?? '-',
+    mp: characterInfo.mp ?? '-',
+    fullData: hasCharacterSelection ? (characterInfo.fullData || null) : null,
+  };
+};
 
 // SECTION: 角色卡兼容读取
 // NOTE: fullData 可能来自角色卡完整结构，也可能来自旧的扁平结构。
@@ -270,20 +275,42 @@ const registerRoomSocket = (io) => {
 
     // SECTION: 大厅加入
     // NOTE: 大厅身份以角色卡姓名为准；同一 socket 或同一角色名重复进入时更新旧条目。
-    socket.on('join_lobby', ({ roomId, characterInfo = {} }) => {
-      if (!isValidRoomId(roomId) || !consumeSocketQuota(socket)) return;
-      const ownedCharacter = getOwnedCharacter(username, characterInfo.id);
-      if (!ownedCharacter) {
-        socket.emit('session_error', { reason: 'invalid_character' });
+    socket.on('join_lobby', ({ roomId, characterInfo = {} }, ack) => {
+      if (!isValidRoomId(roomId)) {
+        if (typeof ack === 'function') ack({ success: false, reason: 'invalid_room' });
         return;
       }
-      const playerName = ownedCharacter.name;
+      if (!consumeSocketQuota(socket)) {
+        if (typeof ack === 'function') ack({ success: false, reason: 'rate_limited' });
+        return;
+      }
+      const hasRequestedCharacter = Boolean(characterInfo.id);
+      const ownedCharacter = hasRequestedCharacter ? getOwnedCharacter(username, characterInfo.id) : null;
+      if (hasRequestedCharacter && !ownedCharacter) {
+        console.warn(`⚠️ 账号 ${username} 加入房间 ${roomId} 失败：角色 ${characterInfo.id || '(empty)'} 不属于该账号`);
+        socket.emit('session_error', { reason: 'invalid_character' });
+        if (typeof ack === 'function') ack({ success: false, reason: 'invalid_character' });
+        return;
+      }
+      const lobbyCharacter = ownedCharacter || {
+        id: null,
+        name: username,
+        role: '无角色卡',
+        hp: '-',
+        san: '-',
+        mp: '-',
+      };
+      const playerName = lobbyCharacter.name;
       socket.join(roomId);
 
       if (!liveRooms[roomId]) {
         liveRooms[roomId] = {
           ownerName: playerName,
           ownerAccount: username,
+          config: {
+            scriptId: 'peach',
+            rules: { ...DEFAULT_ROOM_RULES },
+          },
           players: [],
         };
         console.log(`🏠 玩家 ${playerName} 创建了新房间: ${roomId} 并成为房主`);
@@ -302,16 +329,38 @@ const registerRoomSocket = (io) => {
         room.players[existingPlayerIndex] = buildLobbyPlayer({
           socketId: socket.id,
           username,
-          characterInfo: ownedCharacter,
+          characterInfo: lobbyCharacter,
           existingPlayer,
         });
         if (wasOwner) room.ownerName = playerName;
       } else {
-        room.players.push(buildLobbyPlayer({ socketId: socket.id, username, characterInfo: ownedCharacter }));
+        room.players.push(buildLobbyPlayer({ socketId: socket.id, username, characterInfo: lobbyCharacter }));
       }
 
       socket.data.roomId = roomId;
       emitLobbyUpdate(io, roomId);
+      if (typeof ack === 'function') {
+        ack({ success: true, ownerName: room.ownerName, playerCount: room.players.length });
+      }
+    });
+
+    // SECTION: 房主房规配置
+    // NOTE: 只有当前房主账号能修改；数值在服务端归一化后再广播，客户端输入不能直接成为房间状态。
+    socket.on('update_room_config', ({ roomId, scriptId, rules }, ack) => {
+      if (!isValidRoomId(roomId) || !consumeSocketQuota(socket)) return;
+      const room = liveRooms[roomId];
+      if (!room || room.ownerAccount !== username) {
+        if (typeof ack === 'function') ack({ success: false, reason: 'forbidden' });
+        return;
+      }
+
+      const normalizedScriptId = String(scriptId || room.config?.scriptId || 'peach').slice(0, 50);
+      room.config = {
+        scriptId: normalizedScriptId,
+        rules: normalizeRoomRules(rules, room.config?.rules || DEFAULT_ROOM_RULES),
+      };
+      emitLobbyUpdate(io, roomId);
+      if (typeof ack === 'function') ack({ success: true, roomConfig: room.config });
     });
 
     // SECTION: 游戏房间加入
@@ -338,7 +387,12 @@ const registerRoomSocket = (io) => {
       fullData = ownedCharacter;
       socket.join(roomId);
       if (!liveRooms[roomId]) {
-        liveRooms[roomId] = { ownerName: nickname, ownerAccount: username, players: [] };
+        liveRooms[roomId] = {
+          ownerName: nickname,
+          ownerAccount: username,
+          config: { scriptId: 'peach', rules: { ...DEFAULT_ROOM_RULES } },
+          players: [],
+        };
       }
       const room = liveRooms[roomId];
 

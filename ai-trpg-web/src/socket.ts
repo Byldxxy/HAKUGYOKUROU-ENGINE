@@ -6,7 +6,8 @@ import { SOCKET_URL } from './config';
 export const socket = io(SOCKET_URL, {
   // NOTE: 手动连接，页面确认 roomId/角色信息后再 join，避免空身份提前入房。
   autoConnect: false,
-  transports: ['websocket'],
+  // NOTE: 保留 polling 兜底，再由 Socket.IO 自动升级到 WebSocket，兼容反向代理尚未完成 Upgrade 的环境。
+  transports: ['polling', 'websocket'],
   withCredentials: true,
 });
 

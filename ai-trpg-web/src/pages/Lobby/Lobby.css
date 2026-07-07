@@ -75,6 +75,64 @@
   margin-top: 5px;
 }
 
+.room-rule-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(92px, 0.65fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.room-rule-script,
+.room-rule-field {
+  min-width: 0;
+}
+
+.room-rule-script > label,
+.room-rule-field > span {
+  display: block;
+  min-height: 18px;
+  margin: 0 0 6px;
+  color: #A0858D;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.room-rule-script .styled-select-trigger,
+.room-rule-field input {
+  width: 100%;
+  height: 46px;
+  box-sizing: border-box;
+}
+
+.room-rule-field input {
+  border: 1.5px solid #4A2A33;
+  border-radius: 4px;
+  background: #FAF5F7;
+  color: #4A2A33;
+  font: inherit;
+  font-weight: 900;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.room-rule-field input::-webkit-outer-spin-button,
+.room-rule-field input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.room-rule-field input:focus {
+  border-color: #FF8FAB;
+}
+
+@media (max-width: 1100px) {
+  .room-rule-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* SECTION: 旧原生 select 样式 */
 /* NOTE: 已改用 StyledSelect，新代码优先不要再使用 flat-select。 */
 .flat-select {

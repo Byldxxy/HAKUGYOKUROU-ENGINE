@@ -1,13 +1,19 @@
 # 生产部署清单
 
-本目录提供 Nginx、systemd 和本地数据备份模板。将示例中的 `example.com`、安装路径和系统用户替换为实际值。
+本目录提供 Nginx、PM2、systemd 和本地数据备份模板。将示例中的 `example.com`、安装路径和系统用户替换为实际值。
 
 ## 1. 生产环境变量
 
-服务器上的 `ai-trpg-server/.env` 至少配置：
+复制生产模板。该文件已被 Git 忽略，不会覆盖本地开发用的 `.env`：
+
+```bash
+cd /opt/hakugyokurou/ai-trpg-server
+cp .env.production.example .env.production
+```
+
+服务器上的 `ai-trpg-server/.env.production` 至少配置：
 
 ```env
-NODE_ENV=production
 PORT=3000
 HOST=127.0.0.1
 TRUST_PROXY=true
@@ -29,7 +35,7 @@ AI_TIMEOUT_MS=30000
 openssl rand -hex 32
 ```
 
-生产模式会拒绝以下配置：缺少/过短的 `SESSION_SECRET`、`CORS_ORIGIN=*`、缺少 `API_KEY`。
+PM2 会注入 `NODE_ENV=production`，后端随后自动读取 `.env.production`。生产模式会拒绝以下配置：缺少/过短的 `SESSION_SECRET`、未填写或使用通配的 `CORS_ORIGIN`、缺少 `API_KEY`。
 
 ## 2. 安装与构建
 
@@ -65,9 +71,32 @@ npm run migrate:passwords
 
 模板已包含 SPA 回退、WebSocket Upgrade、HSTS、CSP、静态资源缓存和 API 限流。
 
-## 5. 后端常驻
+## 5. PM2 后端常驻
 
-复制并修改 `hakugyokurou.service.example`：
+项目只支持单后端实例，因此 ecosystem 固定使用 fork 模式和一个实例：
+
+```bash
+cd /opt/hakugyokurou
+pm2 start deploy/ecosystem.config.cjs --env production
+pm2 save
+pm2 startup
+```
+
+`--env production` 是环境切换开关。不要在服务器上使用 `npm run dev`，它会有意切回本地开发配置。
+
+常用更新流程：
+
+```bash
+cd /opt/hakugyokurou
+git pull
+cd ai-trpg-web && npm ci && npm run build
+cd ../ai-trpg-server && npm ci --omit=dev
+cd .. && pm2 restart deploy/ecosystem.config.cjs --env production
+```
+
+## 6. systemd 备选
+
+如果不使用 PM2，可以直接复制并按实际安装路径修改 `hakugyokurou.service.example`：
 
 ```bash
 sudo cp deploy/hakugyokurou.service.example /etc/systemd/system/hakugyokurou.service
@@ -77,7 +106,7 @@ sudo systemctl enable --now hakugyokurou
 
 后端使用独立低权限用户运行。确保该用户可写 `users.json`、`characters.json`、`notebooks.json`、`logs/` 和 `saves/`，其他用户不应读取 `.env` 与数据文件。
 
-## 6. 备份
+## 7. 备份
 
 `backup-data.sh` 会打包运行数据并清理 14 天前的旧备份。建议通过 cron 每日执行，并将备份同步到另一台机器或对象存储。
 
@@ -85,7 +114,7 @@ sudo systemctl enable --now hakugyokurou
 /opt/hakugyokurou/deploy/backup-data.sh /opt/hakugyokurou /var/backups/hakugyokurou
 ```
 
-## 7. 当前架构限制
+## 8. 当前架构限制
 
 - 房间状态保存在单个 Node 进程内，当前只能运行一个后端实例。
 - JSON/JSONL 适合小规模测试；正式扩容前应迁移到 PostgreSQL 与 Redis。

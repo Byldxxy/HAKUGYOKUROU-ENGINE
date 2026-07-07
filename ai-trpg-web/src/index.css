@@ -19,7 +19,18 @@
 /* SECTION: 页面基础字体与底色 */
 /* NOTE: body 不设置 overflow，交给具体页面决定是否满屏滚动。 */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", Roboto, sans-serif;
   background-color: var(--theme-bg-base);
   color: var(--text-main);
+}
+
+/* SECTION: 跨平台按钮文字 */
+/* NOTE: Windows 中文字体通常比 macOS 更宽，命令按钮禁止在汉字之间自动断行。 */
+button,
+.flat-btn {
+  font-family: inherit;
+  letter-spacing: 0;
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }

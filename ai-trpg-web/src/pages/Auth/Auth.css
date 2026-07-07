@@ -145,6 +145,81 @@
   font-weight: 300;
 }
 
+/* SECTION: 密码明文切换 */
+.password-field {
+  position: relative;
+  width: 100%;
+  height: 50px;
+}
+
+.password-field .auth-input {
+  padding-right: 58px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 1.5px;
+  right: 1.5px;
+  width: 48px;
+  height: 47px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-left: 1.5px solid #EFE6E8;
+  border-radius: 0 3px 3px 0;
+  background: #FAF5F7;
+  color: #A0858D;
+  cursor: pointer;
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  background: #FFE8EE;
+  color: #4A2A33;
+  outline: none;
+}
+
+.password-eye {
+  position: relative;
+  width: 19px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.password-eye::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+}
+
+.password-toggle.visible .password-eye::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  left: -3px;
+  width: 22px;
+  height: 2px;
+  background: currentColor;
+  transform: rotate(-38deg);
+  box-shadow: 0 0 0 2px #FAF5F7;
+}
+
+.password-toggle.visible:hover .password-eye::before,
+.password-toggle.visible:focus-visible .password-eye::before {
+  box-shadow: 0 0 0 2px #FFE8EE;
+}
+
 
 /* SECTION: 提交按钮 */
 /* NOTE: hover/active 通过移动和缩短阴影模拟实体按钮按下。 */

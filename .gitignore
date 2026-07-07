@@ -21,6 +21,7 @@ ai-trpg-web/dist-ssr/
 ai-trpg-server/.env
 ai-trpg-server/.env.*
 !ai-trpg-server/.env.example
+!ai-trpg-server/.env.production.example
 
 # Runtime data
 ai-trpg-server/users.json

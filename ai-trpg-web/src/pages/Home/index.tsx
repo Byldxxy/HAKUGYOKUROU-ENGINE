@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 import { apiFetch } from '../../config';
 import { socket } from '../../socket';
+import StyledSelect from '../../components/StyledSelect';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -10,6 +11,38 @@ export default function Home() {
   // SECTION: 加入房间输入
   // NOTE: 房间号保持 6 位纯数字，和创建房间的随机规则一致。
   const [joinId, setJoinId] = useState('');
+  const [characterList, setCharacterList] = useState<any[]>([]);
+  const [activeCharacter, setActiveCharacter] = useState<any>(null);
+
+  useEffect(() => {
+    const loadCharacters = async () => {
+      try {
+        const response = await apiFetch('/api/characters');
+        const data = await response.json();
+        const cards = data.success ? (data.cards || []) : [];
+        const savedCharacterId = localStorage.getItem('trpg_current_char_id');
+        const selected = cards.find((card: any) => card.id === savedCharacterId) || cards[0] || null;
+        setCharacterList(cards);
+        setActiveCharacter(selected);
+        if (selected) localStorage.setItem('trpg_current_char_id', selected.id);
+      } catch (error) {
+        console.error('加载角色卡失败', error);
+      }
+    };
+    loadCharacters();
+  }, []);
+
+  const characterOptions = useMemo(() => [
+    { value: '', label: '无角色卡' },
+    ...characterList.map((card) => ({ value: card.id, label: `${card.name} (${card.role || '未知职业'})` })),
+  ], [characterList]);
+
+  const selectCharacter = (characterId: string) => {
+    const selected = characterList.find((card) => card.id === characterId) || null;
+    setActiveCharacter(selected);
+    if (selected) localStorage.setItem('trpg_current_char_id', selected.id);
+    else localStorage.removeItem('trpg_current_char_id');
+  };
 
   // SECTION: 创建房间
   // NOTE: 当前房间 ID 由前端随机生成；上线前可改成后端生成避免碰撞。
@@ -57,6 +90,25 @@ export default function Home() {
           <div className="user-panel">
             <span className="greeting">Hello，调查员。</span>
             <button className="logout-btn" onClick={handleLogout}>退出登录</button>
+          </div>
+
+          <div className="home-character-panel">
+            <label>出战角色</label>
+            <div className="home-character-row">
+              <StyledSelect
+                value={activeCharacter?.id || ''}
+                options={characterOptions}
+                onChange={selectCharacter}
+              />
+              <button
+                type="button"
+                className="flat-btn secondary edit-character-btn"
+                disabled={!activeCharacter}
+                onClick={() => activeCharacter && navigate('/create-character', { state: { character: activeCharacter } })}
+              >
+                编辑
+              </button>
+            </div>
           </div>
 
           <button className="flat-btn primary" onClick={handleCreateRoom}>

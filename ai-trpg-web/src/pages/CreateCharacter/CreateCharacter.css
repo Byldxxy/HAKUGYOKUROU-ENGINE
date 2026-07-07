@@ -568,6 +568,7 @@ textarea.flat-input {
   gap: 20px;
   padding-bottom: 10px;
   border-bottom: 1.5px solid #EFE6E8;
+  flex-wrap: wrap;
 }
 
 .skill-page-header .section-title {
@@ -582,6 +583,14 @@ textarea.flat-input {
   align-items: center;
   gap: 12px;
   min-width: 0;
+  margin-left: auto;
+}
+
+.compact-career-control .flat-btn {
+  flex: 0 0 auto;
+  width: auto !important;
+  min-width: 96px;
+  padding-inline: 16px !important;
 }
 
 .compact-career-control strong,
@@ -647,17 +656,28 @@ textarea.flat-input {
   align-items: stretch;
   gap: 10px;
   margin-bottom: 9px;
+  flex-wrap: wrap;
 }
 
 .compact-budget-group {
   display: flex;
+  flex: 1 1 360px;
   gap: 7px;
 }
 
 .skill-toolbar-actions {
   display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.skill-toolbar-actions .flat-btn {
+  flex: 0 0 auto;
+  width: auto !important;
+  min-width: max-content;
+  padding-inline: 14px !important;
 }
 
 .compact-budget {
@@ -919,6 +939,22 @@ textarea.flat-input {
   padding: 10px 15px;
   border: 1.5px solid #EFE6E8;
   border-radius: 4px;
+}
+
+.point-buy-limit-input {
+  -moz-appearance: textfield;
+}
+
+.point-buy-limit-input::-webkit-outer-spin-button,
+.point-buy-limit-input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.point-buy-limit-input:disabled {
+  cursor: not-allowed;
+  color: #4A2A33;
+  opacity: 1;
 }
 
 

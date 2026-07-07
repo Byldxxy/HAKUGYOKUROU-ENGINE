@@ -4,6 +4,7 @@ import { apiFetch } from '../../config';
 import { COC_OCCUPATIONS, type CocOccupation } from '../../data/cocOccupations';
 import { COC_SKILL_TEMPLATES } from '../../data/cocSkills';
 import StyledSelect from '../../components/StyledSelect';
+import type { RoomRules } from '../../domain/roomRules';
 import './CreateCharacter.css';
 
 // SECTION: 骰点工具
@@ -106,6 +107,14 @@ type Skill = {
   interest: number;
   grow: number;
 };
+
+type SkillGrowthContext = {
+  pastExperience: string;
+};
+
+// SECTION: 技能成长公式接口
+// NOTE: 写卡阶段成长固定为 0；后续“过去经历”规则接入时只需替换该函数实现。
+const calculateSkillGrowth = (_skill: Skill, _context: SkillGrowthContext) => 0;
 
 type OccupationChoiceGroup = {
   id: string;
@@ -265,17 +274,20 @@ const normalizePersistedSkillName = (name: string) => {
 const mergeSkillTemplates = (templateSkills: Skill[], savedSkills?: Skill[]) => {
   if (!savedSkills) return templateSkills;
   const mergedSkills = savedSkills.reduce<Skill[]>((result, savedSkill) => {
-    const normalizedSkill = { ...savedSkill, name: normalizePersistedSkillName(savedSkill.name) };
+    const normalizedSkill = {
+      ...savedSkill,
+      name: normalizePersistedSkillName(savedSkill.name),
+      grow: 0,
+    };
     if (isPlaceholderSkill(normalizedSkill.name)
       && !normalizedSkill.job
-      && !normalizedSkill.interest
-      && !normalizedSkill.grow) return result;
+      && !normalizedSkill.interest) return result;
     const existingSkill = result.find((skill) => skill.name === normalizedSkill.name);
     if (existingSkill) {
       existingSkill.base = Math.max(existingSkill.base || 0, normalizedSkill.base || 0);
       existingSkill.job += normalizedSkill.job || 0;
       existingSkill.interest += normalizedSkill.interest || 0;
-      existingSkill.grow += normalizedSkill.grow || 0;
+      existingSkill.grow = 0;
     } else {
       result.push(normalizedSkill);
     }
@@ -443,6 +455,8 @@ export default function CreateCharacter() {
   // SECTION: 编辑模式入口
   // NOTE: Lobby 点击编辑时通过 navigate state 传入整张角色摘要和 fullData。
   const editData = location.state?.character;
+  const roomRules = location.state?.roomRules as RoomRules | undefined;
+  const lockRoomLimits = Boolean(location.state?.lockRoomLimits && roomRules);
 
   // SECTION: 页面页签与基础资料
   // NOTE: 新建时使用默认空值，编辑时优先回填旧角色的 fullData.basicInfo。
@@ -459,8 +473,12 @@ export default function CreateCharacter() {
 
   // SECTION: 属性生成模式
   // NOTE: roll 是传统随机，buy 是购点；两种模式共用同一份 stats。
-  const [statMode, setStatMode] = useState<'roll' | 'buy'>('roll');
-  const [buyLimit, setBuyLimit] = useState(480);
+  const [statMode, setStatMode] = useState<'roll' | 'buy'>(() => (
+    lockRoomLimits ? 'buy' : (editData?.fullData?.statMode || 'roll')
+  ));
+  const [buyLimit, setBuyLimit] = useState(() => (
+    lockRoomLimits ? roomRules!.pointBuyLimit : (editData?.fullData?.buyLimit || 480)
+  ));
   const [stats, setStats] = useState<Record<string, number>>({
     ...emptyStats,
     ...(editData?.fullData?.stats || {})
@@ -517,10 +535,20 @@ export default function CreateCharacter() {
   // SECTION: 技能字段更新
   // NOTE: 技能名保持字符串，点数字段统一转 number，空输入视为 0。
   const updateSkill = (id: string, field: string, value: string | number) => {
-    setSkills(skills.map(s => {
+    setSkills((currentSkills) => currentSkills.map(s => {
       if (s.id !== id) return s;
       if (field === 'name') return { ...s, name: String(value) };
-      return { ...s, [field]: Number(value) || 0 };
+      let numericValue = Math.max(0, Number(value) || 0);
+      if (lockRoomLimits && ['job', 'interest'].includes(field)) {
+        const skillLimit = occupationalSkillNameSet.has(s.name)
+          ? roomRules!.occupationSkillLimit
+          : roomRules!.interestSkillLimit;
+        const otherAllocatedPoints = ['job', 'interest']
+          .filter((pointField) => pointField !== field)
+          .reduce((sum, pointField) => sum + (s[pointField as 'job' | 'interest'] || 0), 0);
+        numericValue = Math.min(numericValue, Math.max(0, skillLimit - s.base - otherAllocatedPoints));
+      }
+      return { ...s, [field]: numericValue };
     }));
   };
 
@@ -566,6 +594,12 @@ export default function CreateCharacter() {
     ...emptyBgInfo,
     ...(editData?.fullData?.bgInfo || {})
   });
+
+  const growthRuleContext = useMemo<SkillGrowthContext>(() => ({
+    pastExperience: bgInfo.history,
+  }), [bgInfo.history]);
+
+  const getSkillGrowth = (skill: Skill) => calculateSkillGrowth(skill, growthRuleContext);
 
   // SECTION: 职业列表状态
   // NOTE: 职业数据来自 Excel 的“职业列表”工作表，页面只负责检索、预览和套用基础字段。
@@ -737,14 +771,34 @@ export default function CreateCharacter() {
   // NOTE: 保存前做最小完整性校验；更复杂的房规校验后续可集中到后端。
   const handleSave = async () => {
     if (!basicInfo.name || stats.str === 0) return alert('请至少填写姓名并检定核心属性！');
+    if (statMode === 'buy' && remainStatPoints < 0) return alert('基础属性购点已超过房规上限！');
     if (remainJob < 0 || remainInt < 0) return alert('技能点数已透支，请检查加点！');
+    if (lockRoomLimits) {
+      const overflowSkill = skills.find((skill) => {
+        const allocatedPoints = skill.job + skill.interest;
+        if (allocatedPoints <= 0) return false;
+        const skillLimit = occupationalSkillNameSet.has(skill.name)
+          ? roomRules!.occupationSkillLimit
+          : roomRules!.interestSkillLimit;
+        return skill.base + allocatedPoints > skillLimit;
+      });
+      if (overflowSkill) {
+        const isOccupationSkill = occupationalSkillNameSet.has(overflowSkill.name);
+        const skillLimit = isOccupationSkill ? roomRules!.occupationSkillLimit : roomRules!.interestSkillLimit;
+        return alert(`${isOccupationSkill ? '职业' : '兴趣'}技能【${overflowSkill.name}】超过房规上限 ${skillLimit}。`);
+      }
+    }
     const username = localStorage.getItem('trpg_username'); 
     if (!username) return alert('警告：未检测到登录账号信息，请先返回登录页！');
 
     // NOTE: editData?.id 决定后端是更新旧角色还是创建新角色。
+    const skillsWithCalculatedGrowth = skills.map((skill) => ({
+      ...skill,
+      grow: getSkillGrowth(skill),
+    }));
     const finalCharacterData = { 
       id: editData?.id, 
-      basicInfo, stats, skills, bgInfo, occupationSkillChoices
+      basicInfo, stats, skills: skillsWithCalculatedGrowth, bgInfo, occupationSkillChoices, statMode, buyLimit
     };
 
     try {
@@ -847,7 +901,14 @@ export default function CreateCharacter() {
                     ) : (
                       <div className="point-buy-control">
                         <label>购点上限（不含 LUC）</label>
-                        <input type="number" className="flat-input" value={buyLimit} onChange={e => setBuyLimit(Number(e.target.value))} />
+                        <input
+                          type="number"
+                          className="flat-input point-buy-limit-input"
+                          value={buyLimit}
+                          disabled={lockRoomLimits}
+                          title={lockRoomLimits ? '购点上限由房主设定' : '自定义购点上限'}
+                          onChange={e => setBuyLimit(Number(e.target.value))}
+                        />
                         <span>剩余 <strong className={remainStatPoints < 0 ? 'error-text' : ''}>{remainStatPoints}</strong></span>
                       </div>
                     )}
@@ -1051,10 +1112,20 @@ export default function CreateCharacter() {
                   </div>
                   <div className="skill-card-grid">
                     {orderedSkills.map(skill => {
-                      const total = skill.base + skill.job + skill.interest + skill.grow;
+                      const growthPoints = getSkillGrowth(skill);
+                      const total = skill.base + skill.job + skill.interest + growthPoints;
                       const isFixedOccupationSkill = occupationSkillRules.fixedSkills.includes(skill.name);
                       const isChosenOccupationSkill = selectedChoiceSkillNames.includes(skill.name);
                       const isOccupationSkill = occupationalSkillNameSet.has(skill.name);
+                      const skillLimit = isOccupationSkill
+                        ? roomRules?.occupationSkillLimit
+                        : roomRules?.interestSkillLimit;
+                      const maxJobPoints = lockRoomLimits
+                        ? Math.max(0, skillLimit! - skill.base - skill.interest)
+                        : undefined;
+                      const maxInterestPoints = lockRoomLimits
+                        ? Math.max(0, skillLimit! - skill.base - skill.job)
+                        : undefined;
                       // NOTE: 职业动态生成的技能即使使用 custom_ ID，也必须由职业规则管理，不能在技能卡上改名或删除。
                       const isCustom = skill.id.startsWith('custom_') && !isOccupationSkill;
                       const shouldLockJobInput = !isOccupationSkill && (skill.job || 0) === 0;
@@ -1079,9 +1150,9 @@ export default function CreateCharacter() {
                               <input type="number" className="flat-input skill-input" value={skill.base} onChange={e => updateSkill(skill.id, 'base', e.target.value)} />
                             ) : <strong>{skill.base}</strong>}
                           </label>
-                          <label><span>职业</span><input type="number" className="flat-input skill-input" disabled={shouldLockJobInput} value={skill.job || ''} onChange={e => updateSkill(skill.id, 'job', e.target.value)} placeholder="0" /></label>
-                          <label><span>兴趣</span><input type="number" className="flat-input skill-input" value={skill.interest || ''} onChange={e => updateSkill(skill.id, 'interest', e.target.value)} placeholder="0" /></label>
-                          <label><span>成长</span><input type="number" className="flat-input skill-input" value={skill.grow || ''} onChange={e => updateSkill(skill.id, 'grow', e.target.value)} placeholder="0" /></label>
+                          <label><span>职业</span><input type="number" className="flat-input skill-input" disabled={shouldLockJobInput} max={maxJobPoints} value={skill.job || ''} onChange={e => updateSkill(skill.id, 'job', e.target.value)} placeholder="0" /></label>
+                          <label><span>兴趣</span><input type="number" className="flat-input skill-input" max={maxInterestPoints} value={skill.interest || ''} onChange={e => updateSkill(skill.id, 'interest', e.target.value)} placeholder="0" /></label>
+                          <label><span>成长</span><strong>{growthPoints}</strong></label>
                           <label className="skill-total"><span>总值</span><strong>{total}</strong></label>
                           </div>
                         </article>

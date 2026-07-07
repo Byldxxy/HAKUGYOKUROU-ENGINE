@@ -12,6 +12,8 @@ export default function Auth() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
 
   // SECTION: 登录/注册提交
   // NOTE: 两种模式复用一个 submit，先做前端轻校验，再交给后端做最终判断。
@@ -98,22 +100,46 @@ export default function Auth() {
 
           <div className="input-group">
             <label>安全密钥 (Password)</label>
-            <input 
-              type="password" 
-              className="flat-input auth-input" 
-              placeholder="输入密码"
-              value={password} onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="password-field">
+              <input
+                type={isPasswordVisible ? 'text' : 'password'}
+                className="flat-input auth-input"
+                placeholder="输入密码"
+                value={password} onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className={`password-toggle ${isPasswordVisible ? 'visible' : ''}`}
+                aria-label={isPasswordVisible ? '隐藏密码' : '显示密码'}
+                aria-pressed={isPasswordVisible}
+                title={isPasswordVisible ? '隐藏密码' : '显示密码'}
+                onClick={() => setIsPasswordVisible((visible) => !visible)}
+              >
+                <span className="password-eye" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           {!isLoginMode && (
             <div className="input-group">
               <label>确认密钥 (Confirm)</label>
-              <input 
-                type="password" 
-                className="flat-input auth-input" 
-                placeholder="请再次输入密码"
-                value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-              />
+              <div className="password-field">
+                <input
+                  type={isConfirmPasswordVisible ? 'text' : 'password'}
+                  className="flat-input auth-input"
+                  placeholder="请再次输入密码"
+                  value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className={`password-toggle ${isConfirmPasswordVisible ? 'visible' : ''}`}
+                  aria-label={isConfirmPasswordVisible ? '隐藏确认密码' : '显示确认密码'}
+                  aria-pressed={isConfirmPasswordVisible}
+                  title={isConfirmPasswordVisible ? '隐藏确认密码' : '显示确认密码'}
+                  onClick={() => setIsConfirmPasswordVisible((visible) => !visible)}
+                >
+                  <span className="password-eye" aria-hidden="true" />
+                </button>
+              </div>
             </div>
           )}
 
