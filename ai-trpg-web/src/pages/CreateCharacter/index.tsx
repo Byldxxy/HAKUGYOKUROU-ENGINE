@@ -406,12 +406,12 @@ const parseOccupationSkillRules = (skillText: string): OccupationSkillRules => {
     return '';
   });
 
-  remainingText = remainingText.replace(/任意([一二两三四五六七八九十\d]+)项(?:其他)?(?:个人或时代)?特长/g, (_, countText: string) => {
+  remainingText = remainingText.replace(/任意([一二两三四五六七八九十\d]+)项(?:其他)?(?:个人或时代)?特长(?:[（(][^）)]*[）)])?/g, (_, countText: string) => {
     addChoiceGroup('个人或时代特长', getCountFromText(countText), [], true, '输入或选择特长技能');
     return '';
   });
 
-  remainingText = remainingText.replace(/任意([一二两三四五六七八九十\d]+)项(?:其他)?技能/g, (_, countText: string) => {
+  remainingText = remainingText.replace(/任意([一二两三四五六七八九十\d]+)项(?:其他)?技能(?:[（(][^）)]*[）)])?/g, (_, countText: string) => {
     addChoiceGroup('任意技能', getCountFromText(countText), [], true, '输入或选择任意技能');
     return '';
   });
@@ -425,6 +425,8 @@ const parseOccupationSkillRules = (skillText: string): OccupationSkillRules => {
   splitTopLevelChineseList(remainingText).forEach((rawToken) => {
     const token = rawToken.trim();
     if (!token || token.includes('任意') || token.includes('特长')) return;
+    // NOTE: 跳过纯括号注释（如“（如骑乘或格斗）”），不作为技能名解析。
+    if (/^[（(].*[）)]$/.test(token)) return;
 
     const parentheticalMatch = token.match(/^(.+?)[（(](.+?)[）)]$/);
     if (parentheticalMatch) {
@@ -734,6 +736,20 @@ export default function CreateCharacter() {
   // SECTION: 套用职业基础信息
   // NOTE: 写入职业名和信用评级范围，技能页会按职业规则自动生成固定技能与自选槽。
   const applyOccupation = (occupation: CocOccupation) => {
+    const newRules = parseOccupationSkillRules(occupation.skills || '');
+    const oldRequiredNames = new Set(occupationalSkillNames.filter(Boolean));
+    const newRequiredNames = new Set(
+      [...newRules.fixedSkills, ...(newRules.choices.flatMap((c) => c.options) || [])].filter(Boolean)
+    );
+    const templateNames = new Set(COC_SKILL_TEMPLATES.map((t) => t.name));
+
+    setSkills((prev) => prev.filter((skill) => {
+      if (!skill.id.startsWith('custom_')) return true;
+      if (templateNames.has(skill.name)) return true;
+      if (oldRequiredNames.has(skill.name) && !newRequiredNames.has(skill.name)) return false;
+      return true;
+    }));
+
     setBasicInfo({ ...basicInfo, occupation: occupation.name });
     setBgInfo({ ...bgInfo, credit: occupation.creditRange || bgInfo.credit });
     setOccupationSkillChoices({});

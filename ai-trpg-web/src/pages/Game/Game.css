@@ -2,25 +2,26 @@
 /* NOTE: 游戏页固定满屏，内部由 header、左侧角色栏、右侧聊天区组成。 */
 .game-container {
   height: 100vh;
-  padding: 20px;
+  min-height: 620px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  background-color: #FAF5F7;
-  color: #4A2A33;
+  gap: 14px;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
   position: relative;
 }
 
 /* SECTION: 顶部栏 */
-.flat-btn.small { height: 36px; padding: 0 15px; font-size: 0.85rem; }
-.game-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 24px; }
-.room-info { font-weight: 900; letter-spacing: 1px; font-size: 1.1rem; }
+.game-header { min-height: 62px; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; }
+.room-info { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 900; letter-spacing: 0; font-size: 1.05rem; }
 
 /* SECTION: 游戏主体布局 */
 /* NOTE: 左侧栏固定宽度，右侧聊天区占剩余空间。 */
 .game-body {
   display: flex;
-  gap: 20px;
+  min-height: 0;
+  gap: 16px;
   flex: 1;
   overflow: hidden;
 }
@@ -28,18 +29,21 @@
 
 /* SECTION: 左侧角色栏 */
 .game-sidebar {
-  width: 280px;
+  flex: 0 0 264px;
+  width: 264px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
+  padding: 0 6px 6px 0;
   overflow-y: auto;
 }
 
 .my-character-panel {
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 
@@ -57,14 +61,15 @@
 .avatar-box {
   width: 100%;
   aspect-ratio: 1 / 1;
-  background-color: #FAF5F7;
-  border: 1.5px solid #4A2A33;
+  max-height: 230px;
+  background-color: var(--color-canvas);
+  border: var(--border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
   font-size: 1.2rem;
-  letter-spacing: 2px;
+  letter-spacing: 0;
 }
 
 /* SECTION: HP/SAN/MP 条 */
@@ -105,9 +110,11 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background-color: #FFFFFF;
+  background-color: var(--color-surface);
+  box-shadow: 3px 3px 0 var(--color-primary-shadow);
 }
 .teammate-name { font-weight: bold; font-size: 1rem; border-bottom: 1.5px dashed #EFE6E8; padding-bottom: 4px; }
+.teammate-role { color: var(--color-ink-muted); font-size: 0.75rem; font-weight: 400; }
 .teammate-mini-stats { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; font-family: monospace; }
 .mini-stat.hp { color: #d81b60; }
 .mini-stat.san { color: #A0858D; }
@@ -115,11 +122,11 @@
 
 
 /* SECTION: 聊天主区域 */
-.game-main { flex: 1; display: flex; flex-direction: column; padding: 0; }
-.chat-history { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; }
-.message { max-width: 75%; display: flex; flex-direction: column; gap: 6px; }
+.game-main { min-width: 0; min-height: 0; flex: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.chat-history { flex: 1; min-height: 0; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; }
+.message { width: fit-content; max-width: min(82%, 980px); display: flex; flex-direction: column; gap: 6px; }
 .sender-name { font-size: 0.85rem; font-weight: 800; color: #A0858D; margin-left: 2px; }
-.message-content { padding: 15px 20px; line-height: 1.6; font-size: 0.95rem; border: 1.5px solid #4A2A33; border-radius: 4px; }
+.message-content { min-width: 0; padding: 16px 18px; line-height: 1.75; font-size: 0.95rem; border: var(--border-strong); border-radius: var(--radius-control); overflow-wrap: anywhere; }
 
 .message.dm { align-self: flex-start; }
 .message.dm .message-content { background-color: #FFFFFF; box-shadow: 4px 4px 0px #FFC2D1; }
@@ -129,16 +136,93 @@
 .message.roll { align-self: center; text-align: center; max-width: 90%; }
 .message.roll .message-content { background-color: #FAF5F7; font-weight: bold; box-shadow: none; border-style: dashed; }
 
+.stat-change-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.stat-change {
+  padding: 5px 9px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-control);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.stat-change.negative { color: var(--color-danger); background: #fff0f4; }
+.stat-change.positive { color: #287a35; background: #eef8ef; }
+
+.roll-request {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1.5px dashed var(--color-ink);
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+  text-align: center;
+}
+
+.roll-request-title {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--color-danger);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.roll-request .flat-btn {
+  width: min(100%, 520px);
+  min-width: 140px;
+}
+
+.roll-result {
+  max-width: 720px;
+  margin: 8px auto 0;
+  padding: 10px 14px;
+  border: var(--border-soft);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-weight: 800;
+  line-height: 1.65;
+}
+
+.roll-waiting {
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+}
+
 
 /* SECTION: 输入控制栏 */
 /* NOTE: textarea 和按钮等高拉伸，锁定状态由 TSX 切换 disabled。 */
 .control-panel {
   display: flex;
   gap: 15px;
-  padding: 20px 30px;
+  padding: 16px 20px;
   border-top: 1.5px solid #4A2A33;
   background-color: #FFFFFF;
   align-items: stretch;
+}
+
+.composer-row {
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.force-unlock-btn {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-danger);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: left;
 }
 
 
@@ -155,10 +239,16 @@
   font-size: 1rem;
   color: #4A2A33;
   outline: none;
-  background: #FAF5F7;
+  background: var(--color-surface);
   font-family: inherit;
   line-height: 1.5;
   transition: border-color 0.2s;
+}
+
+.flat-textarea:disabled {
+  cursor: not-allowed;
+  background: var(--color-surface-disabled);
+  color: var(--color-ink-muted);
 }
 
 .flat-textarea:focus {
@@ -169,8 +259,8 @@
 
 /* SECTION: 执行按钮 */
 .send-btn {
-  flex: 0 0 120px;
-  width: 120px !important;
+  flex: 0 0 112px;
+  width: 112px !important;
   height: auto;
 }
 
@@ -265,4 +355,55 @@
 .clues-hint { color: #d81b60; font-weight: bold; margin-bottom: 15px; font-size: 0.9rem; }
 .empty-state { text-align: center; color: #A0858D; margin-top: 50px; font-weight: bold; letter-spacing: 1px; }
 .clue-item { padding: 15px; background: #FAF5F7; border: 1px dashed #4A2A33; border-radius: 4px; line-height: 1.6; }
+.campaign-clue-item { display: flex; flex-direction: column; gap: 4px; border-style: solid; }
+.campaign-clue-item strong { color: #d81b60; }
+.campaign-clue-item span { font-size: 0.9rem; }
 .clue-idx { color: #FF8FAB; font-weight: bold; margin-right: 5px; }
+
+@media (max-width: 1180px) {
+  .game-sidebar {
+    flex-basis: 230px;
+    width: 230px;
+  }
+
+  .chat-history { padding: 20px; }
+  .message { max-width: 90%; }
+}
+
+@media (max-width: 820px) {
+  .game-container {
+    height: auto;
+    min-height: 100vh;
+    padding: 10px;
+  }
+
+  .game-body {
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .game-sidebar {
+    width: 100%;
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  .my-character-panel {
+    display: grid;
+    grid-template-columns: 140px minmax(0, 1fr);
+  }
+
+  .avatar-box { grid-row: span 2; }
+  .game-main { min-height: 70vh; }
+  .message { max-width: 96%; }
+}
+
+@media (max-width: 560px) {
+  .game-header { align-items: flex-start; gap: 10px; flex-direction: column; }
+  .my-character-panel { display: flex; }
+  .avatar-box { max-height: none; }
+  .chat-history { padding: 14px; }
+  .control-panel { padding: 12px; }
+  .composer-row { flex-direction: column; }
+  .send-btn { width: 100% !important; flex-basis: 48px; }
+}

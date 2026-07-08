@@ -4,6 +4,7 @@ import './StyledSelect.css';
 export type StyledSelectOption = {
   value: string;
   label: string;
+  disabled?: boolean;
 };
 
 type StyledSelectProps = {
@@ -36,21 +37,27 @@ export default function StyledSelect({
         type="button"
         className="styled-select-trigger"
         disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
       >
         <span>{selected?.label || placeholder || '请选择'}</span>
-        <span className="styled-select-arrow">⌄</span>
+        <span className="styled-select-arrow" aria-hidden="true" />
       </button>
 
       {isOpen && !disabled && (
-        <div className="styled-select-menu">
+        <div className="styled-select-menu" role="listbox">
           {options.map((option) => (
             <button
               type="button"
               key={option.value}
               className={`styled-select-option ${option.value === value ? 'selected' : ''}`}
+              disabled={option.disabled}
+              role="option"
+              aria-selected={option.value === value}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
+                if (option.disabled) return;
                 onChange(option.value);
                 setIsOpen(false);
               }}

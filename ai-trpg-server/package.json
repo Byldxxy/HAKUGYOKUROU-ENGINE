@@ -1,6 +1,6 @@
 {
   "name": "ai-trpg-server",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Hakugyokurou AI TRPG server",
   "main": "app.js",
   "scripts": {
@@ -8,6 +8,7 @@
     "dev": "NODE_ENV=development node app.js",
     "start:prod": "NODE_ENV=production node app.js",
     "check": "node --check app.js",
+    "test:campaign": "node scripts/test-campaign.js",
     "migrate:passwords": "node scripts/migrate-passwords.js"
   },
   "keywords": [],

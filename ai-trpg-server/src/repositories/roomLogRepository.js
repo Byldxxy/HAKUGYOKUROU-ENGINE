@@ -38,6 +38,29 @@ const appendDmReply = ({ roomId, content }) => {
   return entry;
 };
 
+// SECTION: 战役状态快照
+// NOTE: 状态与聊天写入同一 JSONL，复制存档时能保持场景、线索、时钟和结局一致。
+const appendCampaignState = ({ roomId, campaign }) => {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    type: 'campaign_state',
+    roomId,
+    campaign,
+  };
+  appendJsonLine(getRoomLogPath(roomId), entry);
+  return entry;
+};
+
+const getLatestCampaignState = (roomId) => {
+  const lines = readRoomLines(roomId);
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    if (lines[index].type === 'campaign_state' && lines[index].campaign) {
+      return lines[index].campaign;
+    }
+  }
+  return null;
+};
+
 // SECTION: 原始日志读取
 // NOTE: Socket 层使用原始 lines 推导回合状态，路由层再转换成前端消息结构。
 const readRoomLines = (roomId) => readJsonLines(getRoomLogPath(roomId));
@@ -45,12 +68,16 @@ const readRoomLines = (roomId) => readJsonLines(getRoomLogPath(roomId));
 // SECTION: 前端消息列表
 // NOTE: 这里保留 rollId，刷新页面后前端才能把骰子结果放回对应 ROLL 卡片。
 const listRoomMessages = (roomId) => {
-  return readRoomLines(roomId).map((line) => ({
-    role: line.type === 'dm_reply' ? 'dm' : ((line.content || '').includes('D100 =') ? 'roll' : 'player'),
-    sender: line.playerName,
-    content: line.content,
-    rollId: line.rollId,
-  }));
+  return readRoomLines(roomId)
+    .map((line, logIndex) => ({ line, logIndex }))
+    .filter(({ line }) => line.type === 'dm_reply' || line.type === 'player_action')
+    .map(({ line, logIndex }) => ({
+      role: line.type === 'dm_reply' ? 'dm' : ((line.content || '').includes('D100 =') ? 'roll' : 'player'),
+      sender: line.playerName,
+      content: line.content,
+      rollId: line.rollId,
+      logIndex,
+    }));
 };
 
 // SECTION: 新游戏清场
@@ -84,6 +111,8 @@ module.exports = {
   getRoomLogPath,
   appendAction,
   appendDmReply,
+  appendCampaignState,
+  getLatestCampaignState,
   readRoomLines,
   listRoomMessages,
   resetRoomLog,

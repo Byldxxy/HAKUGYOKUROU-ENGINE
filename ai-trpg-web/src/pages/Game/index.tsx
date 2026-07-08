@@ -19,7 +19,7 @@ type RollRequestWithState = RollRequest & {
 };
 
 type TurnState = {
-  mode: 'waiting_players' | 'waiting_rolls' | 'waiting_dm';
+  mode: 'waiting_players' | 'waiting_rolls' | 'waiting_dm' | 'completed';
   inputLocked: boolean;
   actedPlayers: string[];
   pendingPlayers: string[];
@@ -36,6 +36,15 @@ type TurnState = {
   }>;
 };
 
+type CampaignState = {
+  scenarioId: string;
+  chapterId: string;
+  title: string;
+  phase: 'active' | 'completed' | 'redirected';
+  revealedClues: Array<{ id: string; title: string; content: string }>;
+  ending: { id: string; label: string } | null;
+};
+
 // SECTION: 检定结果查找
 // NOTE: 新日志优先按 rollId 匹配；旧日志没有 rollId 时，用“角色 + 技能”兼容历史数据。
 const findRollResult = (messages: any[], dmIndex: number, roll: RollRequestWithState) => {
@@ -47,7 +56,7 @@ const findRollResult = (messages: any[], dmIndex: number, roll: RollRequestWithS
     if (message.role !== 'roll' || message.sender !== roll.player) continue;
 
     const content = String(message.content || '');
-    if ((roll.id && message.rollId === roll.id) || (!message.rollId && content.startsWith(`[对 ${roll.skill} 进行检定]`))) {
+    if ((roll.id && message.rollId === roll.id) || content.startsWith(`[对 ${roll.skill} 进行检定]`)) {
       return content;
     }
   }
@@ -79,6 +88,7 @@ export default function Game() {
   const [forceUnlock, setForceUnlock] = useState(false);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [turnState, setTurnState] = useState<TurnState | null>(null);
+  const [campaignState, setCampaignState] = useState<CampaignState | null>(null);
 
   // SECTION: 房间历史加载
   // NOTE: 首屏先拉取 JSONL 历史，保证刷新后消息、检定结果和 DM 回复都能恢复。
@@ -93,9 +103,10 @@ export default function Game() {
           setChatMessages(data.messages);
         } else {
           setChatMessages([
-            { role: 'dm', sender: '系统 DM', content: '伴随着一阵低沉的机械轰鸣，这艘古老星舰的休眠舱缓缓开启。桃花岛的空气过滤系统似乎出了些故障，空气中弥漫着机油的奇特味道。' }
+            { role: 'dm', sender: '系统 DM', content: '战役状态正在恢复，请稍候。' }
           ]);
         }
+        if (data.success && data.campaign) setCampaignState(data.campaign);
       } catch (error) {
         console.error('拉取历史记录失败', error);
       }
@@ -140,18 +151,23 @@ export default function Game() {
   // NOTE: new_message 只追加聊天；turn_state 只更新状态，二者职责分离。
   useEffect(() => {
     ensureSocketConnected();
-    if (roomId) emitWhenConnected('join_room', roomId);
     const handleNewMessage = (msg: any) => {
       setChatMessages(prev => [...prev, msg]);
     };
     const handleTurnState = (state: TurnState) => {
       setTurnState(state);
     };
+    const handleCampaignState = (state: CampaignState) => {
+      setCampaignState(state);
+    };
     socket.on('new_message', handleNewMessage);
     socket.on('turn_state', handleTurnState);
+    socket.on('campaign_state', handleCampaignState);
+    if (roomId) emitWhenConnected('join_room', roomId);
     return () => {
       socket.off('new_message', handleNewMessage);
       socket.off('turn_state', handleTurnState);
+      socket.off('campaign_state', handleCampaignState);
     };
   }, [roomId]);
 
@@ -268,37 +284,6 @@ export default function Game() {
     };
   }, [roomId, isNotebookLoaded, freeNotes, clues, graphNodes, graphEdges]);
 
-  // SECTION: STAT 指令结算
-  // NOTE: AI 的 STAT 指令只更新本地 UI 状态；持久化角色生命值之后可以再独立设计。
-  useEffect(() => {
-    if (chatMessages.length === 0) return;
-    const lastMsg = chatMessages[chatMessages.length - 1];
-
-    if (lastMsg.role === 'dm') {
-      parseStatDirectives(lastMsg.content).forEach((directive) => {
-        const targetPlayer = directive.player;
-        const statName = directive.type.toLowerCase() as 'hp' | 'san' | 'mp';
-        const change = directive.value;
-        if (myCharacter && targetPlayer === myCharacter.name) {
-          setMyCharacter((prev: any) => {
-            if (!prev) return prev;
-            const newCurrent = Math.max(0, Math.min(prev[statName].max, prev[statName].current + change));
-            return { ...prev, [statName]: { ...prev[statName], current: newCurrent } };
-          });
-        }
-        else {
-          setTeammates((prevMates) => prevMates.map(mate => {
-            if (mate.name === targetPlayer && mate[statName].current !== '?') {
-              const newCurrent = Math.max(0, Math.min(mate[statName].max, mate[statName].current + change));
-              return { ...mate, [statName]: { ...mate[statName], current: newCurrent } };
-            }
-            return mate;
-          }));
-        }
-      });
-    }
-  }, [chatMessages]);
-
   // SECTION: 当前出战角色加载
   // NOTE: 大厅只存当前角色 ID，游戏页必须重新拉完整角色卡用于技能和属性检定。
   useEffect(() => {
@@ -385,12 +370,24 @@ export default function Game() {
           id: m.id,
           name: m.characterName || m.fullData?.basicInfo?.name || m.fullData?.fullData?.basicInfo?.name || m.name,
           role: m.role || m.fullData?.basicInfo?.occupation || '未选定角色',
-          hp: { current: hp, max: hp },
-          san: { current: san, max: san },
-          mp: { current: mp, max: mp }
+          hp: { current: hp, max: m.hpMax ?? hp },
+          san: { current: san, max: m.sanMax ?? san },
+          mp: { current: mp, max: m.mpMax ?? mp }
         };
       });
       setTeammates(formattedMates);
+
+      const self = data.players.find((p: any) => (
+        (p.characterName || p.name) === selfName
+      ));
+      if (self) {
+        setMyCharacter((current: any) => current ? ({
+          ...current,
+          hp: { current: self.hp, max: self.hpMax ?? current.hp.max },
+          san: { current: self.san, max: self.sanMax ?? current.san.max },
+          mp: { current: self.mp, max: self.mpMax ?? current.mp.max },
+        }) : current);
+      }
     };
 
     socket.on('lobby_update', handleLobbyUpdate);
@@ -472,6 +469,7 @@ export default function Game() {
   const pendingRollPlayers = turnState?.pendingRollPlayers || Array.from(new Set(pendingRolls.map(roll => roll.player)));
   const isWaitingForMyRoll = pendingRolls.some(roll => roll.player === myCharacter.name);
   const isRollGateLocked = activeRollRequests.length > 0;
+  const isCampaignLocked = Boolean(campaignState && campaignState.phase !== 'active');
   // NOTE: 输入锁优先使用后端 turn_state；本地历史推导只作为重连前的兜底。
   const isTurnLocked = turnState
     ? (
@@ -479,12 +477,16 @@ export default function Game() {
       (turnState.mode === 'waiting_players' && isMyTurnDone && !forceUnlock)
     )
     : (isMyTurnDone && !forceUnlock);
-  const isInputLocked = isRollGateLocked || isTurnLocked;
+  const isInputLocked = isCampaignLocked || isRollGateLocked || isTurnLocked;
 
   // SECTION: 输入提示文案
   // NOTE: 文案优先级为检定锁、回合锁、可自由行动。
   let inputPlaceholder = "描述你的行动、语言，或心理活动（Shift+Enter 换行）...";
-  if (isRollGateLocked) {
+  if (isCampaignLocked) {
+    inputPlaceholder = campaignState?.ending
+      ? '本章已经结束。'
+      : '当前章节已进入结算状态。';
+  } else if (isRollGateLocked) {
     if (isWaitingForMyRoll) {
       inputPlaceholder = "请先完成上方检定...";
     } else if (pendingRollPlayers.length > 0) {
@@ -503,7 +505,7 @@ export default function Game() {
   return (
     <div className="game-container">
       <div className="game-header flat-box">
-        <span className="room-info">桃花岛历险记 // {roomId}</span>
+        <span className="room-info">{campaignState?.title || '桃花岛历险记'} // {roomId}</span>
         <div style={{ display: 'flex', gap: '15px' }}>
           <button className="flat-btn secondary small" onClick={handleSaveGame}>存档</button>
           <button className="flat-btn secondary small" onClick={() => navigate(`/lobby/${roomId}`)}>退出</button>
@@ -540,7 +542,6 @@ export default function Game() {
             <button
               className="flat-btn secondary notebook-btn"
               onClick={() => setIsNotebookOpen(true)}
-              style={{ marginTop: '10px', width: '100%', height: '45px', fontSize: '0.9rem' }}
             >
               📓 打开战役笔记
             </button>
@@ -554,7 +555,7 @@ export default function Game() {
                   onClick={() => setActiveCard(mate.id)}
                   title="点击观察外貌"
                 >
-                  {mate.name} <span style={{ fontSize:'0.75rem', color:'#A0858D', fontWeight:'normal' }}>({mate.role})</span>
+                  {mate.name} <span className="teammate-role">({mate.role})</span>
                 </div>
                 <div className="teammate-mini-stats">
                   <span className="mini-stat hp">HP {mate.hp.current}/{mate.hp.max}</span>
@@ -575,7 +576,7 @@ export default function Game() {
                 ? turnState.rollRequests
                 : parsedRolls.map((roll) => ({
                   ...roll,
-                  id: `${idx}-${roll.index}-${roll.player}-${roll.skill}`,
+                  id: `${msg.logIndex ?? idx}-${roll.index}-${roll.player}-${roll.skill}`,
                 }));
               const stats = parseStatDirectives(messageContent);
               const hasRoll = rolls.length > 0;
@@ -591,9 +592,9 @@ export default function Game() {
                     <div className="message-content">
                       {pureText}
                       {stats.length > 0 && (
-                        <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <div className="stat-change-list">
                           {stats.map((st, sIdx) => (
-                            <span key={sIdx} style={{ background: st.rawValue.startsWith('-') ? '#FFEbee' : '#E8F5E9', color: st.rawValue.startsWith('-') ? '#D32F2F' : '#2E7D32', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                            <span key={sIdx} className={`stat-change ${st.rawValue.startsWith('-') ? 'negative' : 'positive'}`}>
                               ⚠️ {st.player} 的 {st.type} {st.rawValue}
                             </span>
                           ))}
@@ -608,26 +609,25 @@ export default function Game() {
                          const isRolling = rolledIndices.includes(rollKey);
 
                          return (
-                           <div key={rIdx} style={{ marginTop: '15px', padding: '15px', background: '#FAF5F7', border: '1.5px dashed #4A2A33', borderRadius: '4px', textAlign: 'center' }}>
-                             <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#d81b60', display: 'block', marginBottom: '10px' }}>
+                           <div key={rIdx} className="roll-request">
+                             <span className="roll-request-title">
                                [系统判定] 需要 {targetPlayer} 进行【{targetSkill}】检定
                              </span>
 
                              {rollResult ? (
-                               <div style={{ margin: '8px auto 0', padding: '12px 16px', maxWidth: '720px', border: '1.5px dashed #4A2A33', borderRadius: '4px', background: '#fff', color: '#4A2A33', fontWeight: 'bold', lineHeight: 1.7 }}>
+                               <div className="roll-result">
                                  {rollResult}
                                </div>
                              ) : myCharacter.name === targetPlayer ? (
                                <button
                                  className="flat-btn primary"
-                                 style={{ padding: '8px 25px', opacity: isRolling ? 0.6 : 1, whiteSpace: 'nowrap', minWidth: '120px' }}
                                  onClick={() => handleSkillRoll(targetSkill, targetPlayer, rollKey)}
                                  disabled={isRolling}
                                >
                                  {isRolling ? '同步中...' : '🎲 立即检定'}
                                </button>
                              ) : (
-                               <span style={{ color: '#A0858D', fontSize: '0.85rem' }}>⏳ 等待 {targetPlayer} 掷骰...</span>
+                               <span className="roll-waiting">⏳ 等待 {targetPlayer} 掷骰...</span>
                              )}
                            </div>
                          );
@@ -648,28 +648,23 @@ export default function Game() {
             <div ref={messagesEndRef} />
           </div>
           <div className="control-panel" style={{ flexDirection: 'column', gap: '10px' }}>
-            {isTurnLocked && !isRollGateLocked && (
+            {!isCampaignLocked && isTurnLocked && !isRollGateLocked && (
               <button
+                className="force-unlock-btn"
                 onClick={() => setForceUnlock(true)}
                 title="强制打破回合锁，自由发言"
-                style={{
-                  background: 'transparent', border: 'none', color: '#d81b60',
-                  cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold',
-                  padding: 0, textAlign: 'left', width: 'fit-content'
-                }}
               >
                 防卡死越权发言
               </button>
             )}
 
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'stretch', width: '100%' }}>
+            <div className="composer-row">
               <textarea
                 className="flat-textarea"
                 placeholder={inputPlaceholder}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 disabled={isInputLocked}
-                style={{ backgroundColor: isInputLocked ? '#f0ecec' : '#fff' }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -719,7 +714,13 @@ export default function Game() {
               {activeTab === 'clues' && (
                 <div className="clues-list">
                   <p className="clues-hint">※ 在右侧游戏对话区选中文本并「右键」，即可自动提取到此处。</p>
-                  {clues.length === 0 ? (
+                  {campaignState?.revealedClues.map((clue) => (
+                    <div key={clue.id} className="clue-item campaign-clue-item">
+                      <strong>{clue.title}</strong>
+                      <span>{clue.content}</span>
+                    </div>
+                  ))}
+                  {clues.length === 0 && !campaignState?.revealedClues.length ? (
                     <div className="empty-state">暂无关键线索</div>
                   ) : (
                     clues.map((clue, idx) => (

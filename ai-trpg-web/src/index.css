@@ -1,36 +1,235 @@
-
-/* SECTION: 全局盒模型重置 */
-/* NOTE: 项目大量使用固定边框和阴影，border-box 可避免尺寸计算漂移。 */
+/* SECTION: 全局盒模型与主题令牌 */
+/* NOTE: 页面只能从这里获取品牌色、边框、阴影和基础尺寸。 */
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
-/* SECTION: 全局主题变量 */
-/* NOTE: 这些变量是早期主题入口；页面级 CSS 里仍有硬编码颜色，后续可逐步收敛。 */
 :root {
-  --theme-bg-base: #FFF0F5;
-  --theme-panel-bg: rgba(255, 235, 240, 0.7);
-  --theme-primary: #FF8FAB;
-  --text-main: #5C3A41;
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  --color-canvas: #faf5f7;
+  --color-surface: #ffffff;
+  --color-surface-muted: #fff0f5;
+  --color-surface-disabled: #efe9eb;
+  --color-ink: #4a2a33;
+  --color-ink-muted: #a0858d;
+  --color-line: #d4c3c7;
+  --color-line-soft: #efe6e8;
+  --color-primary: #ff8fab;
+  --color-primary-hover: #ff7fa0;
+  --color-primary-shadow: #ffc2d1;
+  --color-danger: #d81b60;
+  --color-success: #4cd137;
+  --color-mana: #8fb8ff;
+
+  --border-strong: 1.5px solid var(--color-ink);
+  --border-soft: 1.5px solid var(--color-line-soft);
+  --radius-control: 4px;
+  --shadow-panel: 6px 6px 0 var(--color-primary-shadow);
+  --shadow-panel-large: 8px 8px 0 var(--color-primary-shadow);
+  --shadow-action: 4px 4px 0 var(--color-ink);
+  --control-height: 50px;
+  --control-height-compact: 36px;
+
+  /* NOTE: 兼容既有变量，逐页迁移期间保持旧引用可用。 */
+  --theme-bg-base: var(--color-canvas);
+  --theme-panel-bg: var(--color-surface-muted);
+  --theme-primary: var(--color-primary);
+  --text-main: var(--color-ink);
 }
 
-/* SECTION: 页面基础字体与底色 */
-/* NOTE: body 不设置 overflow，交给具体页面决定是否满屏滚动。 */
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", Roboto, sans-serif;
-  background-color: var(--theme-bg-base);
-  color: var(--text-main);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei",
+    "PingFang SC", "Hiragino Sans GB", Roboto, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  line-height: 1.5;
 }
 
-/* SECTION: 跨平台按钮文字 */
-/* NOTE: Windows 中文字体通常比 macOS 更宽，命令按钮禁止在汉字之间自动断行。 */
 button,
-.flat-btn {
-  font-family: inherit;
+input,
+textarea,
+select {
+  font: inherit;
   letter-spacing: 0;
+}
+
+button {
+  min-width: 0;
   white-space: nowrap;
   word-break: keep-all;
   overflow-wrap: normal;
+}
+
+button:not(.styled-select-trigger):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+.styled-select:focus-visible,
+.styled-select-trigger:focus-visible {
+  outline: none;
+}
+
+::selection {
+  background: var(--color-primary-shadow);
+  color: var(--color-ink);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background: var(--color-line);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ink-muted);
+}
+
+/* SECTION: 全局结构面板 */
+.flat-box {
+  background: var(--color-surface);
+  border: var(--border-strong);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-panel);
+}
+
+/* SECTION: 全局按钮 */
+.flat-btn {
+  min-height: var(--control-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 20px;
+  border: var(--border-strong);
+  border-radius: var(--radius-control);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease,
+    background-color 0.16s ease, color 0.16s ease, opacity 0.16s ease;
+}
+
+.flat-btn.primary {
+  background: var(--color-primary);
+  color: var(--color-surface);
+  box-shadow: var(--shadow-action);
+}
+
+.flat-btn.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  box-shadow: 2px 2px 0 var(--color-ink);
+  transform: translate(2px, 2px);
+}
+
+.flat-btn.primary:active:not(:disabled) {
+  box-shadow: 0 0 0 var(--color-ink);
+  transform: translate(4px, 4px);
+}
+
+.flat-btn.secondary:hover:not(:disabled) {
+  background: var(--color-surface-muted);
+}
+
+.flat-btn.small {
+  min-height: var(--control-height-compact);
+  height: var(--control-height-compact);
+  padding: 0 14px;
+  font-size: 0.85rem;
+}
+
+.flat-btn:disabled {
+  cursor: not-allowed;
+  color: var(--color-ink-muted);
+  background: var(--color-surface-disabled);
+  box-shadow: none;
+  opacity: 0.62;
+  transform: none;
+}
+
+/* SECTION: 全局输入控件 */
+.flat-input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: 0 15px;
+  border: var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  outline: none;
+  transition: border-color 0.16s ease, background-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.flat-input:hover:not(:disabled) {
+  background: var(--color-surface);
+}
+
+.flat-input:focus {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: 4px 4px 0 var(--color-primary-shadow);
+}
+
+.flat-input:disabled {
+  cursor: not-allowed;
+  color: var(--color-ink-muted);
+  background: var(--color-surface-disabled);
+}
+
+.flat-input::placeholder,
+.flat-textarea::placeholder {
+  color: var(--color-line);
+  opacity: 1;
+}
+
+/* SECTION: 全局标题 */
+.section-title {
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  border-bottom: var(--border-soft);
+  color: var(--color-ink);
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

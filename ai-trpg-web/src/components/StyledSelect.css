@@ -7,16 +7,16 @@
 
 .styled-select-trigger {
   width: 100%;
-  height: 52px;
+  height: var(--control-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 0 16px 0 18px;
-  border: 1.5px solid #4A2A33;
-  border-radius: 4px;
-  background: #FAF5F7;
-  color: #4A2A33;
+  border: var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+  color: var(--color-ink);
   cursor: pointer;
   font-family: inherit;
   font-size: 1rem;
@@ -34,22 +34,31 @@
 
 .styled-select.open .styled-select-trigger,
 .styled-select:focus-within .styled-select-trigger {
-  background: #FFFFFF;
-  box-shadow: 4px 4px 0 #4A2A33;
-  transform: translate(-2px, -2px);
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: 4px 4px 0 var(--color-primary-shadow);
 }
 
 .styled-select.disabled .styled-select-trigger {
   cursor: not-allowed;
-  opacity: 0.65;
+  color: var(--color-ink-muted);
+  background: var(--color-surface-disabled);
+  opacity: 0.72;
 }
 
 .styled-select-arrow {
   flex: 0 0 auto;
-  font-size: 1.25rem;
-  font-weight: 900;
-  line-height: 1;
-  transform: translateY(-1px);
+  width: 9px;
+  height: 9px;
+  margin-right: 3px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.16s ease;
+}
+
+.styled-select.open .styled-select-arrow {
+  transform: translateY(2px) rotate(225deg);
 }
 
 .styled-select-menu {
@@ -61,10 +70,10 @@
   max-height: 240px;
   overflow-y: auto;
   padding: 8px;
-  border: 1.5px solid #4A2A33;
-  border-radius: 4px;
-  background: #FFFFFF;
-  box-shadow: 6px 6px 0 #FFC2D1;
+  border: var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
   box-sizing: border-box;
 }
 
@@ -77,9 +86,9 @@
   gap: 12px;
   padding: 0 12px;
   border: 1.5px solid transparent;
-  border-radius: 4px;
-  background: #FFFFFF;
-  color: #4A2A33;
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-ink);
   cursor: pointer;
   font-family: inherit;
   font-size: 0.98rem;
@@ -90,14 +99,20 @@
 .styled-select-option + .styled-select-option { margin-top: 6px; }
 
 .styled-select-option:hover {
-  border-color: #EFE6E8;
-  background: #FAF5F7;
+  border-color: var(--color-line-soft);
+  background: var(--color-canvas);
+}
+
+.styled-select-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  background: var(--color-canvas);
 }
 
 .styled-select-option.selected {
-  border-color: #4A2A33;
-  background: #FF8FAB;
-  color: #FFFFFF;
+  border-color: var(--color-ink);
+  background: var(--color-primary);
+  color: var(--color-surface);
 }
 
 .styled-select-check {

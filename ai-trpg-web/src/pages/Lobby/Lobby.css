@@ -1,64 +1,50 @@
 /* SECTION: 大厅画布 */
 /* NOTE: Lobby 使用双栏布局，因此页面 padding 比登录/首页更大。 */
 .lobby-container {
-  min-height: 100vh;
-  padding: 40px;
+  height: 100vh;
+  min-height: 640px;
+  padding: clamp(16px, 2.4vw, 32px);
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  background-color: #FAF5F7;
-  color: #4A2A33;
-}
-
-
-/* SECTION: 通用实体卡片 */
-/* NOTE: 大厅面板和部分内嵌块复用该类，保持边框与粉色投影统一。 */
-.flat-box {
-  background: #FFFFFF;
-  border: 1.5px solid #4A2A33;
-  box-shadow: 6px 6px 0px #FFC2D1;
-  border-radius: 4px;
+  gap: 16px;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
 }
 
 /* SECTION: 顶部房间栏 */
 .lobby-header {
-  padding: 15px 30px;
+  flex: 0 0 auto;
+  min-height: 64px;
+  padding: 12px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.lobby-header h2 { margin: 0; font-size: 1.4rem; letter-spacing: 1px; }
-.highlight-text { color: #FF8FAB; font-weight: 900; }
+.lobby-header h2 { margin: 0; font-size: 1.3rem; line-height: 1.25; letter-spacing: 0; }
+.highlight-text { color: var(--color-primary); font-weight: 900; }
 
-
-/* SECTION: 小按钮修正 */
-.flat-btn.small {
-  height: 36px;
-  padding: 0 15px;
-  font-size: 0.85rem;
-}
 
 /* SECTION: 大厅主体双栏 */
 /* NOTE: 高度扣除 header，左右面板各自内部滚动。 */
 .lobby-content {
-  display: flex;
-  gap: 24px;
-  height: calc(100vh - 150px);
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(560px, 1.15fr) minmax(360px, 0.85fr);
+  gap: 18px;
 }
 .lobby-left-panel, .lobby-right-panel {
-  padding: 30px;
+  min-width: 0;
+  min-height: 0;
+  padding: 24px;
   display: flex;
   flex-direction: column;
 }
-.lobby-left-panel { flex: 1.2; }
-.lobby-right-panel { flex: 1; }
+.lobby-left-panel { overflow-y: auto; }
+.lobby-right-panel { overflow: hidden; }
 
 .section-title {
-  font-size: 1.1rem;
-  margin: 0 0 15px 0;
-  padding-bottom: 10px;
-  border-bottom: 1.5px solid #EFE6E8;
-  letter-spacing: 1px;
+  flex: 0 0 auto;
 }
 
 
@@ -67,6 +53,11 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.lobby-section-spaced {
+  margin-top: 24px;
+  margin-bottom: 10px;
 }
 .config-form label {
   font-size: 0.85rem;
@@ -92,7 +83,7 @@
   display: block;
   min-height: 18px;
   margin: 0 0 6px;
-  color: #A0858D;
+  color: var(--color-ink-muted);
   font-size: 0.72rem;
   font-weight: 800;
   white-space: nowrap;
@@ -106,10 +97,10 @@
 }
 
 .room-rule-field input {
-  border: 1.5px solid #4A2A33;
-  border-radius: 4px;
-  background: #FAF5F7;
-  color: #4A2A33;
+  border: var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+  color: var(--color-ink);
   font: inherit;
   font-weight: 900;
   text-align: center;
@@ -124,10 +115,12 @@
 }
 
 .room-rule-field input:focus {
-  border-color: #FF8FAB;
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+  box-shadow: 4px 4px 0 var(--color-primary-shadow);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1180px) {
   .room-rule-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -168,12 +161,63 @@
   flex: 1;
 }
 
+.character-panel {
+  padding: 14px;
+  border: 1.5px dashed var(--color-line);
+  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+}
+
+.character-select-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.character-select-row > label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.character-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.character-actions .flat-btn {
+  width: 64px;
+  padding: 0 10px;
+}
+
+.character-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.character-empty-state > span {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.character-empty-state .flat-btn {
+  width: auto;
+  flex: 0 0 auto;
+}
+
 
 /* SECTION: 玩家状态列表 */
 /* NOTE: 列表高度随左侧面板伸缩，玩家过多时只滚动列表区域。 */
 .player-list {
   list-style: none;
   flex: 1;
+  min-height: 118px;
+  margin: 0;
+  padding: 0 4px 0 0;
   overflow-y: auto;
 }
 .player-item {
@@ -181,12 +225,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 15px;
-  border: 1.5px solid #EFE6E8;
+  border: var(--border-soft);
   margin-bottom: 10px;
   border-radius: 4px;
 }
-.player-info { display: flex; align-items: center; gap: 10px; font-weight: bold; }
-.player-role { color: #A0858D; font-size: 0.9rem; }
+.player-info { min-width: 0; display: flex; align-items: center; gap: 10px; font-weight: bold; }
+.player-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-role { flex: 0 0 auto; color: var(--color-ink); font-size: 0.85rem; white-space: nowrap; }
+.player-role.empty { color: var(--color-ink-muted); }
 
 .status-dot {
   width: 12px;
@@ -194,26 +240,63 @@
   border-radius: 50%;
   border: 1.5px solid #4A2A33;
 }
-.status-dot.ready { background-color: #FF8FAB; }
-.status-dot.unready { background-color: #FAF5F7; }
+.status-dot.ready { background-color: var(--color-primary); }
+.status-dot.unready { background-color: var(--color-canvas); }
 
 
 /* SECTION: 大厅闲聊 */
 /* NOTE: 聊天不持久化，样式只服务开局前交流。 */
 .chat-box {
   flex: 1;
+  min-height: 0;
   border: 1.5px solid #4A2A33;
   border-radius: 4px;
   padding: 15px;
   margin-bottom: 15px;
   overflow-y: auto;
-  background: #FAF5F7;
+  background: var(--color-canvas);
 }
 .chat-msg { margin-bottom: 10px; font-size: 0.95rem; line-height: 1.5; }
 .chat-msg span { font-weight: 800; margin-right: 5px; }
 .chat-msg.system span { color: #A0858D; }
-.chat-input-area { display: flex; gap: 10px; }
+.chat-input-area { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 10px; }
+.chat-input-area .flat-input { height: var(--control-height); }
+.chat-input-area .flat-btn { width: 84px; padding-inline: 12px; }
 
 
 /* SECTION: 发车按钮 */
-.start-btn { margin-top: 15px; }
+.start-btn { width: 100%; margin-top: 14px; }
+
+@media (max-width: 980px) {
+  .lobby-container {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .lobby-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lobby-left-panel,
+  .lobby-right-panel {
+    overflow: visible;
+  }
+
+  .lobby-right-panel {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 680px) {
+  .lobby-container { padding: 12px; }
+  .lobby-header { padding: 12px 16px; }
+  .lobby-header h2 { font-size: 1rem; }
+  .lobby-left-panel,
+  .lobby-right-panel { padding: 18px; }
+  .room-rule-grid { grid-template-columns: minmax(0, 1fr); }
+  .character-select-row { grid-template-columns: minmax(0, 1fr); }
+  .character-actions { justify-content: stretch; }
+  .character-actions .flat-btn { flex: 1; width: auto; }
+  .character-empty-state { align-items: stretch; flex-direction: column; }
+  .player-item { align-items: flex-start; gap: 8px; flex-direction: column; }
+}

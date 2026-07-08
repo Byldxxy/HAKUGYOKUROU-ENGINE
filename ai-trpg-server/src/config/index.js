@@ -46,6 +46,7 @@ const config = {
     baseURL: process.env.BASE_URL || 'https://api.openai.com/v1',
     model: process.env.MODEL_NAME || 'gpt-3.5-turbo',
     timeout: Number(process.env.AI_TIMEOUT_MS || 30000),
+    debugRaw: parseBoolean(process.env.AI_DEBUG_RAW, !isProduction),
   },
   paths: {
     // NOTE: 当前原型使用本地文件；上线迁数据库时，仓储层可以替换实现而不改路由。

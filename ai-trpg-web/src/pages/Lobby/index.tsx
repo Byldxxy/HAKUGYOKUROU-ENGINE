@@ -6,6 +6,20 @@ import { emitWhenConnected, ensureSocketConnected, socket } from '../../socket';
 import StyledSelect from '../../components/StyledSelect';
 import { DEFAULT_ROOM_RULES, type RoomRules } from '../../domain/roomRules';
 
+type RoomRuleDrafts = Record<keyof RoomRules, string>;
+
+const ROOM_RULE_RANGES: Record<keyof RoomRules, { min: number; max: number }> = {
+  pointBuyLimit: { min: 100, max: 1000 },
+  occupationSkillLimit: { min: 1, max: 100 },
+  interestSkillLimit: { min: 1, max: 100 },
+};
+
+const createRoomRuleDrafts = (rules: RoomRules): RoomRuleDrafts => ({
+  pointBuyLimit: String(rules.pointBuyLimit),
+  occupationSkillLimit: String(rules.occupationSkillLimit),
+  interestSkillLimit: String(rules.interestSkillLimit),
+});
+
 export default function Lobby() {
   const navigate = useNavigate();
   const { roomId } = useParams();
@@ -25,13 +39,20 @@ export default function Lobby() {
   const [selectedSaveId, setSelectedSaveId] = useState('');
   const [selectedScriptId, setSelectedScriptId] = useState('peach');
   const [roomRules, setRoomRules] = useState<RoomRules>(DEFAULT_ROOM_RULES);
+  const [roomRuleDrafts, setRoomRuleDrafts] = useState<RoomRuleDrafts>(() => createRoomRuleDrafts(DEFAULT_ROOM_RULES));
+  const [editingRoomRule, setEditingRoomRule] = useState<keyof RoomRules | null>(null);
+
+  // NOTE: 服务端房规更新后刷新输入草稿；用户键入期间只改草稿，不逐字符广播。
+  useEffect(() => {
+    if (!editingRoomRule) setRoomRuleDrafts(createRoomRuleDrafts(roomRules));
+  }, [roomRules, editingRoomRule]);
 
   // SECTION: 剧本选项
   // NOTE: 当前只作为 UI 选择保留，AI 实际模型和提示词仍由后端配置控制。
   const scriptOptions = [
     { value: 'peach', label: '桃花岛历险记' },
-    { value: 'ctms', label: 'CTMS货舱危机' },
-    { value: 'custom', label: '自定义空白团' },
+    { value: 'ctms', label: 'CTMS货舱危机（待接入）', disabled: true },
+    { value: 'custom', label: '自定义空白团（待接入）', disabled: true },
   ];
 
   // SECTION: 角色卡加载
@@ -188,6 +209,20 @@ export default function Lobby() {
     updateRoomConfig(selectedScriptId, { ...roomRules, [key]: value });
   };
 
+  const commitRoomRule = (key: keyof RoomRules) => {
+    const draft = roomRuleDrafts[key].trim();
+    const parsed = Number(draft);
+    if (!draft || !Number.isFinite(parsed)) {
+      setRoomRuleDrafts(current => ({ ...current, [key]: String(roomRules[key]) }));
+      return;
+    }
+
+    const { min, max } = ROOM_RULE_RANGES[key];
+    const normalized = Math.min(max, Math.max(min, Math.round(parsed)));
+    setRoomRuleDrafts(current => ({ ...current, [key]: String(normalized) }));
+    if (normalized !== roomRules[key]) updateRoomRule(key, normalized);
+  };
+
   // SECTION: 退出大厅
   // NOTE: 使用 ack + 300ms 兜底，避免网络抖动时用户卡在大厅页。
   const handleExitLobby = () => {
@@ -237,15 +272,42 @@ export default function Lobby() {
                 </div>
                 <label className="room-rule-field">
                   <span>购点上限</span>
-                  <input type="number" min="100" max="1000" value={roomRules.pointBuyLimit} onChange={(event) => updateRoomRule('pointBuyLimit', Number(event.target.value))} />
+                  <input
+                    type="number"
+                    min="100"
+                    max="1000"
+                    value={roomRuleDrafts.pointBuyLimit}
+                    onChange={(event) => setRoomRuleDrafts(current => ({ ...current, pointBuyLimit: event.target.value }))}
+                    onFocus={() => setEditingRoomRule('pointBuyLimit')}
+                    onBlur={() => { commitRoomRule('pointBuyLimit'); setEditingRoomRule(null); }}
+                    onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
+                  />
                 </label>
                 <label className="room-rule-field">
                   <span>职业技能上限</span>
-                  <input type="number" min="1" max="100" value={roomRules.occupationSkillLimit} onChange={(event) => updateRoomRule('occupationSkillLimit', Number(event.target.value))} />
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={roomRuleDrafts.occupationSkillLimit}
+                    onChange={(event) => setRoomRuleDrafts(current => ({ ...current, occupationSkillLimit: event.target.value }))}
+                    onFocus={() => setEditingRoomRule('occupationSkillLimit')}
+                    onBlur={() => { commitRoomRule('occupationSkillLimit'); setEditingRoomRule(null); }}
+                    onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
+                  />
                 </label>
                 <label className="room-rule-field">
                   <span>兴趣技能上限</span>
-                  <input type="number" min="1" max="100" value={roomRules.interestSkillLimit} onChange={(event) => updateRoomRule('interestSkillLimit', Number(event.target.value))} />
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={roomRuleDrafts.interestSkillLimit}
+                    onChange={(event) => setRoomRuleDrafts(current => ({ ...current, interestSkillLimit: event.target.value }))}
+                    onFocus={() => setEditingRoomRule('interestSkillLimit')}
+                    onBlur={() => { commitRoomRule('interestSkillLimit'); setEditingRoomRule(null); }}
+                    onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
+                  />
                 </label>
               </div>
 
@@ -261,20 +323,20 @@ export default function Lobby() {
             <div className="waiting-box">房主正在配置世界观，请稍等...</div>
           )}
 
-          <h3 className="section-title" style={{ marginTop: '25px', marginBottom: '10px' }}>我的调查员档案</h3>
+          <h3 className="section-title lobby-section-spaced">我的调查员档案</h3>
           {/* SECTION: 出战角色选择 */}
           {/* NOTE: 切换角色会同步 localStorage，并通过 join_lobby effect 更新后端玩家身份。 */}
-          <div className="character-panel flat-box" style={{ background: '#f5f5f5', padding: '15px', border: '1px dashed #ccc', borderRadius: '4px' }}>
+          <div className="character-panel">
             {characterList.length === 0 ? (
-              <div style={{ textAlign: 'center' }}>
-                <span style={{ color: '#d32f2f', fontSize: '14px', display: 'block', marginBottom: '10px' }}>[警告] 检测到当前账号暂无活动的角色卡。</span>
+              <div className="character-empty-state">
+                <span>[警告] 检测到当前账号暂无活动的角色卡。</span>
                 <button className="flat-btn primary small" onClick={() => navigate('/create-character')}>
                   + 建立新档案 (COC 7th)
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <label style={{ fontSize: '14px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>出战角色：</label>
+              <div className="character-select-row">
+                <label>出战角色：</label>
                 
                 <StyledSelect
                   value={activeCharacter?.id || ''}
@@ -289,10 +351,9 @@ export default function Lobby() {
                     }
                   }}
                 />
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="character-actions">
                   <button 
                     className="flat-btn secondary small" 
-                    style={{ width: '65px', padding: '6px 0', textAlign: 'center', opacity: activeCharacter ? 1 : 0.5, cursor: activeCharacter ? 'pointer' : 'not-allowed' }}
                     disabled={!activeCharacter}
                     onClick={() => activeCharacter && navigate('/create-character', {
                       state: { character: activeCharacter, roomRules, lockRoomLimits: true },
@@ -303,7 +364,6 @@ export default function Lobby() {
 
                   <button 
                     className="flat-btn secondary small" 
-                    style={{ width: '65px', padding: '6px 0', textAlign: 'center', opacity: activeCharacter ? 1 : 0.5, cursor: activeCharacter ? 'pointer' : 'not-allowed' }}
                     disabled={!activeCharacter}
                     onClick={async () => {
                       if (!activeCharacter) return;
@@ -322,7 +382,6 @@ export default function Lobby() {
 
                   <button 
                     className="flat-btn secondary small" 
-                    style={{ width: '65px', padding: '6px 0', textAlign: 'center' }}
                     onClick={() => navigate('/create-character', {
                       state: { roomRules, lockRoomLimits: true },
                     })}
@@ -334,7 +393,7 @@ export default function Lobby() {
             )}
           </div>
 
-          <h3 className="section-title" style={{ marginTop: '30px' }}>玩家状态</h3>
+          <h3 className="section-title lobby-section-spaced">玩家状态</h3>
           {/* SECTION: 玩家列表 */}
           {/* NOTE: key 混合角色名和 socket id，兼顾同名角色测试与连接刷新。 */}
           <ul className="player-list">
@@ -347,7 +406,7 @@ export default function Lobby() {
                     {player.name === roomOwnerName ? ' 👑 (房主)' : ' 👥'}
                   </span>
                 </div>
-                <span className="player-role" style={{ color: player.role === '无角色卡' ? '#999' : '#333' }}>[{player.role || '无角色卡'}]</span>
+                <span className={`player-role ${player.role === '无角色卡' ? 'empty' : ''}`}>[{player.role || '无角色卡'}]</span>
               </li>
             ))}
           </ul>
@@ -362,7 +421,6 @@ export default function Lobby() {
             <button 
               className="flat-btn secondary start-btn" 
               disabled 
-              style={{ width: '100%', padding: '12px 0', marginTop: '15px', cursor: 'not-allowed', opacity: 0.6 }}
             >
               等待房主发车...
             </button>

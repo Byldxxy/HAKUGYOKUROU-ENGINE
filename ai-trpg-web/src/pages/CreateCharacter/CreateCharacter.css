@@ -5,19 +5,19 @@
 /* NOTE: 角色页使用工作台式布局，左侧导航固定，右侧表单滚动。 */
 .create-char-container {
   min-height: 100vh;
-  padding: 40px;
+  padding: clamp(16px, 2.2vw, 32px);
   display: flex;
   justify-content: center;
-  background-color: #FAF5F7;
-  color: #4A2A33;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
 }
 
 /* SECTION: 工作台布局 */
 .char-workspace {
   display: flex;
   width: 100%;
-  max-width: 1400px;
-  gap: 24px;
+  max-width: 1600px;
+  gap: 18px;
   align-items: flex-start;
 }
 
@@ -25,27 +25,27 @@
 /* SECTION: 左侧导航栏 */
 /* NOTE: sticky 让保存/返回按钮在长表单滚动时保持可见。 */
 .char-sidebar {
-  flex: 0 0 220px;
-  height: calc(100vh - 80px);
+  flex: 0 0 216px;
+  height: calc(100vh - clamp(32px, 4.4vw, 64px));
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 24px 20px;
   position: sticky;
-  top: 40px;
+  top: clamp(16px, 2.2vw, 32px);
   box-sizing: border-box;
 }
 
 .sidebar-top {
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 24px;
 }
 
 .sidebar-title {
   margin: 0;
-  font-size: 1.3rem;
-  line-height: 1.5;
+  font-size: 1.2rem;
+  line-height: 1.35;
   text-align: center;
   padding-bottom: 20px;
   border-bottom: 1.5px dashed #EFE6E8;
@@ -55,17 +55,18 @@
 .sidebar-tabs {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .sidebar-tabs .tab-btn {
   background: transparent;
   border: 1.5px solid transparent;
-  padding: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
   text-align: center;
   font-weight: bold;
   color: #A0858D;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   transition: all 0.2s;
   width: 100%;
@@ -121,13 +122,14 @@
 
 /* SECTION: 右侧表单主体 */
 .char-main-area {
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 30px;
-  height: calc(100vh - 80px);
-  max-height: calc(100vh - 80px);
+  gap: 20px;
+  padding: 24px;
+  height: calc(100vh - clamp(32px, 4.4vw, 64px));
+  max-height: calc(100vh - clamp(32px, 4.4vw, 64px));
   overflow-y: auto;
   box-sizing: border-box;
 }
@@ -141,11 +143,7 @@
 }
 
 .section-title {
-  font-size: 1.1rem;
-  margin: 0 0 15px 0;
-  padding-bottom: 10px;
-  border-bottom: 1.5px solid #EFE6E8;
-  letter-spacing: 1px;
+  letter-spacing: 0;
 }
 
 /* SECTION: 基本信息单页布局 */
@@ -449,8 +447,8 @@
 
 .flat-input:focus {
   background-color: #FFFFFF;
-  box-shadow: 4px 4px 0px #FFC2D1;
-  transform: translate(-2px, -2px);
+  border-color: var(--color-primary);
+  box-shadow: 4px 4px 0 var(--color-primary-shadow);
 }
 
 .flat-input:disabled {
@@ -780,13 +778,13 @@ textarea.flat-input {
 .choice-subtype-slot {
   position: relative;
   min-width: 0;
-  height: 52px;
+  height: var(--control-height);
 }
 
 .choice-custom-input {
   width: 100%;
-  height: 52px;
-  min-height: 52px;
+  height: var(--control-height);
+  min-height: var(--control-height);
   padding-right: 42px;
   margin: 0;
 }
@@ -994,6 +992,10 @@ textarea.flat-input {
   -moz-appearance: textfield;
 }
 
+.skill-input:focus {
+  box-shadow: none;
+}
+
 .skill-input::-webkit-outer-spin-button,
 .skill-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -1028,7 +1030,7 @@ textarea.flat-input {
 .skill-card-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .compact-skill-card {
@@ -1036,8 +1038,8 @@ textarea.flat-input {
   display: grid;
   grid-template-columns: minmax(130px, 1fr) minmax(300px, 2fr);
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: 6px;
+  padding: 4px 7px;
   border: 1.5px solid #EFE6E8;
   border-radius: 4px;
   background: #FFFFFF;
@@ -1057,7 +1059,7 @@ textarea.flat-input {
 
 .compact-skill-heading {
   min-width: 0;
-  min-height: 30px;
+  min-height: 27px;
   justify-content: space-between;
   gap: 6px;
   margin: 0;
@@ -1095,14 +1097,15 @@ textarea.flat-input {
 
 .compact-skill-values .skill-input {
   width: 100%;
-  height: 27px;
-  padding: 2px 3px;
+  height: 26px;
+  min-height: 26px;
+  padding: 1px 3px;
   font-size: 0.78rem;
 }
 
 .compact-skill-values label > strong {
   display: flex;
-  height: 27px;
+  height: 26px;
   align-items: center;
   justify-content: center;
   color: #4A2A33;
@@ -1116,8 +1119,9 @@ textarea.flat-input {
 
 .compact-skill-heading .skill-input.text {
   width: 100%;
-  height: 28px;
-  padding: 3px 6px;
+  height: 26px;
+  min-height: 26px;
+  padding: 2px 6px;
   font-size: 0.74rem;
 }
 
@@ -1140,7 +1144,6 @@ textarea.flat-input {
   .compact-budget { flex: 1; }
   .skill-toolbar-actions { width: 100%; }
 }
-
 
 /* SECTION: 职业列表页头 */
 /* NOTE: 新页签以资料库形态呈现，不和“职业与技能”的加点表混在一起。 */
@@ -1412,4 +1415,120 @@ textarea.flat-input {
 
 .occupation-description {
   white-space: pre-line;
+}
+
+/* SECTION: 工作台响应式收敛 */
+/* NOTE: 宽屏保持高密度双栏；窄屏按任务顺序折叠，不压缩中文按钮。 */
+@media (max-width: 1280px) {
+  .char-sidebar {
+    flex-basis: 190px;
+    padding: 20px 16px;
+  }
+
+  .char-main-area { padding: 20px; }
+
+  .basic-identity-layout {
+    grid-template-columns: 172px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .basic-page .avatar-upload-box { width: 172px; }
+  .skill-card-grid { grid-template-columns: minmax(0, 1fr); }
+
+  .occupation-workspace {
+    grid-template-columns: minmax(210px, 0.72fr) minmax(0, 1.5fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .char-workspace { flex-direction: column; }
+
+  .char-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    flex: 0 0 auto;
+    gap: 16px;
+  }
+
+  .sidebar-top { gap: 14px; }
+  .sidebar-title { padding-bottom: 12px; }
+
+  .sidebar-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .sidebar-bottom {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .char-main-area,
+  .char-main-area.basic-tab-active,
+  .char-main-area.occupation-tab-active {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .basic-page {
+    height: auto;
+    grid-template-rows: auto auto auto;
+  }
+
+  .basic-attributes-section { min-height: 620px; }
+  .occupation-workspace { min-height: 620px; }
+}
+
+@media (max-width: 680px) {
+  .sidebar-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .basic-identity-layout { grid-template-columns: minmax(0, 1fr); }
+
+  .basic-page .avatar-upload-box {
+    width: 100%;
+    height: 180px;
+  }
+
+  .basic-page .form-row,
+  .form-row { flex-wrap: wrap; }
+
+  .basic-page .form-item.small,
+  .form-item.small { flex: 1 1 120px; }
+
+  .basic-page .stats-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+
+  .basic-attributes-section { min-height: 1200px; }
+
+  .skill-page-header,
+  .stat-mode-header,
+  .occupation-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .compact-career-control {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
+  .choice-row,
+  .choice-row.single-menu,
+  .compact-skill-card,
+  .occupation-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .occupation-workspace { min-height: 1000px; }
+
+  .occupation-list,
+  .occupation-detail { min-height: 460px; }
 }

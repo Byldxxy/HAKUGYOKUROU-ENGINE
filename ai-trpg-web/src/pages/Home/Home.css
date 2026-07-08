@@ -7,8 +7,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #FAF5F7;
-  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  padding: 32px 18px;
+  background-color: var(--color-canvas);
+  background-image: linear-gradient(var(--color-line-soft) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--color-line-soft) 1px, transparent 1px);
+  background-size: 30px 30px;
 }
 
 
@@ -16,14 +19,12 @@
 /* NOTE: 尺寸和登录卡片一致，减少用户从登录到大厅入口的视觉跳变。 */
 .boutique-card {
   width: 100%;
-  max-width: 480px;
-  background: #FFFFFF;
-  padding: 50px 40px;
-
-  border: 1.5px solid #4A2A33;
-  box-shadow: 8px 8px 0px #FFC2D1;
-  border-radius: 4px;
-  box-sizing: border-box;
+  max-width: 500px;
+  padding: 44px 40px;
+  background: var(--color-surface);
+  border: var(--border-strong);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-panel-large);
 }
 
 /* SECTION: 入房前角色选择 */
@@ -68,7 +69,7 @@
   margin-bottom: 45px;
 }
 
-.title {
+.header-group .title {
   font-size: 2.2rem;
   font-weight: 800;
   color: #4A2A33;
@@ -76,7 +77,7 @@
   letter-spacing: 2px;
 }
 
-.subtitle {
+.header-group .subtitle {
   font-size: 0.75rem;
   color: #A0858D;
   letter-spacing: 4px;
@@ -94,39 +95,8 @@
 }
 
 
-/* SECTION: 通用按钮 */
-/* NOTE: Home 仍有页面内 flat-btn 定义，后续可以抽到全局样式。 */
-.flat-btn {
-  height: 50px;
-  font-size: 1rem;
-  font-weight: bold;
-  letter-spacing: 1px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-
-/* SECTION: 主按钮 */
-.flat-btn.primary {
+.home-container .flat-btn.primary {
   width: 100%;
-  background-color: #FF8FAB;
-  color: #FFFFFF;
-  border: 1.5px solid #4A2A33;
-  box-shadow: 4px 4px 0px #4A2A33;
-}
-
-.flat-btn.primary:hover {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0px #4A2A33;
-}
-
-.flat-btn.primary:active {
-  transform: translate(4px, 4px);
-  box-shadow: 0px 0px 0px #4A2A33;
 }
 
 
@@ -159,42 +129,17 @@
   box-sizing: border-box;
 }
 
-.flat-input {
+.home-container .flat-input {
   flex: 1;
   width: 0;
   height: 50px;
-  border: 1.5px solid #D4C3C7;
-  border-radius: 4px;
-  padding: 0 15px;
-  font-size: 1rem;
-  color: #4A2A33;
   text-align: center;
-  transition: border-color 0.2s;
-  background: #FFFFFF;
-  outline: none;
 }
-
-.flat-input:focus {
-  border-color: #FF8FAB;
-}
-
-.flat-input::placeholder {
-  color: #D4C3C7;
-  font-weight: 300;
-}
-
 
 /* SECTION: 次按钮 */
-.flat-btn.secondary {
+.home-container .flat-btn.secondary {
   width: 90px;
   flex-shrink: 0;
-  background-color: #FFFFFF;
-  color: #4A2A33;
-  border: 1.5px solid #4A2A33;
-}
-
-.flat-btn.secondary:hover {
-  background-color: #FAF5F7;
 }
 
 
@@ -240,4 +185,32 @@
 }
 .logout-btn:hover {
   color: #d81b60;
+}
+
+@media (max-width: 560px) {
+  .boutique-card {
+    padding: 36px 24px;
+  }
+
+  .header-group {
+    margin-bottom: 32px;
+  }
+
+  .home-character-row {
+    grid-template-columns: minmax(0, 1fr) 68px;
+  }
+
+  .home-character-row .edit-character-btn {
+    width: 68px;
+    padding-inline: 10px;
+  }
+
+  .join-row {
+    gap: 8px;
+  }
+
+  .home-container .flat-btn.secondary {
+    width: 76px;
+    padding-inline: 12px;
+  }
 }

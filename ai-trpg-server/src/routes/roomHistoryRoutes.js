@@ -1,5 +1,6 @@
 const express = require('express');
 const roomLogRepository = require('../repositories/roomLogRepository');
+const campaignService = require('../services/campaignService');
 const { isValidRoomId } = require('../domain/validation');
 
 const router = express.Router();
@@ -10,7 +11,12 @@ router.get('/', (req, res) => {
   const { roomId } = req.query;
   if (!isValidRoomId(roomId)) return res.status(400).json({ success: false, messages: [] });
 
-  res.json({ success: true, messages: roomLogRepository.listRoomMessages(roomId) });
+  const campaign = roomLogRepository.getLatestCampaignState(roomId);
+  res.json({
+    success: true,
+    messages: roomLogRepository.listRoomMessages(roomId),
+    campaign: campaign ? campaignService.getPublicCampaign(campaign) : null,
+  });
 });
 
 module.exports = router;

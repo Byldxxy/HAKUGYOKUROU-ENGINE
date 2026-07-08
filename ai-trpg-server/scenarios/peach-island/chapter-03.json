@@ -1,0 +1,528 @@
+{
+  "schemaVersion": 1,
+  "id": "peach-island-chapter-03",
+  "scenarioId": "peach-island-adventure",
+  "title": "桃花岛历险记：第三章 灰线与代价",
+  "type": "chapter",
+  "status": "draft",
+  "summary": "调查员队伍带伤逃离黑井监狱，与乌米、金霄坤躲避祭司院追捕，前往灰线求医，并以护送面具原材料为代价取得前往东海岸的通行条件。",
+  "playerPremise": "你们刚从黑井监狱逃出，队伍中有人身受重伤，祭司院正在封锁道路。唯一可能提供治疗和庇护的地方，是东面的三不管地带灰线。",
+  "adaptationRules": [
+    "原稿中范在清承担的玩家主角功能由当前调查员队伍共同承担。",
+    "只能使用 players 中列出的角色卡姓名称呼玩家，不得擅自把任何玩家称为范在清。",
+    "不得替玩家声明与宇文夜的私人关系；只有玩家主动提及相关背景时才能确认。",
+    "需要指定重伤者、原生根须持有者或关键对话者时，优先依据玩家已经描述的行动；无法判断时先向队伍确认。"
+  ],
+  "chapterGoal": "在祭司院追兵找到队伍前稳定伤员，并取得前往东海岸反抗军营地的路线。",
+  "resolutionRules": [
+    "一次导演回复中，每名玩家最多只能收到一项检定。",
+    "同一行动存在多种可用技能时，只选择最符合玩家行动描述的一项，不得把备选技能拆成多项检定。",
+    "检定失败只产生对应后果或推进隐藏压力，不得仅因一次普通失败直接结束章节。"
+  ],
+  "directorSecrets": [
+    "宇文夜在桃花岛已经活动约二十年，但调查员对这段时间差尚不知情。",
+    "调查员队伍携带的木棍是神树核心的原生根须，可以压制祭司院的叶脉之力，也会产生容易被追踪的能量异常。",
+    "老妇人曾是祭司院候补成员，因拒绝佩戴面具而逃亡。",
+    "蔡薄世交付的金属方块是制作祭司面具的原材料，他希望反抗军首席技师邓哥破解它。",
+    "本章不得揭示桃花岛是生态母舰，也不得完整解释符、离或王谋涛的最终计划。"
+  ],
+  "initialState": {
+    "phase": "active",
+    "currentSceneId": "forest-awakening",
+    "round": 1,
+    "facts": {
+      "yuwenTimeGapKnown": false,
+      "greylineChosen": false,
+      "patrolPassed": false,
+      "healerFound": false,
+      "rootIdentified": false,
+      "treatmentCompleted": false,
+      "deliveryAccepted": false,
+      "eastRouteSecured": false
+    },
+    "clocks": {
+      "pursuit": {
+        "label": "追捕",
+        "visibleFromScene": "forest-awakening",
+        "value": 1,
+        "max": 6
+      },
+      "healerSuspicion": {
+        "label": "怀疑",
+        "visibleFromScene": "healer-negotiation",
+        "value": 0,
+        "max": 4
+      }
+    },
+    "inventory": [
+      "item-primordial-root"
+    ]
+  },
+  "pacingRules": {
+    "targetRounds": {
+      "min": 10,
+      "max": 18
+    },
+    "maxStagnantRounds": 2,
+    "stagnationResponse": "提供一个环境变化、NPC提醒或代价明确的可执行选择，但不得直接替玩家作决定。",
+    "failForward": true,
+    "criticalCluesCannotBeLost": true,
+    "pursuitAdvanceTriggers": [
+      "队伍长时间停留",
+      "公开使用原生根须",
+      "战斗或制造显著噪音",
+      "向祭司院控制的村落求助"
+    ]
+  },
+  "actors": [
+    {
+      "id": "npc-wumi",
+      "name": "乌米",
+      "role": "逃亡向导",
+      "publicGoal": "带调查员队伍活着抵达反抗军控制区。",
+      "privateGoal": "证明自己能够承担反抗军成员的责任。",
+      "voice": "警觉、直接，面对危险时迅速作出判断。",
+      "knowledge": [
+        "灰线的大致方向",
+        "祭司院巡逻方式",
+        "宇文提督近年来的外貌"
+      ]
+    },
+    {
+      "id": "npc-jin-xiaokun",
+      "name": "金霄坤",
+      "role": "逃亡同伴",
+      "publicGoal": "活着离开祭司院控制区。",
+      "privateGoal": "不再做任人摆布的囚犯。",
+      "voice": "朴实、紧张，但在同伴真正需要时不会退缩。"
+    },
+    {
+      "id": "npc-healer",
+      "name": "灰线老妇人",
+      "role": "医者与前祭司院候补",
+      "publicGoal": "维持医馆中立，不让祭司院注意到自己。",
+      "privateGoal": "确认原生根须是否真实，并阻止面具技术继续扩散。",
+      "voice": "尖刻、多疑、经验老到，不接受明显的谎言。"
+    },
+    {
+      "id": "npc-cai-boshi",
+      "name": "蔡薄世",
+      "role": "灰线情报商",
+      "publicGoal": "完成一笔等价交换。",
+      "privateGoal": "把面具原材料送到邓哥手中并获得破解结果。",
+      "voice": "冷静、精明、少说废话，从不免费提供关键帮助。"
+    }
+  ],
+  "items": [
+    {
+      "id": "item-primordial-root",
+      "name": "原生根须",
+      "publicDescription": "一根由调查员队伍携带、质地异常的粗糙木棍。",
+      "secretDescription": "神树核心根部直接切下的原始组织，可干扰叶脉之力与祭司院探测装置。",
+      "tags": [
+        "key-item",
+        "energy-source",
+        "dangerous"
+      ]
+    },
+    {
+      "id": "item-mask-material",
+      "name": "面具原材料",
+      "publicDescription": "被特殊油布包裹的无标识金属方块。",
+      "secretDescription": "祭司院制作能量面具的核心材料之一。",
+      "tags": [
+        "quest-item",
+        "contraband"
+      ]
+    }
+  ],
+  "clues": [
+    {
+      "id": "clue-yuwen-time-gap",
+      "title": "宇文夜的时间差",
+      "critical": true,
+      "content": "宇文提督已经领导反抗军至少十五年，与调查员掌握的时间信息存在明显矛盾。",
+      "sources": [
+        "乌米的亲眼见闻",
+        "金霄坤对反抗军历史的了解"
+      ]
+    },
+    {
+      "id": "clue-root-disrupts-scan",
+      "title": "木棍会干扰祭司院探测",
+      "critical": true,
+      "content": "原生根须暴露时会令祭司院罗盘过载，使巡逻兵误判为旧战场能量陷阱。",
+      "sources": [
+        "河床巡逻遭遇",
+        "老妇人的鉴定"
+      ]
+    },
+    {
+      "id": "clue-root-identity",
+      "title": "原生根须的身份",
+      "critical": true,
+      "content": "祭司的力量来自二次分发的叶脉之力，而这根木棍来自神树核心，层级更高。",
+      "sources": [
+        "老妇人的鉴定"
+      ]
+    },
+    {
+      "id": "clue-mask-material",
+      "title": "祭司力量的物质基础",
+      "critical": true,
+      "content": "祭司并非天生拥有力量，面具及其材料是赋予力量的关键。",
+      "sources": [
+        "蔡薄世的交易说明",
+        "老妇人的旧制服与经历"
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "id": "forest-awakening",
+      "title": "黎明前的苏醒",
+      "location": "陇谷东北部森林",
+      "entryNarration": "队伍中伤势最重的人从剧痛与颠簸中短暂苏醒，乌米和金霄坤正协助调查员穿越寒冷密林。",
+      "objectives": [
+        "确认宇文提督就是宇文夜",
+        "意识到桃花岛存在巨大的时间差",
+        "决定向东前往灰线求医"
+      ],
+      "allowedFactChanges": [
+        "yuwenTimeGapKnown",
+        "greylineChosen"
+      ],
+      "allowedClockChanges": [
+        "pursuit"
+      ],
+      "availableClues": [
+        "clue-yuwen-time-gap"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "心理学",
+          "purpose": "判断乌米关于宇文提督外貌的描述是否可信。",
+          "onFailure": "仍获得时间差线索；如情绪冲击造成实际精神损耗，使用 SAN 变化表示。"
+        },
+        {
+          "skill": "导航",
+          "purpose": "协助乌米确认向东路线。",
+          "onFailure": "仍能前往灰线，但追捕时钟增加 1。"
+        }
+      ],
+      "transition": {
+        "to": "dry-river-patrol",
+        "when": {
+          "all": [
+            {
+              "fact": "yuwenTimeGapKnown",
+              "equals": true
+            },
+            {
+              "fact": "greylineChosen",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "dry-river-patrol",
+      "title": "干涸河床的巡逻队",
+      "location": "旧战场边缘河床",
+      "entryNarration": "祭司院三人巡逻队携带探测罗盘逼近藏身岩石，重伤员令队伍几乎无法撤离。",
+      "objectives": [
+        "避开或摆脱巡逻队",
+        "首次发现原生根须会干扰探测"
+      ],
+      "allowedFactChanges": [
+        "patrolPassed"
+      ],
+      "allowedClockChanges": [
+        "pursuit"
+      ],
+      "availableClues": [
+        "clue-root-disrupts-scan"
+      ],
+      "allowedApproaches": [
+        {
+          "id": "hide",
+          "checks": [
+            "潜行",
+            "聆听"
+          ],
+          "risk": "失败时巡逻队发现队伍，进入短暂追逐。"
+        },
+        {
+          "id": "use-root",
+          "checks": [
+            "神秘学",
+            "幸运"
+          ],
+          "risk": "根须会解除眼前危机，但追捕时钟增加 1。"
+        },
+        {
+          "id": "diversion",
+          "checks": [
+            "投掷",
+            "机械维修"
+          ],
+          "risk": "失败会制造更大噪音，但不会立即结束章节。"
+        }
+      ],
+      "failForward": "即使队伍暴露，也应以受伤、丢失物资或追捕升级为代价脱身，不在此处团灭。",
+      "transition": {
+        "to": "greyline-arrival",
+        "when": {
+          "fact": "patrolPassed",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "greyline-arrival",
+      "title": "焦土上的灰线",
+      "location": "灰线棚户区",
+      "entryNarration": "队伍在黄昏抵达旧战场废墟。棚屋、黑市和危险目光挤在焦土边缘，伤员的情况已经不能继续拖延。",
+      "objectives": [
+        "在不暴露逃犯身份的前提下找到可靠医者",
+        "避免被黑市势力或祭司院线人盯上"
+      ],
+      "allowedFactChanges": [
+        "healerFound"
+      ],
+      "allowedClockChanges": [
+        "pursuit"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "发现挂有草药与兽骨风铃的医馆。",
+          "onFailure": "乌米最终找到医馆，但隐藏的追捕进度增加 1；若伤员继续恶化，使用 HP 变化表示。"
+        },
+        {
+          "skill": "乔装",
+          "purpose": "掩盖队伍来自黑井监狱的痕迹。",
+          "onFailure": "有灰线居民记住队伍外貌，作为后续麻烦。"
+        }
+      ],
+      "transition": {
+        "to": "healer-negotiation",
+        "when": {
+          "fact": "healerFound",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "healer-negotiation",
+      "title": "老妇人的诊室",
+      "location": "灰线医馆",
+      "entryNarration": "老妇人一眼看出伤口来自高级祭司。她拒绝为明显说谎的人承担风险。",
+      "objectives": [
+        "取得老妇人的最低信任",
+        "完成紧急治疗",
+        "确认原生根须的身份"
+      ],
+      "allowedFactChanges": [
+        "rootIdentified",
+        "treatmentCompleted"
+      ],
+      "allowedClockChanges": [
+        "healerSuspicion"
+      ],
+      "availableClues": [
+        "clue-root-identity"
+      ],
+      "socialRules": {
+        "truthLowersSuspicionBy": 1,
+        "crediblePartialTruthLeavesSuspicion": true,
+        "exposedLieRaisesSuspicionBy": 1,
+        "maxSuspicionConsequence": "老妇人仍会稳定伤员，但要求更高代价并限时驱逐队伍。"
+      },
+      "failForward": "治疗不得因一次社交检定失败而永久中断；失败改变代价、信任和后续资源。",
+      "transition": {
+        "to": "cai-boshi-bargain",
+        "when": {
+          "fact": "treatmentCompleted",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "cai-boshi-bargain",
+      "title": "等价交换",
+      "location": "灰线医馆",
+      "entryNarration": "情报商蔡薄世提出交易：队伍替他把一块危险金属送给反抗军技师邓哥，他负责路线、伪装和向导。",
+      "objectives": [
+        "了解祭司面具并非单纯神迹",
+        "决定是否接受护送任务",
+        "取得前往东海岸的可靠路线"
+      ],
+      "allowedFactChanges": [
+        "deliveryAccepted",
+        "eastRouteSecured"
+      ],
+      "allowedClockChanges": [
+        "pursuit",
+        "healerSuspicion"
+      ],
+      "availableClues": [
+        "clue-mask-material"
+      ],
+      "branches": [
+        {
+          "id": "accept-delivery",
+          "result": "获得面具原材料、灰线向导和安全路线。",
+          "stateChanges": {
+            "deliveryAccepted": true,
+            "eastRouteSecured": true
+          }
+        },
+        {
+          "id": "refuse-and-pay",
+          "result": "玩家必须用稀缺物资、情报或额外任务偿还治疗费，仍可取得风险更高的路线。",
+          "stateChanges": {
+            "deliveryAccepted": false,
+            "eastRouteSecured": true
+          }
+        },
+        {
+          "id": "steal-or-threaten",
+          "result": "可以强行取得路线，但灰线关系恶化，追捕时钟增加 2，并失去蔡薄世后续帮助。",
+          "stateChanges": {
+            "deliveryAccepted": false,
+            "eastRouteSecured": true
+          }
+        }
+      ],
+      "transition": {
+        "to": "eastward-departure",
+        "when": {
+          "fact": "eastRouteSecured",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "eastward-departure",
+      "title": "向东",
+      "location": "灰线东侧三岔路",
+      "entryNarration": "灰袍向导在三岔路口停下，指向通往海岸的荒草小径。灰线已经被甩在身后，前方是反抗军控制区。",
+      "objectives": [
+        "确认队伍状态和携带物",
+        "结束本章并写入章节结果"
+      ],
+      "allowedFactChanges": [],
+      "allowedClockChanges": [],
+      "transition": {
+        "to": null,
+        "when": {
+          "fact": "eastRouteSecured",
+          "equals": true
+        }
+      }
+    }
+  ],
+  "endings": [
+    {
+      "id": "chapter-success-delivery",
+      "priority": 100,
+      "label": "带着交易前往东海岸",
+      "conditions": {
+        "all": [
+          {
+            "fact": "treatmentCompleted",
+            "equals": true
+          },
+          {
+            "fact": "eastRouteSecured",
+            "equals": true
+          },
+          {
+            "fact": "deliveryAccepted",
+            "equals": true
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "灰袍向导留下的路线已经足够清晰。队伍带着危险的金属方块继续向东，海风正从群山背后吹来。",
+        "nextChapterId": "peach-island-chapter-04",
+        "carryFacts": [
+          "rootIdentified",
+          "deliveryAccepted"
+        ],
+        "carryItems": [
+          "item-primordial-root",
+          "item-mask-material"
+        ]
+      }
+    },
+    {
+      "id": "chapter-success-independent",
+      "priority": 90,
+      "label": "以其他代价取得路线",
+      "conditions": {
+        "all": [
+          {
+            "fact": "treatmentCompleted",
+            "equals": true
+          },
+          {
+            "fact": "eastRouteSecured",
+            "equals": true
+          },
+          {
+            "fact": "deliveryAccepted",
+            "equals": false
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "队伍最终以自己的方式偿清代价，取得了通往东海岸的路线。灰线的灯火渐渐消失在身后。",
+        "nextChapterId": "peach-island-chapter-04",
+        "carryFacts": [
+          "rootIdentified"
+        ],
+        "carryItems": [
+          "item-primordial-root"
+        ]
+      }
+    },
+    {
+      "id": "chapter-costly-capture",
+      "priority": 110,
+      "label": "追兵合围",
+      "conditions": {
+        "clock": "pursuit",
+        "atLeast": 6
+      },
+      "result": {
+        "phase": "redirected",
+        "publicNarration": "林地深处连续响起面具与金属摩擦的声音，退路正在被迅速封死。队伍必须立刻面对这场合围。",
+        "nextSceneId": "emergency-capture-or-rescue",
+        "note": "这不是立即团灭。系统进入一次紧急逃亡、被俘或以重大代价获救的过渡场景。"
+      }
+    }
+  ],
+  "directorOutputContract": {
+    "format": "json",
+    "requiredFields": [
+      "narration",
+      "requestedRolls",
+      "revealedClueIds",
+      "proposedStateChanges",
+      "proposedTransition",
+      "pacing"
+    ],
+    "rules": [
+      "只叙述当前场景允许出现的信息。",
+      "不得替玩家决定行动、思想或最终选择。",
+      "不得直接修改状态；所有变化都只是提议，由服务端校验后提交。",
+      "关键线索检定失败时必须以增加代价的方式继续推进。",
+      "不得自行宣布章节或整局游戏结束。"
+    ]
+  }
+}

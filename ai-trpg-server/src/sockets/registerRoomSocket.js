@@ -1,6 +1,7 @@
 const roomLogRepository = require('../repositories/roomLogRepository');
 const saveRepository = require('../repositories/saveRepository');
 const aiService = require('../services/aiService');
+const campaignService = require('../services/campaignService');
 const characterRepository = require('../repositories/characterRepository');
 const { isValidRoomId } = require('../domain/validation');
 const { DEFAULT_ROOM_RULES, normalizeRoomRules } = require('../domain/roomRules');
@@ -8,6 +9,7 @@ const {
   parseRollRequests,
   parseRollActionSkill,
   isRollResultMessage,
+  stripDirectives,
 } = require('../domain/directives');
 
 const liveRooms = {};
@@ -42,8 +44,11 @@ const emitLobbyUpdate = (io, roomId) => {
       characterName: player.characterName,
       role: player.role,
       hp: player.hp,
+      hpMax: player.hpMax ?? player.hp,
       san: player.san,
+      sanMax: player.sanMax ?? player.san,
       mp: player.mp,
+      mpMax: player.mpMax ?? player.mp,
     })),
   });
 };
@@ -91,7 +96,7 @@ const hasRollResultInCurrentRound = ({ lines, playerName, skillName, rollId }) =
     isRollResultMessage(line.content) &&
     (
       (rollId && line.rollId === rollId) ||
-      (!rollId && parseRollActionSkill(line.content) === skillName)
+      parseRollActionSkill(line.content) === skillName
     )
   ));
 };
@@ -137,7 +142,7 @@ const findRollResultLine = ({ currentRound, playerName, skillName, rollId }) => 
     isRollResultMessage(line.content) &&
     (
       (rollId && line.rollId === rollId) ||
-      (!line.rollId && parseRollActionSkill(line.content) === skillName)
+      parseRollActionSkill(line.content) === skillName
     )
   ));
 };
@@ -209,9 +214,90 @@ const emitTurnState = (io, roomId) => {
   if (!room) return null;
 
   const lines = roomLogRepository.readRoomLines(roomId);
+  if (room.campaign && room.campaign.phase !== 'active') {
+    const turnState = {
+      roomId,
+      mode: 'completed',
+      inputLocked: true,
+      players: getRoomPlayerNames(room),
+      actedPlayers: [],
+      pendingPlayers: [],
+      rollRequests: [],
+      pendingRolls: [],
+      pendingRollPlayers: [],
+    };
+    io.to(roomId).emit('turn_state', turnState);
+    return turnState;
+  }
   const turnState = buildTurnState({ roomId, room, lines });
   io.to(roomId).emit('turn_state', turnState);
   return turnState;
+};
+
+// SECTION: 战役状态恢复与广播
+// NOTE: 房间内存丢失时优先从 JSONL 的最后一个 campaign_state 恢复。
+const ensureRoomCampaign = (roomId, room) => {
+  if (!room.campaign) {
+    room.campaign = roomLogRepository.getLatestCampaignState(roomId)
+      || campaignService.createCampaign(room.config?.scriptId || 'peach');
+  }
+  campaignService.migrateCampaign(room.campaign);
+  campaignService.syncPartyStats(room.campaign, room.players);
+  campaignService.applyPartyStatsToPlayers(room.campaign, room.players);
+  return room.campaign;
+};
+
+const emitCampaignState = (io, roomId) => {
+  const room = liveRooms[roomId];
+  if (!room) return null;
+  const campaign = ensureRoomCampaign(roomId, room);
+  const publicState = campaignService.getPublicCampaign(campaign);
+  io.to(roomId).emit('campaign_state', publicState);
+  return publicState;
+};
+
+const validateDirectorStatChanges = (room, changes = []) => {
+  const validated = [];
+  for (const change of changes.slice(0, room.players.length * 3)) {
+    const playerName = resolvePlayerName(room, change?.player);
+    const player = room.players.find((item) => item.name === playerName);
+    const type = String(change?.type || '').toUpperCase();
+    const value = Math.round(Number(change?.value));
+    if (!player || !['HP', 'SAN', 'MP'].includes(type) || !Number.isFinite(value) || value === 0) continue;
+    validated.push({
+      accountName: player.accountName,
+      playerName,
+      type,
+      value: Math.min(100, Math.max(-100, value)),
+    });
+  }
+  return validated;
+};
+
+const formatDirectorReply = ({ room, applied, statChanges }) => {
+  const sections = [stripDirectives(applied.result.narration) || '局势短暂地停滞下来，等待你们作出决定。'];
+  const seenRollPlayers = new Set();
+
+  for (const request of applied.result.requestedRolls) {
+    const playerName = resolvePlayerName(room, request?.player);
+    const skill = String(request?.skill || '').replace(/[<>:]/g, '').trim().slice(0, 50);
+    if (!playerName || !skill || seenRollPlayers.has(playerName)) continue;
+    seenRollPlayers.add(playerName);
+    sections.push(`<<ROLL:${skill}:${playerName}>>`);
+  }
+
+  for (const change of statChanges) {
+    sections.push(`<<STAT:${change.playerName}:${change.type}:${change.value}>>`);
+  }
+
+  if (applied.transition) {
+    sections.push(applied.transition.entryNarration);
+  }
+  if (applied.ending?.result?.publicNarration) {
+    sections.push(applied.ending.result.publicNarration);
+  }
+
+  return sections.filter(Boolean).join('\n\n');
 };
 
 // SECTION: AI 触发条件
@@ -355,6 +441,10 @@ const registerRoomSocket = (io) => {
       }
 
       const normalizedScriptId = String(scriptId || room.config?.scriptId || 'peach').slice(0, 50);
+      if (!campaignService.isSupportedScriptId(normalizedScriptId)) {
+        if (typeof ack === 'function') ack({ success: false, reason: 'scenario_not_implemented' });
+        return;
+      }
       room.config = {
         scriptId: normalizedScriptId,
         rules: normalizeRoomRules(rules, room.config?.rules || DEFAULT_ROOM_RULES),
@@ -369,6 +459,7 @@ const registerRoomSocket = (io) => {
       if (!isValidRoomId(roomId) || !consumeSocketQuota(socket)) return;
       socket.join(roomId);
       socket.data.roomId = roomId;
+      emitCampaignState(io, roomId);
       emitLobbyUpdate(io, roomId);
       emitTurnState(io, roomId);
     });
@@ -435,6 +526,7 @@ const registerRoomSocket = (io) => {
         });
       }
 
+      emitCampaignState(io, roomId);
       emitLobbyUpdate(io, roomId);
       emitTurnState(io, roomId);
       socket.data.roomId = roomId;
@@ -457,15 +549,27 @@ const registerRoomSocket = (io) => {
         }
         const loaded = roomLogRepository.loadLogFrom(roomId, saveRepository.getSavePath(loadSaveId));
         if (loaded) {
+          room.campaign = roomLogRepository.getLatestCampaignState(roomId)
+            || campaignService.createCampaign(room.config?.scriptId || 'peach');
           console.log(`📂 房主加载了存档 ${loadSaveId}，房间 ${roomId} 恢复记忆`);
         }
       } else {
         roomLogRepository.resetRoomLog(roomId);
+        room.campaign = campaignService.createCampaign(room.config?.scriptId || 'peach');
+        campaignService.syncPartyStats(room.campaign, room.players);
+        campaignService.applyPartyStatsToPlayers(room.campaign, room.players);
+        const scenario = campaignService.getScenario(room.campaign);
+        const openingScene = campaignService.getCurrentScene(scenario, room.campaign);
+        roomLogRepository.appendDmReply({ roomId, content: openingScene.entryNarration });
+        roomLogRepository.appendCampaignState({ roomId, campaign: room.campaign });
         console.log(`🧹 房间 ${roomId} 的旧时间线已被抹除，开启全新战役`);
       }
 
       console.log('🎮 房主下达发车指令！全员进入正式游戏');
       io.to(roomId).emit('go_to_game');
+      emitCampaignState(io, roomId);
+      emitLobbyUpdate(io, roomId);
+      emitTurnState(io, roomId);
     });
 
     socket.on('lobby_chat_send', ({ roomId, msg }) => {
@@ -501,6 +605,15 @@ const registerRoomSocket = (io) => {
       const room = liveRooms[roomId];
       const player = room?.players.find((item) => item.id === socket.id && item.accountName === username);
       if (!room || !player) return;
+      const campaign = ensureRoomCampaign(roomId, room);
+      if (campaign.phase !== 'active') {
+        socket.emit('campaign_locked', campaignService.getPublicCampaign(campaign));
+        return;
+      }
+      if (room.dmInFlight) {
+        socket.emit('action_rejected', { reason: 'dm_in_flight' });
+        return;
+      }
       const playerName = player.name;
       const message = String(data.message || '').trim().slice(0, 4000);
       if (!message) return;
@@ -532,24 +645,48 @@ const registerRoomSocket = (io) => {
       if (!shouldTriggerDm({ room, lines })) return;
 
       console.log('✅ [触发条件满足] 呼叫 AI...');
+      room.dmInFlight = true;
       try {
-        const dmReplyContent = await aiService.generateDmReply(lines);
+        const directorContext = campaignService.buildDirectorContext({
+          campaign: room.campaign,
+          players: room.players,
+        });
+        const directorResult = await aiService.generateDirectorReply({ lines, directorContext });
+        const applied = campaignService.applyDirectorResult({
+          campaign: room.campaign,
+          directorResult,
+        });
+        room.campaign = applied.campaign;
+        campaignService.syncPartyStats(room.campaign, room.players);
+        const statChanges = validateDirectorStatChanges(room, applied.result.statChanges);
+        campaignService.applyPartyStatChanges(room.campaign, statChanges);
+        campaignService.applyPartyStatsToPlayers(room.campaign, room.players);
+        const dmReplyContent = formatDirectorReply({ room, applied, statChanges });
         roomLogRepository.appendDmReply({ roomId, content: dmReplyContent });
+        roomLogRepository.appendCampaignState({ roomId, campaign: room.campaign });
 
         io.to(roomId).emit('new_message', {
           role: 'dm',
           sender: '系统 DM',
           content: dmReplyContent,
         });
+        emitLobbyUpdate(io, roomId);
+        emitCampaignState(io, roomId);
         emitTurnState(io, roomId);
       } catch (error) {
         console.error('❌ AI 接口调用失败:', error.message);
+        const fallbackContent = '（主持通讯短暂受阻，本轮没有产生新的剧情变化。请重新描述行动。）';
+        roomLogRepository.appendDmReply({ roomId, content: fallbackContent });
+        roomLogRepository.appendCampaignState({ roomId, campaign: room.campaign });
         io.to(roomId).emit('new_message', {
           role: 'dm',
           sender: '系统 DM',
-          content: '（星舰通讯受阻...）',
+          content: fallbackContent,
         });
+        emitCampaignState(io, roomId);
         emitTurnState(io, roomId);
+      } finally {
+        room.dmInFlight = false;
       }
     });
 
