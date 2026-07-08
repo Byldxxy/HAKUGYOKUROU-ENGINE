@@ -51,6 +51,7 @@ export default function Lobby() {
   // NOTE: 当前只作为 UI 选择保留，AI 实际模型和提示词仍由后端配置控制。
   const scriptOptions = [
     { value: 'peach', label: '桃花岛历险记' },
+    { value: 'ontology', label: '本质' },
     { value: 'ctms', label: 'CTMS货舱危机（待接入）', disabled: true },
     { value: 'custom', label: '自定义空白团（待接入）', disabled: true },
   ];

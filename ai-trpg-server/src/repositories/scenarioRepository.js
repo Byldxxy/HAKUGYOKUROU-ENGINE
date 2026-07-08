@@ -4,6 +4,7 @@ const config = require('../config');
 
 const SCENARIO_FILES = Object.freeze({
   peach: path.join(config.serverRoot, 'scenarios', 'peach-island', 'chapter-03.json'),
+  ontology: path.join(config.serverRoot, 'scenarios', 'ontology', 'ontology.json'),
 });
 
 const scenarioCache = new Map();

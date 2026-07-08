@@ -1,0 +1,521 @@
+{
+  "schemaVersion": 1,
+  "id": "ontology-main",
+  "scenarioId": "ontology-order",
+  "title": "本质",
+  "type": "standalone",
+  "status": "draft",
+  "summary": "调查员在邪教本质会的教堂中苏醒，被所有人视为异形祭司。忠诚的同伴KPC伪装潜伏在此，试图营救调查员。在致幻毒剂制造的认知迷雾中，调查员必须探索教堂、揭开真相、做出抉择——是消灭邪教、逃离求生，还是在反智的洪流中被吞噬。",
+  "playerPremise": "你们从漆黑的棺材中恢复意识，身处一座富丽堂皇的教堂。台下众人低眉颔首，而你们最亲密的同伴正用敬畏又畏惧的目光望着你们，称你们为'祭司大人'。你们不知道自己为何在这里，也不知道镜中那个头部蠕动着软体触须的异形——是否就是自己。",
+  "adaptationRules": [
+    "本剧本原作面向1KP+1PL，现改编为多人队伍模式。队伍整体被视为邪教中的重要人物，由AI合理分配'祭司大人'身份的指向。",
+    "PC外观规则：在所有受'智慧之毒'影响的人（包括调查员自己照镜子时）眼中，被指定为'祭司'的调查员头部是一个蠕动的软体动物，长满吸盘的触腕灵活蠕动。叙述时必须使用此外观，不得使用角色卡原始外貌。",
+    "KPC身份规则：KPC是本剧本的核心NPC同伴，伪装为虔诚的见习教徒。他对'祭司大人'使用敬称，表面顺从本质会。AI不得让KPC主动暴露营救意图，除非玩家通过合理的RP和社交检定取得他的信任。",
+    "凯恩身份规则：真正的祭司凯恩目前伪装为'罗德岛教区视察员'，戴着反光面具。AI叙述中只称其为'戴面具的中年男人'或教徒口中的'凯恩先生'，不得直接告诉玩家他就是真正的祭司。玩家必须通过线索自行发现。",
+    "幻觉分层规则：叙述只呈现调查员当前认知层的内容。调查员受'智慧之毒'影响时，看到的世界是被药物扭曲的版本。不得在叙述中主动揭示'你看到的是幻觉'，除非玩家通过线索和检定自行推断。",
+    "不得替玩家决定是否相信幻觉、是否信任KPC、是否饮用葡萄酒、是否使用毒剂。这些关键抉择必须由玩家自主作出。",
+    "使用角色卡姓名称呼玩家，不得擅自给玩家改名或赋予剧本中不存在的新身份。",
+    "探索场景中，当玩家表示要去某个区域时，AI应详细描写该区域的环境、可互动物体和NPC，并主动列出可执行的行动选项。"
+  ],
+  "resolutionRules": [
+    "一次导演回复中，每名玩家最多只能收到一项检定。",
+    "社交检定的难度应配合玩家的实际RP内容。合理且充分的角色扮演可以降低检定难度；空泛的'我说服他'不应获得加成。",
+    "SAN检定在以下时刻自动触发：目睹镜中异形自我(1/1d4)、囚室1的死亡痕迹(1/1d3)、囚室1卫生间(0/1)、与凯恩对视(1/1d8)、使用毒剂杀人(1/1d6)。数值格式为'成功损失/失败损失'。",
+    "战斗场景使用专用战斗轮规则，参见 final-combat 场景定义。",
+    "同一行动中多种技能可用时，只选择与玩家描述最直接相关的一项。",
+    "检定失败不直接结束章节，而是增加代价、推进时钟或改变后续选项。"
+  ],
+  "directorSecrets": [
+    "凯恩就是本质会的真正祭司，他为了隐瞒身份而伪装为罗德岛教区视察员。一般教徒不知道他的真名和真实面貌。",
+    "'智慧之毒'(Gift of Wisdom)是凯恩开发的致幻毒剂，改变人的认知但持续时间短。教徒每天的餐食中被添加了此药物。",
+    "'沉默之毒'(Gift of Silence)是凯恩开发的麻醉毒剂，能让人瞬间昏睡，掺在每晚的葡萄酒中。",
+    "KPC已被凯恩注射精神错乱药物并施以虐待，目前真心相信本质会能拯救'祭司大人'。只有玩家通过充分RP加社交困难成功才能唤醒他的自我意识。",
+    "集会大厅遗像背后有一扇暗门，连接密道通向祭坛。本质之钥的结构暗示了教堂的结构（祭坛与集会大厅间有暗道）。",
+    "仓库中有信号屏蔽仪，破坏后手机可正常通讯。观览台是教堂中唯一有微弱手机信号的死角。",
+    "铁箱中的毒剂装置可以消灭地下宿舍中的所有教徒（包括由人变成的凯恩），这是最激进但最有效的解决方式。",
+    "罗德岛教区已经派过一次视察员并否定了本质会，因此戴面具的'凯恩先生'不可能是真正的视察员。",
+    "本章不得提前揭示任何结局的具体条件和后果，只能根据玩家行为自然推进。"
+  ],
+  "initialState": {
+    "phase": "active",
+    "currentSceneId": "funeral-awakening",
+    "round": 1,
+    "facts": {
+      "selfDiscovered": false,
+      "foodReceived": false,
+      "receptionVisited": false,
+      "libraryVisited": false,
+      "kitchenVisited": false,
+      "mainHallExamined": false,
+      "f1Explored": false,
+      "f2Explored": false,
+      "keyObtained": false,
+      "diaryRead": false,
+      "cainIdentitySuspected": false,
+      "secretPassageHintFound": false,
+      "kpcTrustEstablished": false,
+      "kpcAwakened": false,
+      "warehouseKeyObtained": false,
+      "wineRefused": false,
+      "warehouseExplored": false,
+      "secretPassageFound": false,
+      "poisonDeviceObtained": false,
+      "signalJammerDestroyed": false,
+      "policeAlerted": false,
+      "poisonUsed": false,
+      "ritualInterrupted": false,
+      "combatVictory": false
+    },
+    "clocks": {
+      "suspicion": { "label": "怀疑", "value": 0, "max": 5 },
+      "ritualCountdown": { "label": "仪式倒计时", "value": 0, "max": 4 }
+    },
+    "inventory": []
+  },
+  "pacingRules": {
+    "targetRounds": { "min": 15, "max": 30 },
+    "maxStagnantRounds": 2,
+    "stagnationResponse": "提供一个环境变化、NPC催促或新的可探索方向，但不得替玩家作决定。",
+    "failForward": true,
+    "criticalCluesCannotBeLost": true,
+    "suspicionAdvanceTriggers": [
+      "调查员行为明显不像祭司",
+      "试图强行打开大门",
+      "公开质疑教会教义",
+      "夜间探索被发现"
+    ]
+  },
+  "actors": [
+    {
+      "id": "npc-kpc",
+      "name": "KPC",
+      "role": "伪装教徒 / 营救者",
+      "publicGoal": "侍奉祭司大人，协助完成复活仪式。",
+      "privateGoal": "将生死不明的同伴带离这个邪教。",
+      "voice": "对'祭司大人'毕恭毕敬，偶尔流露出被压抑的恐惧与关切。身上有许多交叠的鞭痕。",
+      "knowledge": ["教堂的基本布局", "密道入口的大致位置", "凯恩给他看的'复活祷文'"]
+    },
+    {
+      "id": "npc-cain",
+      "name": "凯恩",
+      "role": "真正的祭司 / 伪装视察员",
+      "publicGoal": "以罗德岛教区视察员的身份指导仪式准备。",
+      "privateGoal": "确保KPC完成自我献祭仪式，将自身转化为克苏鲁之仆役。",
+      "voice": "威严、控制欲强，戴着反光面具。对教徒严厉，对'祭司大人'故作恭敬。"
+    },
+    {
+      "id": "npc-sodome",
+      "name": "索多姆",
+      "role": "高级教徒",
+      "publicGoal": "协助凯恩管理教会事务。",
+      "privateGoal": "游手好闲，尽量少干活。",
+      "voice": "慵懒、傲慢，对'祭司大人'态度亲昵而非敬畏。经常偷懒，这反而给调查员提供了便利。"
+    },
+    {
+      "id": "npc-gomorrhe",
+      "name": "戈摩尔",
+      "role": "高级教徒",
+      "publicGoal": "忠实执行凯恩的一切命令。",
+      "privateGoal": "维护教会的秩序与纯洁。",
+      "voice": "严肃、强大、面无表情。身姿挺拔，令人不寒而栗。"
+    },
+    {
+      "id": "npc-lilithu",
+      "name": "莉莉图",
+      "role": "接待员",
+      "publicGoal": "管理接待室，服务教会成员。",
+      "privateGoal": "躲避通缉，在教会中寻求庇护。",
+      "voice": "富有魅力，善于察言观色。曾以'强迫就是伤害'的言论保护过KPC。"
+    },
+    {
+      "id": "npc-titan",
+      "name": "泰坦",
+      "role": "厨师",
+      "publicGoal": "为几十名教徒准备每日餐食。",
+      "privateGoal": "忠实地按照吩咐在食物中添加药剂。",
+      "voice": "强壮、殷勤，对'祭司大人'言听计从。进过两次监狱。"
+    },
+    {
+      "id": "npc-adam-eve",
+      "name": "亚当与伊芙",
+      "role": "一般教徒",
+      "publicGoal": "虔诚地侍奉教会。",
+      "privateGoal": "无",
+      "voice": "年轻、没主见、经常结伴出现。伊芙比亚当更有主见一些。"
+    }
+  ],
+  "items": [
+    {
+      "id": "item-ontology-key",
+      "name": "本质之钥",
+      "publicDescription": "系着红线的黑铁吊坠，中心有透光孔洞。所有教徒都佩戴的信物。",
+      "secretDescription": "其结构与教堂建筑同构，暗示祭坛与集会大厅之间存在暗道。可作为铁箱卡槽的钥匙。",
+      "tags": ["key-item", "puzzle-key"]
+    },
+    {
+      "id": "item-phone",
+      "name": "手机",
+      "publicDescription": "调查员的手机，完全没有电。",
+      "secretDescription": "在谈话室沙发缝隙中有充电器。教堂有信号屏蔽仪，但观览台是信号死角。",
+      "tags": ["communication"]
+    },
+    {
+      "id": "item-warehouse-key",
+      "name": "仓库备用钥匙",
+      "publicDescription": "一把泛着黄铜色泽的钥匙。",
+      "secretDescription": "KPC捡到的仓库备用钥匙，打开仓库后可以发现信号屏蔽仪、武器和毒剂装置。",
+      "tags": ["key-item"]
+    },
+    {
+      "id": "item-poison-device",
+      "name": "毒剂装置",
+      "publicDescription": "皮质手提包中的两个金属容器、防毒面具和使用说明。说明写着：混合A与B制剂后外力撞击破坏容器使毒剂逸散，使用者应佩戴防具在上风向使用。",
+      "secretDescription": "凯恩开发的瞬发性毒剂，密度大于空气。投入地下宿舍可消灭所有本质会成员，包括异形化的凯恩。",
+      "tags": ["weapon", "key-item", "dangerous"]
+    }
+  ],
+  "clues": [
+    {
+      "id": "clue-cain-identity",
+      "title": "凯恩的真实身份",
+      "critical": true,
+      "content": "戴面具的'凯恩先生'并非罗德岛教区视察员，而是本质会的真正祭司。罗德岛教区曾来信否定本质会的教义。",
+      "sources": ["谈话室的罗德岛信件", "柜子中的手记", "亚当和伊芙的对话"]
+    },
+    {
+      "id": "clue-wisdom-poison",
+      "title": "智慧之毒",
+      "critical": true,
+      "content": "厨房中有两种特殊药剂：Gift of Wisdom（致幻）和Gift of Silence（麻醉）。泰坦承认'聪明粉'被添加在每天的餐食中。",
+      "sources": ["厨房侦查", "与泰坦交谈"]
+    },
+    {
+      "id": "clue-secret-passage",
+      "title": "密道的存在",
+      "critical": true,
+      "content": "本质之钥的结构暗示祭坛与集会大厅之间存在暗道。集会大厅遗像背后有隐藏的门。",
+      "sources": ["莉莉图的提示", "侦查本质之钥", "夜间侦查遗像"]
+    },
+    {
+      "id": "clue-kpc-diary",
+      "title": "KPC的日记",
+      "critical": true,
+      "content": "KPC记录了潜入调查的全过程：他发现密道、被抓获、遭受虐待，最终在3月27日后认知被完全改变。日记揭示了他目前的精神控制状态。",
+      "sources": ["囚室2写字桌抽屉（密码=PC生日）"]
+    },
+    {
+      "id": "clue-signal-jammer",
+      "title": "信号屏蔽仪",
+      "critical": false,
+      "content": "仓库中有一台正在工作的信号屏蔽仪，破坏后手机可以正常通讯。",
+      "sources": ["仓库侦查"]
+    },
+    {
+      "id": "clue-poison-weapon",
+      "title": "毒剂装置",
+      "critical": false,
+      "content": "铁箱中（用本质之钥开启）藏有可混合的毒剂装置和防毒面具。说明指示'必要时令一切噤声'。",
+      "sources": ["仓库铁箱"]
+    },
+    {
+      "id": "clue-rhodes-rejection",
+      "title": "罗德岛教区的否定",
+      "critical": true,
+      "content": "罗德岛教区来信严厉否定本质会的自创教义，称其为'偏离原教旨的末流'。这证明此前已有视察员到访并给出否定评价。",
+      "sources": ["谈话室茶几上的信件"]
+    },
+    {
+      "id": "clue-underground-dormitory",
+      "title": "地下集体宿舍",
+      "critical": false,
+      "content": "通过密道的圆形玻璃框（潜望镜）可以看到地下并排的床铺，所有教徒每晚在此集体昏睡。",
+      "sources": ["密道圆形玻璃框（幸运成功）"]
+    },
+    {
+      "id": "clue-cult-doctrine",
+      "title": "本质会教义的虚伪",
+      "critical": false,
+      "content": "KPC的批注揭示了教义的矛盾：宣扬平等的同时建立等级关系，'亲缘关系'为混乱的性关系和剥削提供便利。",
+      "sources": ["囚室2碎纸屑", "接待室宣传册"]
+    },
+    {
+      "id": "clue-sample-experiments",
+      "title": "人体实验记录",
+      "critical": false,
+      "content": "手记记录了三个'样本'：样本1号（已死记者乔布）、样本2号（昏迷中的调查员）、样本3号（KPC）。调查员就是被绑架的受害者。",
+      "sources": ["谈话室柜子中的手记"]
+    }
+  ],
+  "scenes": [
+    {
+      "id": "funeral-awakening",
+      "title": "葬礼上的苏醒",
+      "location": "本质会教堂 · 集会大厅",
+      "entryNarration": "你恍如梦寐，又如梦初醒。\n\n你躺在舟船一样的棺椁中，哀乐与白蔷薇的刺让你意识到这是一场葬礼——你的葬礼。圣坛上方悬挂着你的巨幅黑白遗像，画质糟糕得像是一张证件照的放大修复版。台下数十名身着黑袍的人低眉颔首。\n\n一个被漆黑包裹的熟悉身影伫立在你面前，一脸愁容，胸前沾着露水的花朵。是你最亲密的同伴——KPC。\n\n'祭司大人……？'他用敬畏又畏惧的语气说道，'无论成功与否，接下来还需要继续拜托您。'\n\n你坐起身环视四周：左侧是瞬间噤声的人群，右侧是你那荒诞的遗像。大理石壁被装点得富丽堂皇，宗教画与椭圆形玻璃镜交替悬挂。\n\n那镜子的边框是何等华丽——而镜中之人……\n\n那不是人。头部被首足不分的软体动物取代，长满吸盘的长腕灵活地蠕动着，潮湿、腥咸。你宁愿相信那是一幅怪画。",
+      "objectives": [
+        "与KPC交谈，了解当前处境",
+        "面对镜中的'自我'，触发理智检定"
+      ],
+      "allowedFactChanges": ["selfDiscovered"],
+      "allowedClockChanges": [],
+      "availableClues": [],
+      "suggestedChecks": [
+        { "skill": "心理学", "purpose": "从KPC的神态中判断他是否在说谎。", "onFailure": "KPC的伪装非常到位，你无法确定他的真实想法。" }
+      ],
+      "kpcDialogueGuide": {
+        "whoAreYou": "PC？是PC在说话吗！我实在不知道该怎么感谢您，祭司大人！您教导我主持的仪式一定会顺利进行的。",
+        "amIDead": "很难回答，不过姑且算是。我会想办法让你完全复活的，放心。祭司大人，您辛苦了。",
+        "whyAreYouHere": "因为太激动就直接冲上来了，很抱歉，明天我会更加稳重的。",
+        "explainSituation": "KPC会用含糊的谜语掩饰：'您的灵魂已经回到这具身体里了，接下来只需要完成最后的仪式……'"
+      },
+      "transition": {
+        "to": "priest-procession",
+        "when": { "fact": "selfDiscovered", "equals": true }
+      }
+    },
+    {
+      "id": "priest-procession",
+      "title": "祭司巡行",
+      "location": "本质会教堂 · 集会大厅",
+      "entryNarration": "一个中年男人的声音响起：'尊敬的祭司，我的朋友，想必完成仪式消耗了您巨大的心力，请享用餐食。'\n\n他端着托盘从门外进入大厅，戴着反光的面具，手持盛放面包和玉米浓汤的托盘，躬身举至你面前。信众们又交头接耳起来。你隐约听到'罗德岛教区''视察员'之类的词。\n\n'那么，为了明天正式的复活仪式，我现在就带KPC大人继续练习了。您如果还感到疲惫的话，请千万不要勉强，上楼休息一下吧。'\n\n除了你和KPC之外，所有人都以惊人的整齐度一同欠身。而后大部分人向门外走去，只有几个人留下打扫。\n\n'那么……晚上见，祭司大人。'KPC也向你告别，转身离去。\n\n你独自留在这座教堂中。一楼有接待室、藏书室、厨房和集会大厅；似乎还有楼梯通向二楼。在明天的仪式之前，你有整个白天的时间自由行动。",
+      "objectives": [
+        "决定是否进食（食物中可能有药物）",
+        "探索一楼各区域，收集信息"
+      ],
+      "allowedFactChanges": ["foodReceived", "f1Explored", "receptionVisited", "libraryVisited", "kitchenVisited", "mainHallExamined", "keyObtained", "secretPassageHintFound"],
+      "allowedClockChanges": ["suspicion"],
+      "availableClues": ["clue-wisdom-poison", "clue-secret-passage", "clue-cult-doctrine"],
+      "suggestedChecks": [
+        { "skill": "聆听", "purpose": "听到教徒们议论'罗德岛教区'和'视察员'。", "onFailure": "嘈杂声中什么也没听清。" },
+        { "skill": "灵感", "purpose": "玉米浓汤喝到碗底时味道有变化，带着苦涩。", "onFailure": "没有注意到异常，但仍然可以选择不吃完。" }
+      ],
+      "explorationGuide": "一楼有四个可探索区域：接待室（莉莉图值班）、藏书室（空无一人）、厨房（泰坦在忙碌）、集会大厅（遗像和棺材）。玩家每次表示要去某个区域时，详细描写该区域。当至少3个区域被探索后，提议前往二楼。",
+      "transition": {
+        "to": "f2-investigation",
+        "when": { "fact": "f1Explored", "equals": true }
+      }
+    },
+    {
+      "id": "f2-investigation",
+      "title": "二楼调查",
+      "location": "本质会教堂 · 二楼",
+      "entryNarration": "你来到二楼，一位蜜色皮肤的黑发女性立刻迎上来。她身姿挺拔，面无表情：'祭司大人不妨在这里休息，KPC今晚会到这里侍奉您的。'她指了指那边的客房就下楼离开了。\n\n二楼走廊延伸开去，你看到几扇紧闭的门：客房、两间囚室、仓库、谈话室，以及通往露天观览台的门。",
+      "objectives": [
+        "探索二楼各房间，发现KPC的日记和关键线索",
+        "了解本质会的真相和KPC的处境",
+        "为今晚与KPC的会面做准备"
+      ],
+      "allowedFactChanges": ["f2Explored", "diaryRead", "cainIdentitySuspected", "secretPassageHintFound"],
+      "allowedClockChanges": ["suspicion"],
+      "availableClues": ["clue-kpc-diary", "clue-cain-identity", "clue-rhodes-rejection", "clue-sample-experiments", "clue-cult-doctrine"],
+      "suggestedChecks": [
+        { "skill": "侦查", "purpose": "在客房床下发现没电的手机。", "onFailure": "仍然可以找到手机，但需要额外时间。" },
+        { "skill": "灵感", "purpose": "客房带给你强烈的熟悉感——这里曾是你的囚室。", "onFailure": "只是觉得有些不安，但说不出原因。" },
+        { "skill": "侦查", "purpose": "在囚室2写字桌抽屉发现上锁的笔记簿。", "onFailure": "找到笔记簿但一时猜不到密码（提示：与调查员个人相关的数字）。" }
+      ],
+      "explorationGuide": "二楼有五个区域：客房（调查员的旧囚室，手机在床下）、囚室1（已死记者的恐怖痕迹，需SAN检定）、囚室2（KPC的房间，日记在写字桌抽屉）、谈话室（索多姆和戈摩尔，罗德岛信件和手记）、观览台（可观察仪式准备，微弱手机信号）。每次探索一个区域时详细描写。当至少3个区域被探索后，提示夜幕降临。",
+      "transition": {
+        "to": "night-kpc-room",
+        "when": { "fact": "f2Explored", "equals": true }
+      }
+    },
+    {
+      "id": "night-kpc-room",
+      "title": "秘教特色",
+      "location": "本质会教堂 · 客房",
+      "entryNarration": "夜色渐浓，你回到了客房。KPC已经在那里等候，用托盘端着两只高脚杯和一些道具，毕恭毕敬。\n\n'今天由我来服侍祭司大人，'他说，'辅助睡眠的白葡萄酒就等到睡前再饮用吧。'\n\n他的眼神中有敬畏、有防备，似乎还有什么想说的——但当下的氛围还不够恰当。",
+      "objectives": [
+        "决定是否饮用葡萄酒（喝则昏睡到仪式前，失去夜间行动机会）",
+        "通过合理的RP和社交检定取得KPC的信任",
+        "获取仓库钥匙"
+      ],
+      "allowedFactChanges": ["kpcTrustEstablished", "kpcAwakened", "warehouseKeyObtained", "wineRefused"],
+      "allowedClockChanges": ["ritualCountdown"],
+      "availableClues": [],
+      "suggestedChecks": [
+        { "skill": "说服", "purpose": "向KPC表明你就是真正的同伴而非祭司（困难难度）。", "onFailure": "KPC露出恐惧与困惑的混合神情，他无法相信你的话。仍可继续尝试其他方式。" },
+        { "skill": "心理学", "purpose": "察觉KPC身上的鞭痕和他被虐待的痕迹。", "onFailure": "KPC掩饰得很好，你没有发现异常。" },
+        { "skill": "灵感", "purpose": "KPC对你充满敬畏与防备，他有话想说但不够信任你。", "onFailure": "你感觉他有所隐瞒，但无法确定。" }
+      ],
+      "trustGuide": {
+        "untrustedKpc": "KPC保持恭敬距离，睡前交出仓库备用钥匙但请求惩罚：'前几天丢失的，仓库的备用钥匙，被我捡到了……因为害怕，所以没有立刻还给祭司大人。'",
+        "trustedKpc": "KPC理解真相后激动不已，交出钥匙并说：'仓库里一定有什么——在知道你还活着之前我不敢冒险……现在没关系了，替我去看看吧。'",
+        "wineWarning": "如果玩家选择喝葡萄酒，KPC会劝说'祭司大人'遵守礼节饮下。饮下后昏睡到第二天仪式前，失去夜间探索机会。不喝则KPC可以'随意'被祭司大人拒绝。"
+      },
+      "transition": {
+        "to": "night-exploration",
+        "when": { "fact": "warehouseKeyObtained", "equals": true }
+      }
+    },
+    {
+      "id": "night-exploration",
+      "title": "黑夜的主人",
+      "location": "本质会教堂 · 夜间",
+      "entryNarration": "你在空荡荡的教堂中游荡。那些疯狂的邪教信徒消失无踪，却又好像暗藏在某个角落窥伺着你。教堂变得空无一人——白天的教徒们不知去了哪里。\n\n你手握仓库钥匙，面前是深夜才能自由探索的教堂。",
+      "objectives": [
+        "探索仓库，发现信号屏蔽仪、武器和毒剂装置",
+        "在集会大厅找到密道入口",
+        "进入密道，决定是否使用毒剂"
+      ],
+      "allowedFactChanges": ["warehouseExplored", "secretPassageFound", "poisonDeviceObtained", "signalJammerDestroyed", "policeAlerted", "nightExplorationStarted"],
+      "allowedClockChanges": ["suspicion"],
+      "availableClues": ["clue-signal-jammer", "clue-poison-weapon", "clue-secret-passage", "clue-underground-dormitory"],
+      "suggestedChecks": [
+        { "skill": "侦查", "purpose": "在仓库杂物堆中发现信号屏蔽仪。", "onFailure": "仍然能发现，但需要更多时间。" },
+        { "skill": "灵感", "purpose": "铁箱的卡槽与本质之钥的尺寸形状非常相似。", "onFailure": "需要额外探索才能发现关联。" },
+        { "skill": "侦查", "purpose": "集会大厅的遗像是歪斜的，取下来后发现背后有门。", "onFailure": "仍然可以发现门，但花费更多时间。" },
+        { "skill": "幸运", "purpose": "通过密道圆形玻璃框看到地下宿舍中安睡的教徒（成功），而非与异形凯恩对视（失败）。", "onFailure": "与克苏鲁之仆役凯恩对视，SAN检定1/1d8。必须立刻决定：使用毒剂消灭一切，或放弃密道路线。" }
+      ],
+      "explorationGuide": "夜间可探索三个关键区域：仓库（信号屏蔽仪、陈列柜武器、铁箱毒剂）、集会大厅（遗像后的密道门）、密道（方形隔板通往地下、圆形玻璃框潜望镜）。如果手机有电且信号屏蔽仪已破坏，观览台可以发短信报警（需幸运检定成功）。",
+      "branches": [
+        {
+          "id": "use-poison-now",
+          "result": "在密道中使用毒剂消灭地下所有人。",
+          "stateChanges": { "poisonUsed": true }
+        },
+        {
+          "id": "retreat-to-wait",
+          "result": "不使用毒剂，回到客房等待天亮。",
+          "stateChanges": {}
+        },
+        {
+          "id": "alert-police",
+          "result": "成功发送报警短信。",
+          "stateChanges": { "policeAlerted": true }
+        }
+      ],
+      "transition": {
+        "to": "ritual-morning",
+        "when": { "fact": "nightExplorationStarted", "equals": true }
+      }
+    },
+    {
+      "id": "ritual-morning",
+      "title": "牺牲精神",
+      "location": "本质会教堂 · 祭坛",
+      "entryNarration": "再醒过来时，貌似已经是举行仪式的时间了。你和KPC整理好仪容，准备前往祭坛。\n\n环形的祭坛上铺设了深红地毯，庄严而妖异。分列站立的教徒们、凯恩与伴随其左右的索多姆和戈摩尔，都在等候你们。\n\n'祭司大人，还有KPC，马上就要到合适的时刻了，要精确地完成仪式才行啊。'凯恩的声音故作轻松，但你能感受到他的不悦。",
+      "objectives": [
+        "决定是否任由KPC进行自我献祭仪式",
+        "如果阻止仪式，准备面对凯恩和教徒"
+      ],
+      "allowedFactChanges": ["ritualInterrupted"],
+      "allowedClockChanges": ["ritualCountdown"],
+      "availableClues": [],
+      "branches": [
+        {
+          "id": "allow-ritual",
+          "result": "任由KPC走向祭坛中央开始献祭祷文。KPC的献祭失败，被当做无价值样本处理，接着就是调查员。进入END2。",
+          "stateChanges": {}
+        },
+        {
+          "id": "interrupt-ritual",
+          "result": "公开阻止仪式进行，引发凯恩的敌意和教徒的困惑。进入战斗场景。",
+          "stateChanges": { "ritualInterrupted": true }
+        }
+      ],
+      "transition": {
+        "to": "final-combat",
+        "when": { "fact": "ritualInterrupted", "equals": true }
+      }
+    },
+    {
+      "id": "final-combat",
+      "title": "党同伐异",
+      "location": "本质会教堂 · 祭坛",
+      "entryNarration": "教徒们茫然不知所措，最终将期待的目光放在了你的身上：'我们都听祭司大人的！'\n\n凯恩的面具下传来低沉的嘶吼，他开始吟诵咒文——试图唤醒全体教徒。索多姆和戈摩尔拔出了武器。\n\n这是最后的战斗。",
+      "objectives": [
+        "在凯恩唤醒全体教徒前击败他",
+        "使索多姆和戈摩尔失去行动能力",
+        "保证自身存活"
+      ],
+      "allowedFactChanges": ["combatVictory"],
+      "allowedClockChanges": ["ritualCountdown"],
+      "availableClues": [],
+      "combatRules": {
+        "objective": "在凯恩施咒唤醒全体教徒前使其死亡，并令索多姆和戈摩尔失去行动能力。",
+        "timeLimit": "通常情况下5回合足够凯恩唤醒教徒。玩家可通过+20的社交技能对教徒进行言语控制（不占回合），使唤醒难度增加1d3回合。",
+        "turnOrder": "按敏捷值决定行动顺序，敏捷相同时调查员优先。",
+        "enemies": [
+          { "name": "凯恩", "role": "邪教巫师", "dex": 50, "hp": 15, "deathThreshold": 0, "mp": 15, "behavior": "不攻击，持续施咒直至唤醒全体教徒。死亡时仪式中断。" },
+          { "name": "索多姆", "role": "治愈术师", "dex": 65, "hp": 11, "incapThreshold": 4, "mp": 12, "skills": { "医术": 70 }, "behavior": "每回合用1d3决定治愈对象，提供1d3治愈量。特殊技能'庇护30'：医术成功后检定，成功则使目标免疫一回合伤害。" },
+          { "name": "戈摩尔", "role": "魔剑士", "dex": 55, "hp": 13, "incapThreshold": 2, "mp": 9, "skills": { "剑术": 70 }, "behavior": "每回合用1d3决定攻击对象，短剑杖伤害1d3+1。特殊技能'附魔30'：剑术成功后检定，成功则消耗3MP使伤害+1d3。" },
+          { "name": "教徒群体", "role": "乌合之众", "behavior": "在回合末行动，投掷60，伤害1d3。被凯恩唤醒前为调查员效力但攻击对象由1d3随机决定。唤醒后立刻压制调查员，战斗结束。" }
+        ]
+      },
+      "transition": {
+        "to": null,
+        "when": { "fact": "combatVictory", "equals": true }
+      }
+    }
+  ],
+  "endings": [
+    {
+      "id": "end-ultimate-evil",
+      "priority": 110,
+      "label": "END1 · 终极邪恶的胜利",
+      "conditions": { "fact": "poisonUsed", "equals": true },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "毒剂在地下宿舍中迅速扩散。人类其实非常脆弱，他们就这样溃烂、化脓。苏醒的家伙反而更加可怜，生生承受着肉体的痛苦。\n\n做完了这一切之后，你回到客房——KPC沉睡的地方。你也躺在那张窄小的木床上，获得了无与伦比的安全感。不用考虑自己正枕在众多尸骨之上，因为大恶是不需要细想的。\n\n白昼再度降临时，你们轻松逃离了这里。没有人群的地方，也没有真正的难题。",
+        "rewardNote": "SAN+1d6 / 意志+3 / 任一社交技能+5 / 克苏鲁神话+1"
+      }
+    },
+    {
+      "id": "end-modern-technology",
+      "priority": 100,
+      "label": "END3 · 现代科技的胜利",
+      "conditions": {
+        "all": [
+          { "fact": "combatVictory", "equals": false },
+          { "fact": "policeAlerted", "equals": true },
+          { "fact": "poisonUsed", "equals": false }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "就在你感到撑不下去的时候，一群身着制服的人突然闯进了集会大厅。失去意识前，你听到了'该死的条子''神秘事件专组'等只言片语。\n\n再次醒来时，你躺在医院的病房里。旁边的床上躺着已经苏醒的KPC，正用平板电脑看电影。\n\n成为邪教祭司的经历就像是一场梦。小命重要，你再也不想体验了。",
+        "rewardNote": "SAN+1d6 / 任一社交技能+3 / 克苏鲁神话+1"
+      }
+    },
+    {
+      "id": "end-fortune-goddess",
+      "priority": 90,
+      "label": "END4 · 幸运女神的胜利",
+      "conditions": { "fact": "combatVictory", "equals": true },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "在一般教徒亚当的眼中，这无疑是激动人心的一战！伟大的祭司大人率领大家打败了讨厌的外来者和两个傲慢的叛徒！\n\n虽然不知道为何仪式必须中止，但其他教徒的想法也和亚当差不多。你继续享受着大家的崇拜，在阳光明媚的下午打点好一切，带着KPC'去别的教区拜访'。教徒们为你们打开大门，依依不舍地告别。\n\n到达安全的地方后你们立刻报了警，随后回归了真正的日常。",
+        "rewardNote": "SAN+2+2d5 / 意志+1 / 任一社交技能+10 / 克苏鲁神话+1"
+      }
+    },
+    {
+      "id": "end-anti-intellectualism",
+      "priority": 120,
+      "label": "END2 · 反智主义的胜利",
+      "conditions": {
+        "clock": "suspicion",
+        "atLeast": 5
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "你是虚假的祭司——认识到这一点的乌合之众将你吞噬。\n\n治安部门提醒您：注意人身安全，警惕邪教诱骗！",
+        "rewardNote": "LOST"
+      }
+    }
+  ],
+  "directorOutputContract": {
+    "format": "json",
+    "requiredFields": ["narration", "requestedRolls", "revealedClueIds", "proposedStateChanges", "proposedTransition", "pacing"],
+    "rules": [
+      "只叙述当前场景允许出现的信息，不得泄露directorSecrets中的内容。",
+      "不得替玩家决定行动、思想、感情或最终选择。",
+      "不得直接修改状态；所有变化都只是提议，由服务端校验后提交。",
+      "关键线索检定失败时必须以增加代价的方式继续推进，不得永久封锁线索。",
+      "不得自行宣布章节或整局游戏结束。",
+      "描述NPC时使用其性格特征和说话方式，保持一致性。",
+      "当场景包含多个可探索区域时，每次只详细描写玩家选择的那个区域，结尾处列出其他可选方向。",
+      "幻觉描述只呈现PC认知层能感知到的内容，不得主动解释'这是幻觉'。",
+      "KPC的对话必须反映他当前的信任状态：未被唤醒时恭敬顺从，被唤醒后真诚关切。"
+    ]
+  }
+}
