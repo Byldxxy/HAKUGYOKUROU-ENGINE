@@ -59,7 +59,14 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await api('/login',null,{username:'tester_a',password:'incorrect'})).status,401);
   assert.equal((await api('/login',null,{username:'tester_a',password:'test-password-123'})).status,200);
   assert.equal((await api('/me',a.cookie)).data.username,'tester_a');
-  const ca=(await api('/characters',a.cookie,{cardData:draft('调查员甲')})).data.card;
+  const imageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNwVzD5DwAC6AGbFNrbLAAAAABJRU5ErkJggg==';
+  const avatar = 'data:image/png;base64,' + imageBase64;
+  const ca=(await api('/characters',a.cookie,{cardData:{...draft('调查员甲'), avatar}})).data.card;
+  assert.equal(ca.fullData.avatar, avatar);
+  const edited = await api('/characters',a.cookie,{cardData:{...draft('调查员甲'), id:ca.id}});
+  assert.equal(edited.data.card.fullData.avatar, avatar, 'older editors preserve the portrait');
+  const invalid = await api('/characters',a.cookie,{cardData:{...draft('调查员甲'), id:ca.id, avatar:'data:image/png;base64,AA=='}});
+  assert.equal(invalid.status,400);
   const cb=(await api('/characters',b.cookie,{cardData:draft('调查员乙')})).data.card;
   assert.ok(ca?.id); assert.ok(cb?.id);
   // Previously persisted cards can retain surrounding whitespace in both display fields.
@@ -80,6 +87,14 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await send(sa,'join_lobby',{roomId,characterInfo:{id:ca.id}})).success,true);
   assert.equal((await send(sb,'join_lobby',{roomId,characterInfo:{id:ca.id}})).reason,'invalid_character');
   assert.equal((await send(sb,'join_lobby',{roomId,characterInfo:{}})).success,true);
+  const portraitPath = sa.lobby.players.find(p => p.characterId === ca.id).avatarPath;
+  assert.ok(portraitPath && !JSON.stringify(sa.lobby).includes(imageBase64));
+  const getPortrait = cookie => fetch('http://127.0.0.1:' + port + portraitPath, {headers:cookie ? {cookie} : {}});
+  const portrait = await getPortrait(b.cookie);
+  assert.equal(portrait.headers.get('content-type'), 'image/png');
+  assert.equal(Buffer.from(await portrait.arrayBuffer()).toString('base64'),imageBase64);
+  assert.equal((await getPortrait(x.cookie)).status,403);
+  assert.equal((await getPortrait()).status,401);
   const incomingChat = once(sa, 'lobby_chat_receive');
   await send(sb, 'lobby_chat_send', { roomId, msg: { text: '回归闲聊', sender: '冒名' } });
   const [chat] = await incomingChat;

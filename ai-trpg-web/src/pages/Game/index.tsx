@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import './Game.css';
 import HostApiPanel from '../../components/HostApiPanel';
 import RelationGraph, { type GraphNode, type GraphEdge } from '../../components/RelationGraph';
-import { apiFetch } from '../../config';
+import { apiFetch, apiUrl } from '../../config';
 import type { Character, PublicPlayer, Message, GameCharacter } from '../../domain/types';
 import { socketRequest, socketErrorMessage, ensureSocketConnected, socket } from '../../socket';
 import {
@@ -299,7 +299,7 @@ export default function Game() {
             }
 
             setMyCharacter({
-              id: targetChar.id,
+              id: targetChar.id, avatar: full.avatar,
               name: full.basicInfo.name,
               role: full.basicInfo.occupation || '未知职业',
               appearance: full.bgInfo?.description || '这个调查员很神秘，没有留下任何外貌描述。',
@@ -328,7 +328,7 @@ export default function Game() {
       setIsOwner(data.ownerId === socket.id);
       const selfId = localStorage.getItem('trpg_current_char_id');
       setTeammates(data.players.filter(p => p.characterId !== selfId).map(p => ({
-        id: p.characterId || p.name, name: p.name, role: p.role, appearance: '', skills: {},
+        id: p.characterId || p.name, avatar: p.avatarPath ? apiUrl(p.avatarPath) : undefined, name: p.name, role: p.role, appearance: '', skills: {},
         hp: { current: p.hp, max: p.hpMax }, san: { current: p.san, max: p.sanMax }, mp: { current: p.mp, max: p.mpMax },
       })));
       const self = data.players.find(p => p.characterId === selfId);
@@ -360,6 +360,7 @@ export default function Game() {
       return (
         <>
           <h3 className="modal-title">{myCharacter.name} - 完整角色卡</h3>
+          {myCharacter.avatar && <img className="card-portrait" src={myCharacter.avatar} alt={myCharacter.name + '的头像'} />}
           <p className="modal-desc"><strong>职业：</strong>{myCharacter.role}</p>
           <p className="modal-desc"><strong>外貌：</strong>{myCharacter.appearance}</p>
           <div className="stat-divider"></div>
@@ -376,6 +377,7 @@ export default function Game() {
       if (mate) return (
         <>
           <h3 className="modal-title">队友观察：{mate.name}</h3>
+          {mate.avatar && <img className="card-portrait" src={mate.avatar} alt={mate.name + '的头像'} />}
           <p className="modal-desc"><strong>表观职业：</strong>{mate.role}</p>
           <p className="modal-desc"><strong>外貌描述：</strong>{mate.appearance}</p>
           <p className="modal-warning">※ 你无法查看对方的具体技能点数。</p>
@@ -469,7 +471,8 @@ export default function Game() {
               onClick={() => setActiveCard('self')}
               title="点击查看完整角色卡"
             >
-              <span>{myCharacter.name}</span>
+              {myCharacter.avatar && <img src={myCharacter.avatar} alt="" className="game-portrait" />}
+              <span className={myCharacter.avatar ? 'portrait-name' : undefined}>{myCharacter.name}</span>
             </div>
             <div className="stats-board">
               <div className="stat-item">

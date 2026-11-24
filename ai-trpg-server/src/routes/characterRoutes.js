@@ -9,6 +9,19 @@ router.get('/', (req, res) => {
   res.json({ success: true, cards: characterRepository.listByUsername(req.user.username) });
 });
 
+// Only selected party members can fetch each other's portrait.
+router.get('/:id/avatar', (req, res) => {
+  const { roomId } = req.query;
+  if (typeof roomId !== 'string' || !require('../domain/validation').isValidRoomId(roomId)) return res.sendStatus(400);
+  const members = require('../repositories/roomRepository').get(roomId)?.members || [];
+  if (!members.some(member => member.accountName === req.user.username)) return res.sendStatus(403);
+  const target = members.find(member => member.characterId === req.params.id);
+  const card = target && characterRepository.listByUsername(target.accountName).find(item => item.id === target.characterId);
+  const bytes = card?.avatarRevision && require('../domain/portrait').decodePortrait(card.fullData.avatar);
+  if (!bytes) return res.sendStatus(404);
+  res.set('Cache-Control', 'private, no-cache').set('X-Content-Type-Options', 'nosniff').type('png').send(bytes);
+});
+
 // SECTION: 保存角色卡
 // NOTE: 同一个接口同时处理新建和编辑，是否更新由 cardData.id 判断。
 router.post('/', (req, res, next) => {

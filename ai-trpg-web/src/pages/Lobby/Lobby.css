@@ -301,3 +301,5 @@
   .character-empty-state { align-items: stretch; flex-direction: column; }
   .player-item { align-items: flex-start; gap: 8px; flex-direction: column; }
 }
+
+.player-portrait { width: 32px; height: 32px; object-fit: cover; border-radius: var(--radius-control); }

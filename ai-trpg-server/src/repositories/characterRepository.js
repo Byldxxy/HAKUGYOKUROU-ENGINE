@@ -1,3 +1,4 @@
+const { decodePortrait } = require('../domain/portrait');
 const config = require('../config');
 const crypto = require('crypto');
 const { readJson, writeJson } = require('../storage/jsonFile');
@@ -51,11 +52,26 @@ const saveForUsername = (username, cardData) => {
 
   const existingIndex = db[username].findIndex((card) => card.id === cardData.id);
 
+  // Older clients omit the portrait when editing an existing sheet.
+  if (existingIndex !== -1 && !Object.hasOwn(cardData, 'avatar')) {
+    cardData.avatar = db[username][existingIndex].fullData.avatar ?? null;
+  }
+  let avatarRevision = null;
+  if (cardData.avatar != null) {
+    const bytes = decodePortrait(cardData.avatar);
+    if (!bytes) {
+      const error = new Error('头像数据无效，请重新选择图片。');
+      error.statusCode = 400;
+      throw error;
+    }
+    avatarRevision = crypto.createHash('sha256').update(bytes).digest('hex');
+  }
   if (existingIndex !== -1) {
     const id = db[username][existingIndex].id;
     db[username][existingIndex] = {
       ...db[username][existingIndex],
       ...deriveCharacterSummary(cardData, id),
+      avatarRevision,
     };
     writeCharacters(db);
     return { card: db[username][existingIndex], created: false };
@@ -65,7 +81,7 @@ const saveForUsername = (username, cardData) => {
     const error = new Error('角色卡不存在或不属于当前账号。'); error.statusCode = 404; throw error;
   }
   const id = `char_${crypto.randomUUID()}`;
-  const newCard = deriveCharacterSummary(cardData, id);
+  const newCard = { ...deriveCharacterSummary(cardData, id), avatarRevision };
   db[username].push(newCard);
   writeCharacters(db);
   return { card: newCard, created: true };

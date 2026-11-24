@@ -1,3 +1,4 @@
+import { preparePortrait } from '../../domain/portrait';
 import { useState, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../../config';
@@ -472,8 +473,9 @@ export default function CreateCharacter() {
   });
 
   // SECTION: 头像上传状态
-  // NOTE: 头像目前只在本页预览，尚未进入持久化数据结构。
-  const [avatar, setAvatar] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState<string | null>(editData?.fullData?.avatar ?? null);
+  const [processingAvatar, setProcessingAvatar] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // SECTION: 属性生成模式
@@ -743,15 +745,14 @@ export default function CreateCharacter() {
     setActiveTab('skills');
   };
 
-  // SECTION: 头像预览上传
-  // NOTE: FileReader 转 base64 只供本地预览；后续若持久化应改为对象存储或后端上传。
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setAvatar(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = '';
+    if (!file) return;
+    setProcessingAvatar(true);
+    try { setAvatar(await preparePortrait(file)); }
+    catch (error) { alert((error as Error).message); }
+    finally { setProcessingAvatar(false); }
   };
 
   // SECTION: 随机生成属性
@@ -773,6 +774,7 @@ export default function CreateCharacter() {
   // SECTION: 保存角色卡
   // NOTE: 保存前做最小完整性校验；更复杂的房规校验后续可集中到后端。
   const handleSave = async () => {
+    if (processingAvatar || saving) return;
     if (!basicInfo.name.trim() || Object.values(stats).some(value => !Number.isInteger(value) || value < 1 || value > 99)) return alert('请至少填写姓名并检定核心属性！');
     if (statMode === 'buy' && remainStatPoints < 0) return alert('基础属性购点已超过房规上限！');
     if (remainJob < 0 || remainInt < 0) return alert('技能点数已透支，请检查加点！');
@@ -800,10 +802,11 @@ export default function CreateCharacter() {
       grow: getSkillGrowth(skill),
     }));
     const finalCharacterData = { 
-      id: editData?.id, 
+      id: editData?.id, avatar,
       basicInfo, stats, skills: skillsWithCalculatedGrowth, bgInfo, occupationSkillChoices, statMode, buyLimit
     };
 
+    setSaving(true);
     try {
       const response = await apiFetch('/api/characters', {
         method: 'POST',
@@ -823,7 +826,7 @@ export default function CreateCharacter() {
     } catch (error) {
       console.error('API 请求报错:', error);
       alert('网络连接断开，无法访问星舰服务器！');
-    }
+    } finally { setSaving(false); }
   };
 
   return (
@@ -845,7 +848,7 @@ export default function CreateCharacter() {
             </div>
           </div>
           <div className="sidebar-bottom">
-            <button className="flat-btn primary" onClick={handleSave}>💾 录入数据库</button>
+            <button className="flat-btn primary" onClick={handleSave} disabled={processingAvatar || saving}>💾 录入数据库</button>
             <button className="flat-btn secondary" onClick={() => navigate(-1)}>放弃并返回</button>
           </div>
         </div>
@@ -856,10 +859,12 @@ export default function CreateCharacter() {
               {/* NOTE: 姓名是游戏内唯一展示名，也是 ROLL 指令匹配的目标名。 */}
               <h3 className="section-title">调查员身份录入</h3>
               <div className="basic-identity-layout">
-                <div className="avatar-upload-box" onClick={() => fileInputRef.current?.click()}>
-                  <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleAvatarUpload} />
-                  {avatar ? <img src={avatar} alt="Avatar" className="avatar-preview" /> : <div className="upload-placeholder"><span>+</span><p>上传立绘照片</p></div>}
-                </div>
+                <input type="file" ref={fileInputRef} hidden accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleAvatarUpload} />
+                <button type="button" className="avatar-upload-box" disabled={processingAvatar || saving}
+                  aria-label={avatar ? '更换角色头像' : '上传角色头像'} onClick={() => fileInputRef.current?.click()}>
+                  {processingAvatar ? '正在处理图片…' : avatar ? <img src={avatar} alt="角色头像预览" className="avatar-preview" /> :
+                    <span className="upload-placeholder"><span>+</span>上传立绘照片</span>}
+                </button>
                 <div className="basic-identity-fields">
                   <div className="form-row">
                     <div className="form-item"><label>姓名</label><input type="text" className="flat-input" value={basicInfo.name} onChange={e=>setBasicInfo({...basicInfo, name: e.target.value})} /></div>

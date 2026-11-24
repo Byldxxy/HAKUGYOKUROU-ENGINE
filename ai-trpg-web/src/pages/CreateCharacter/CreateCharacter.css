@@ -167,6 +167,7 @@
 }
 
 .basic-page .avatar-upload-box {
+  padding: 0;
   width: 200px;
   height: 100%;
 }
@@ -466,8 +467,9 @@ textarea.flat-input {
 
 
 /* SECTION: 头像上传区域 */
-/* NOTE: 目前只做本地预览，不参与保存。 */
+
 .avatar-upload-box {
+  padding: 0;
   width: 200px;
   height: 280px;
   border: 2px dashed #A0858D;

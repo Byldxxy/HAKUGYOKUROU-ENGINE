@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } fr
 import { useNavigate, useParams } from 'react-router-dom';
 import './Lobby.css';
 import HostApiPanel from '../../components/HostApiPanel';
-import { apiFetch } from '../../config';
+import { apiFetch, apiUrl } from '../../config';
 import type { Character, PublicPlayer, Save, LobbyMessage } from '../../domain/types';
 import { socketRequest, socketErrorMessage, ensureSocketConnected, socket } from '../../socket';
 import StyledSelect from '../../components/StyledSelect';
@@ -429,6 +429,7 @@ function RoomLobby({ roomId }: { roomId?: string }) {
               <li key={`${player.characterName || player.name}-${player.id}`} className="player-item">
                 <div className="player-info">
                   <span className={`status-dot ${(player.id && player.characterId) ? 'ready' : 'unready'}`}></span>
+                  {player.avatarPath && <img className="player-portrait" src={apiUrl(player.avatarPath)} alt={player.name + '的头像'} />}
                   <span className="player-name">
                     {player.characterName || player.name || '未命名调查员'}
                     {player.name === roomOwnerName ? ' 👑 (房主)' : ' 👥'}

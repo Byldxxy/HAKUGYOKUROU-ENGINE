@@ -18,7 +18,7 @@ const liveRooms = new Map();
 const ownedCharacter = (username, id) => characters.listByUsername(username).find((card) => card.id === id);
 const playerFrom = (username, card, id = null) => ({
   id, accountName: username, characterId: card?.id || null, name: card?.name || username,
-  characterName: card?.name || null, role: card?.role || '无角色卡',
+  avatarRevision: card?.avatarRevision, characterName: card?.name || null, role: card?.role || '无角色卡',
   hp: card?.hp ?? '-', san: card?.san ?? '-', mp: card?.mp ?? '-', fullData: card || null,
 });
 const loadRoom = (id) => {
@@ -86,8 +86,10 @@ const emitState = (io, room) => {
   const owner = room.players.find((player) => player.accountName === room.ownerAccount);
   io.to(room.id).emit('lobby_update', {
     ownerName: owner?.name || room.ownerAccount, ownerId: owner?.id, roomConfig: room.config, started: room.started,
-    players: room.players.map(({ id, name, characterId, characterName, role, hp, san, mp, hpMax, sanMax, mpMax }) =>
-      ({ id, name, characterId, characterName, role, hp, san, mp, hpMax: hpMax ?? hp, sanMax: sanMax ?? san, mpMax: mpMax ?? mp })),
+    players: room.players.map(({ id, name, characterId, characterName, avatarRevision, role, hp, san, mp, hpMax, sanMax, mpMax }) =>
+      ({ id, name, characterId, characterName, role, hp, san, mp,
+        avatarPath: avatarRevision ? `/api/characters/${encodeURIComponent(characterId)}/avatar?roomId=${room.id}&v=${avatarRevision}` : undefined,
+        hpMax: hpMax ?? hp, sanMax: sanMax ?? san, mpMax: mpMax ?? mp })),
   });
   if (room.campaign) {
     io.to(room.id).emit('campaign_state', campaignService.getPublicCampaign(room.campaign));

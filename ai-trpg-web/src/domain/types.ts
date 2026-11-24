@@ -1,6 +1,7 @@
 export type Skill = { id: string; name: string; base: number; job: number; interest: number; grow: number };
 export type CharacterData = {
   id?: string;
+  avatar?: string | null;
   basicInfo: Record<string, string>;
   stats: Record<string, number>;
   skills: Skill[];
@@ -10,6 +11,7 @@ export type CharacterData = {
 };
 export type Character = { id: string; name: string; role: string; hp: number; san: number; mp: number; fullData: CharacterData };
 export type PublicPlayer = {
+  avatarPath?: string;
   id: string | null; name: string; characterId: string | null; characterName: string | null;
   role: string; hp: number; san: number; mp: number; hpMax: number; sanMax: number; mpMax: number;
 };
@@ -17,6 +19,7 @@ export type Message = { role: string; sender: string; content: string; rollId?: 
 export type LobbyMessage = { id: number; sender: string; text: string; isSystem: boolean };
 export type Save = { id: string; name: string; date: string };
 export type GameCharacter = {
+  avatar?: string | null;
   id: string; name: string; role: string; appearance: string;
   hp: { current: number; max: number }; san: { current: number; max: number }; mp: { current: number; max: number };
   skills: Record<string, number>;
