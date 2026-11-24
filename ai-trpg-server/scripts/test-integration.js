@@ -22,6 +22,14 @@ const mock = http.createServer(async (req, res) => {
   if (aiCalls <= 2) content.memoryChanges = [{ kind: 'item', id: 'folded-letter', label: '信封',
     holder: 'npc-kpc', witnesses: ['调查员甲', 'npc-kpc'], evidence: 'KPC收好信封。' }];
   const ctx = JSON.parse(JSON.parse(body).messages[1].content.split('\n').slice(1).join('\n'));
+  if (aiCalls <= 2) {
+    const giver = ctx.actorDirectory.find(actor => actor.name === '调查员甲').id;
+    const compass = ctx.itemDirectory.find(item => item.name === '罗盘' && item.holder === giver);
+    assert.ok(compass);
+    content.narration = '乙接过甲的罗盘。' + content.narration;
+    content.memoryChanges.push({ kind:'item', id:compass.id, label:'罗盘', holder:'调查员乙',
+      witnesses:['调查员甲','调查员乙'], evidence:'乙接过甲的罗盘。' });
+  }
   assert.equal(ctx.recalledMemory.some(e => e.id === 'folded-letter'), aiCalls > 2);
   res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }));
 });
@@ -43,12 +51,14 @@ const connect = async cookie => {
   const socket = io(`http://127.0.0.1:${port}`, { extraHeaders: { cookie }, transports: ['websocket'], reconnection: false });
   sockets.push(socket);
   await Promise.race([once(socket, 'connect'), delay(3000).then(() => { throw new Error('socket timeout'); })]);
+  socket.on('campaign_state', data => socket.items = data.inventory);
+  socket.on('room_snapshot', data => socket.snapshotItems = data.campaign?.inventory);
   socket.on('turn_state', data => socket.turn = data); socket.on('lobby_update', data => socket.lobby = data); return socket;
 };
 const send = (socket, event, payload) => new Promise((resolve, reject) => socket.timeout(4000).emit(event, payload, (error, ack) => error ? reject(error) : resolve(ack)));
 const wait = async (predicate, label) => { for(let i=0;i<150;i++) { if(predicate()) return; await delay(20); } throw new Error('Timed out: '+label); };
 const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,con:50,siz:50,dex:50,app:50,int:50,pow:50,edu:50,luc:50 },
-  statMode:'buy', bgInfo:{}, skills:[{id:'spot',name:'侦查',base:25,job:25,interest:0,grow:0},{id:'gun',name:'射击:手枪',base:20,job:0,interest:10,grow:0}] });
+  statMode:'buy', bgInfo:{carriedItems:'罗盘', treasuredItem:name === '调查员甲' ? '怀表' : '书签'}, skills:[{id:'spot',name:'侦查',base:25,job:25,interest:0,grow:0},{id:'gun',name:'射击:手枪',base:20,job:0,interest:10,grow:0}] });
 (async () => {
   mock.listen(0,'127.0.0.1'); await once(mock,'listening');
   const probe=http.createServer(); probe.listen(0,'127.0.0.1'); await once(probe,'listening'); port=probe.address().port; await new Promise(resolve=>probe.close(resolve));
@@ -133,6 +143,11 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await send(sa,'player_action',{roomId,message:'再次行动。'})).reason,'turn_locked');
   assert.equal((await send(sb,'player_action',{roomId,message:'我警戒。'})).success,true);
   await wait(()=>sa.turn?.mode==='waiting_rolls','two roll requests');
+  const cardItem = name => ({ group:'card', name });
+  const afterTransfer = [cardItem('罗盘'), cardItem('书签'), {group:'story', name:'罗盘'}];
+  assert.deepEqual(sa.snapshotItems,[cardItem('罗盘'),cardItem('怀表')]);
+  assert.deepEqual(sa.items,sa.snapshotItems);
+  assert.deepEqual(sb.items,[cardItem('罗盘'),cardItem('书签')]);
   assert.equal(sa.turn.pendingRolls.length,2);
   assert.equal(sa.turn.pendingRolls.find(r => r.player === '调查员甲').characterId, ca.id);
   assert.equal(sa.lobby.players.find(p=>p.characterId===ca.id).hp,10,'pending rolls must not apply damage');
@@ -144,6 +159,9 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await send(sb,'player_action',{roomId,isRoll:true,rollId:rb})).success,true);
   await wait(()=>sa.turn?.mode==='waiting_players' && sa.lobby.players.find(p=>p.characterId===ca.id).hp===8,'settlement');
   const history=(await api('/room_history?roomId='+roomId,a.cookie)).data;
+  assert.deepEqual(history.campaign.inventory, [cardItem('怀表')]);
+  assert.deepEqual(sa.items,history.campaign.inventory);
+  assert.deepEqual(new Set(sb.items), new Set(afterTransfer));
   assert.ok(history.messages.some(m => m.role === 'dm' && m.content.includes('主持继续叙述。')));
   assert.ok(history.messages.every(m => !m.content.includes('你现在可以')));
   const written = fs.readFileSync(path.join(dataDir, 'logs', 'room_' + roomId + '.jsonl'), 'utf8');
@@ -172,6 +190,7 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   await send(sb,'join_lobby',{roomId:second,characterInfo:{id:cb.id}});
   assert.equal((await send(sa2,'host_start_game',{roomId:second,loadSaveId:save.id})).success,true);
   await wait(()=>sa2.lobby.players.find(p=>p.characterId===ca.id).hp===6,'save HP');
+  assert.deepEqual(sa2.items, [cardItem('怀表')]);
   const restoredCampaign = fs.readFileSync(path.join(dataDir, 'logs', 'room_' + second + '.jsonl'), 'utf8')
     .trim().split('\n').map(line => JSON.parse(line)).filter(line => line.type === 'campaign_state').at(-1).campaign;
   assert.equal(restoredCampaign.memory.find(e => e.id === 'folded-letter').state.holder, 'npc-kpc');
@@ -187,6 +206,7 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   for(const socket of sockets) socket.disconnect(); await stop(); await start();
   const restored=await connect(a.cookie);
   assert.equal((await send(restored,'join_room',second)).success,true);
+  assert.deepEqual(restored.snapshotItems,[cardItem('怀表')]);
   assert.equal(restored.lobby.players.find(p=>p.characterId===ca.id).hp,6,'restart HP');
   assert.equal((await api('/room_history?roomId='+second,x.cookie)).status,403);
   assert.equal((await send(restored,'player_action',null)).success,false);

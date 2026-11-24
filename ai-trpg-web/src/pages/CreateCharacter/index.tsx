@@ -48,7 +48,7 @@ const statDescriptions: Record<string, string> = {
 // NOTE: 背景字段直接持久化进 fullData，游戏页目前只读取基础/技能/资源。
 const emptyBgInfo = {
   description: '', belief: '', importantPerson: '', meaningfulPlace: '',
-  treasuredItem: '', traits: '', scars: '', phobias: '', history: '', credit: '', wealth: ''
+  carriedItems: '', treasuredItem: '', traits: '', scars: '', phobias: '', history: '', credit: '', wealth: ''
 };
 
 // SECTION: 职业点数公式解析
@@ -1192,6 +1192,8 @@ export default function CreateCharacter() {
                   <div className="form-item"><label>信用评级</label><input type="text" className="flat-input" value={bgInfo.credit} onChange={e=>setBgInfo({...bgInfo, credit: e.target.value})} placeholder="例如：45" /></div>
                   <div className="form-item"><label>现金与资产</label><input type="text" className="flat-input" value={bgInfo.wealth} onChange={e=>setBgInfo({...bgInfo, wealth: e.target.value})} placeholder="例如：$500" /></div>
                 </div>
+                <div className="form-item"><label htmlFor="carried-items">随身物品</label><textarea id="carried-items" className="flat-input" value={bgInfo.carriedItems} onChange={e=>setBgInfo({...bgInfo, carriedItems: e.target.value})} placeholder="每行一件，例如：手电筒" /></div>
+                <div className="form-item"><label htmlFor="treasured-item">珍视之物</label><input id="treasured-item" className="flat-input" value={bgInfo.treasuredItem} onChange={e=>setBgInfo({...bgInfo, treasuredItem: e.target.value})} /></div>
                 <div className="form-item"><label>调查员经历与模组记录</label><textarea className="flat-input" style={{ minHeight: '180px' }} value={bgInfo.history} onChange={e=>setBgInfo({...bgInfo, history: e.target.value})} placeholder="例如：经历模组【桃花岛】，-5 SAN，+3 侦查..."></textarea></div>
               </div>
             </div>

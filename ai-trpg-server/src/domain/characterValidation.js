@@ -23,6 +23,12 @@ const normalizeCharacter = (data) => {
   if (!data || typeof data !== 'object' || Array.isArray(data)) fail('角色卡格式无效。');
   const name = String(data.basicInfo?.name || '').trim();
   if (!name || name.length > 40 || /[<>:\r\n]/.test(name)) fail('角色姓名需为 1–40 字，不能包含尖括号、冒号或换行。');
+  if (data.bgInfo?.carriedItems != null) {
+    const gear = data.bgInfo.carriedItems;
+    if (typeof gear !== 'string') fail('随身物品须按行填写。');
+    const names = gear.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    if (names.length > 40 || names.some(label => label.length > 60)) fail('随身物品最多 40 行，每件名称最多 60 字。');
+  }
   const stats = {};
   for (const key of ['str', 'con', 'siz', 'dex', 'app', 'int', 'pow', 'edu', 'luc']) {
     const value = data.stats?.[key];

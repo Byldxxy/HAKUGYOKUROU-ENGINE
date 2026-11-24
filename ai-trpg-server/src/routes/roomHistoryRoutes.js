@@ -17,7 +17,7 @@ router.get('/', (req, res) => {
   res.json({
     success: true,
     messages: roomLogRepository.listRoomMessages(roomId),
-    campaign: campaign ? campaignService.getPublicCampaign(campaign) : null,
+    campaign: campaign ? campaignService.getPublicCampaign(campaign, req.user.username) : null,
   });
 });
 

@@ -1,3 +1,5 @@
+const { createHash } = require('node:crypto');
+
 // One current world state per entity. Each observer keeps the last version they actually learned.
 const short = (value, max) => typeof value === 'string' && value.trim().length <= max ? value.trim() : '';
 const kinds = new Set(['item', 'promise', 'information']);
@@ -25,6 +27,48 @@ function seed(campaign, scenario) {
     state: { holder: 'party' }, scene: campaign.currentSceneId, createdRound: 0, round: 0,
     evidence: '存档队伍物品栏', observers: [],
   }));
+}
+
+// Snapshot starting possessions once per character and campaign, including older saves.
+function importCardItems(campaign, player) {
+  const member = campaign.partyStats?.[player.accountName];
+  const data = player.fullData?.fullData || player.fullData;
+  if (!data || !member || member.cardItemsImported) return false;
+  const holder = 'pc:' + player.characterId;
+  const bg = data.bgInfo || {};
+  const lines = value => typeof value === 'string' ? value.split(/\r?\n/).map(v => v.trim()).filter(Boolean) : [];
+  const carried = lines(bg.carriedItems);
+  const treasures = lines(bg.treasuredItem).filter(label => !carried.includes(label));
+  const counts = new Map();
+  for (const label of [...carried, ...treasures]) {
+    const copy = (counts.get(label) || 0) + 1;
+    counts.set(label, copy);
+    const id = 'gear-' + createHash('sha256').update(JSON.stringify([holder, label, copy])).digest('hex').slice(0, 24);
+    // An older save may already track this possession under a narrative ID.
+    const previous = campaign.memory.find(e => e.kind === 'item' && e.label === label && !e.cardOwner &&
+      (e.state.holder === holder || e.observers.some(o => o.state.holder === holder)));
+    if (previous) { previous.cardOwner = holder; continue; }
+    const state = { holder };
+    const version = { state, round: 0, scene: campaign.currentSceneId, evidence: '角色卡随身物品' };
+    campaign.memory.push({ kind: 'item', id, label, cardOwner: holder, createdRound: 0,
+      ...version, observers: [{ who: holder, ...version }] });
+    campaign.inventory.push(id);
+  }
+  member.cardItemsImported = true;
+  return true;
+}
+
+function notebookItems(campaign, scenario, characterId) {
+  if (!characterId) return [];
+  const holder = 'pc:' + characterId;
+  return campaign.memory.filter(e => e.kind === 'item' && [holder, 'party'].includes(e.state.holder))
+    .map(e => {
+      const definition = scenario.items?.find(item => item.id === e.id);
+      const knownName = e.cardOwner || !definition || e.evidence?.includes(e.label);
+      const name = definition?.publicName || (knownName && e.label) || definition?.publicDescription || '未辨明的物品';
+      const group = e.state.holder === 'party' ? 'shared' : e.cardOwner === holder ? 'card' : 'story';
+      return { name, group };
+    });
 }
 
 function readState(change, actors) {
@@ -62,11 +106,18 @@ function apply(campaign, scenario, changes, narration) {
     if (!label || !evidence) continue;
     let id = short(change.id, 80);
     if (!/^[\p{L}\p{N}][\p{L}\p{N}_-]*$/u.test(id)) continue;
-    const def = change.kind === 'item' && scenario.items?.find(i => i.id === id || i.name === label);
-    if (def) id = def.id;
     const entries = campaign.memory;
     let entry = entries.find(e => e.kind === change.kind && e.id === id);
-    entry ||= entries.find(e => e.kind === change.kind && e.label === (def?.name || label));
+    const def = change.kind === 'item' && !entry && scenario.items?.find(i => i.id === id || i.name === label);
+    if (def) {
+      id = def.id;
+      entry = entries.find(e => e.kind === 'item' && e.id === id);
+    }
+    if (!entry && !def) {
+      const matches = entries.filter(e => e.kind === change.kind && e.label === label);
+      if (matches.length > 1) continue;
+      entry = matches[0];
+    }
     const state = readState(change, actors);
     if (!state || !Array.isArray(change.witnesses) || change.witnesses.length > 24) continue;
     const witnesses = change.witnesses.map(v => actor(v, actors));
@@ -112,4 +163,4 @@ function recall(entries, sceneId, lines, actors) {
     .slice(0, 12).map(({ entry }) => entry);
 }
 
-module.exports = { actorDirectory, apply, recall, seed };
+module.exports = { actorDirectory, apply, importCardItems, notebookItems, recall, seed };

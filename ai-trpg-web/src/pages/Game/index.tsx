@@ -46,6 +46,7 @@ type CampaignState = {
   chapterId: string;
   title: string;
   phase: 'active' | 'completed' | 'redirected';
+  inventory?: Array<{ group: 'card' | 'story' | 'shared'; name: string }>;
   revealedClues: Array<{ id: string; title: string; content: string }>;
   ending: { id: string; label: string } | null;
 };
@@ -81,7 +82,7 @@ export default function Game() {
   // SECTION: 战役笔记状态
   // NOTE: 关系图状态提升到 Game，避免切换笔记页签时节点和边丢失。
   const [isNotebookOpen, setIsNotebookOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'relation' | 'notes' | 'clues'>('relation');
+  const [activeTab, setActiveTab] = useState<'relation' | 'notes' | 'clues' | 'inventory'>('relation');
   const [freeNotes, setFreeNotes] = useState('');
   const [clues, setClues] = useState<string[]>([]);
   const [isNotebookLoaded, setIsNotebookLoaded] = useState(false);
@@ -645,11 +646,24 @@ export default function Game() {
           <div className="notebook-modal flat-box" onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" aria-label="关闭战役笔记" onClick={() => setIsNotebookOpen(false)}>×</button>
             <div className="notebook-tabs">
-              <div className={`tab-item ${activeTab === 'relation' ? 'active' : ''}`} onClick={() => setActiveTab('relation')}>关系图谱</div>
-              <div className={`tab-item ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}>自由笔记</div>
-              <div className={`tab-item ${activeTab === 'clues' ? 'active' : ''}`} onClick={() => setActiveTab('clues')}>关键线索</div>
+              {([['relation', '关系图谱'], ['notes', '自由笔记'], ['clues', '关键线索'], ['inventory', '物品栏']] as const).map(([tab, label]) => (
+                <button type="button" key={tab} aria-pressed={activeTab === tab}
+                  className={`tab-item ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>{label}</button>
+              ))}
             </div>
             <div className="notebook-content">
+              {activeTab === 'inventory' && (
+                <div className="notebook-inventory">
+                  {!connectionReady || !campaignState?.inventory ? <p role="status">正在同步物品…</p> :
+                    ([['card', '角色卡自带'], ['story', '剧情所得'], ['shared', '队伍共有']] as const).map(([group, title]) => {
+                      const items = campaignState.inventory!.filter(item => item.group === group);
+                      return <section key={group}>
+                        <h3>{title}</h3>
+                        {items.length ? <ul>{items.map((item, i) => <li key={i}>{item.name}</li>)}</ul> : <p>暂无物品</p>}
+                      </section>;
+                    })}
+                </div>
+              )}
               {activeTab === 'notes' && (
                 <textarea
                   className="flat-textarea full-height"

@@ -56,6 +56,10 @@ const saveForUsername = (username, cardData) => {
   if (existingIndex !== -1 && !Object.hasOwn(cardData, 'avatar')) {
     cardData.avatar = db[username][existingIndex].fullData.avatar ?? null;
   }
+  if (existingIndex !== -1 && !Object.hasOwn(cardData.bgInfo, 'carriedItems')) {
+    const previous = db[username][existingIndex].fullData.bgInfo?.carriedItems;
+    if (previous !== undefined) cardData.bgInfo = { ...cardData.bgInfo, carriedItems: previous };
+  }
   let avatarRevision = null;
   if (cardData.avatar != null) {
     const bytes = decodePortrait(cardData.avatar);

@@ -29,6 +29,7 @@ const createCampaign = (scriptId = 'peach') => {
 
 const migrateCampaign = (campaign) => {
   if (!campaign || typeof campaign !== 'object') return campaign;
+  if (!Array.isArray(campaign.inventory)) campaign.inventory = [];
   if (!Array.isArray(campaign.memory)) campaign.memory = memory.seed(campaign, getScenario(campaign));
   if (campaign.clocks?.injury) delete campaign.clocks.injury;
   if (
@@ -120,7 +121,7 @@ const evaluateCondition = (condition, campaign) => {
   return false;
 };
 
-const getPublicCampaign = (campaign) => {
+const getPublicCampaign = (campaign, username) => {
   migrateCampaign(campaign);
   const scenario = getScenario(campaign);
   const revealed = new Set(campaign.revealedClueIds || []);
@@ -130,6 +131,7 @@ const getPublicCampaign = (campaign) => {
     chapterId: campaign.chapterId,
     title: campaign.chapterTitle,
     phase: campaign.phase,
+    ...(username && { inventory: memory.notebookItems(campaign, scenario, campaign.partyStats?.[username]?.characterId) }),
     revealedClues: (scenario.clues || [])
       .filter((clue) => revealed.has(clue.id))
       .map(({ id, title, content }) => ({ id, title, content })),
@@ -243,7 +245,10 @@ const buildDirectorContext = ({ campaign, players, lines = [] }) => {
     currentScene: scene,
     campaignState,
     actorDirectory: actors,
-    itemDirectory: (scenario.items || []).map(({ id, name }) => ({ id, name })),
+    itemDirectory: [
+      ...(scenario.items || []).map(({ id, name }) => ({ id, name })),
+      ...entries.filter(e => e.cardOwner).map(e => ({ id: e.id, name: e.label, ...e.state })),
+    ],
     recalledMemory: memory.recall(entries, scene.id, lines, actors),
     revealedClues: campaign.revealedClueIds.map((id) => clueMap.get(id)).filter(Boolean),
     players: players.map((player) => ({ name: player.name, role: player.role })),
@@ -261,6 +266,7 @@ module.exports = {
   getCurrentScene,
   getPublicCampaign,
   getScenario,
+  importCardItems: memory.importCardItems,
   isSupportedScriptId: scenarioRepository.isSupportedScriptId,
   migrateCampaign,
   syncPartyStats,

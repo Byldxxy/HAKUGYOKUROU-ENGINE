@@ -38,10 +38,15 @@ const persist = (room, removedAccount) => {
   rooms.save({ id: room.id, ownerAccount: room.ownerAccount, config: room.config,
     started: room.started, billing: room.billing, participants: room.participants, members });
 };
-const ensureCampaign = (room) => {
+const ensureCampaign = (room, persistImports = true) => {
   if (!room.campaign) return null;
   campaignService.migrateCampaign(room.campaign);
   campaignService.syncPartyStats(room.campaign, room.players);
+  let imported = false;
+  for (const player of room.players) {
+    if (campaignService.importCardItems(room.campaign, player)) imported = true;
+  }
+  if (imported && persistImports) logs.appendCampaignState({ roomId: room.id, campaign: room.campaign });
   campaignService.applyPartyStatsToPlayers(room.campaign, room.players);
   return room.campaign;
 };
@@ -92,13 +97,15 @@ const emitState = (io, room) => {
         hpMax: hpMax ?? hp, sanMax: sanMax ?? san, mpMax: mpMax ?? mp })),
   });
   if (room.campaign) {
-    io.to(room.id).emit('campaign_state', campaignService.getPublicCampaign(room.campaign));
+    for (const player of room.players) {
+      if (player.id) io.to(player.id).emit('campaign_state', campaignService.getPublicCampaign(room.campaign, player.accountName));
+    }
     io.to(room.id).emit('turn_state', turnState(room));
   }
 };
 const snapshot = (socket, room) => {
   socket.emit('room_snapshot', { roomId: room.id, messages: logs.listRoomMessages(room.id),
-    campaign: room.campaign ? campaignService.getPublicCampaign(room.campaign) : null, turnState: turnState(room) });
+    campaign: room.campaign ? campaignService.getPublicCampaign(room.campaign, socket.data.user.username) : null, turnState: turnState(room) });
 };
 const maybeRunDm = async (io, room) => {
   if (!room.started || !room.players.length || room.dmInFlight || room.campaign?.phase !== 'active') return;
@@ -347,7 +354,7 @@ module.exports = (io) => {
         room.config.scriptId = campaign.scriptId;
       } else {
         room.campaign = campaignService.createCampaign(room.config.scriptId);
-        ensureCampaign(room);
+        ensureCampaign(room, false);
         logs.resetRoomLog(room.id);
         const scene = campaignService.getCurrentScene(campaignService.getScenario(room.campaign), room.campaign);
         logs.appendDmReply({ roomId: room.id, content: scene.entryNarration });
