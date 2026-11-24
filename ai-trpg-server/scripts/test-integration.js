@@ -62,16 +62,33 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   const ca=(await api('/characters',a.cookie,{cardData:draft('调查员甲')})).data.card;
   const cb=(await api('/characters',b.cookie,{cardData:draft('调查员乙')})).data.card;
   assert.ok(ca?.id); assert.ok(cb?.id);
+  // Previously persisted cards can retain surrounding whitespace in both display fields.
+  const cardsFile = path.join(dataDir, 'characters.json');
+  const legacyCards = JSON.parse(fs.readFileSync(cardsFile, 'utf8'));
+  const legacyCard = legacyCards.tester_a.find(card => card.id === ca.id);
+  legacyCard.name = legacyCard.fullData.basicInfo.name = ' 调查员甲';
+  fs.writeFileSync(cardsFile, JSON.stringify(legacyCards));
   assert.equal((await api('/characters',b.cookie,{cardData:{...draft('冒名'),id:ca.id}})).status,404);
   assert.equal((await api(`/characters/${ca.id}`,b.cookie,null,'DELETE')).status,404);
   assert.equal((await api('/characters',a.cookie,{cardData:{...draft('无效'),stats:{str:-1}}})).status,400);
   const sa=await connect(a.cookie), sb=await connect(b.cookie), sx=await connect(x.cookie);
+  const { execFileSync } = require('node:child_process');
+  const cdk = execFileSync(process.execPath, [path.join(__dirname,'issue-cdk.js'),'12'], {env:{...process.env,NODE_ENV:'development'},encoding:'utf8'}).trim().split('\n').at(-1);
   const roomId=(await send(sa,'create_room',{})).roomId;
   assert.match(roomId,/^\d{6}$/);
   assert.equal((await send(sx,'join_lobby',{roomId:'000000'})).reason,'room_not_found');
   assert.equal((await send(sa,'join_lobby',{roomId,characterInfo:{id:ca.id}})).success,true);
   assert.equal((await send(sb,'join_lobby',{roomId,characterInfo:{id:ca.id}})).reason,'invalid_character');
   assert.equal((await send(sb,'join_lobby',{roomId,characterInfo:{}})).success,true);
+  assert.equal((await send(sb,'set_host_api',{roomId,mode:'site'})).reason,'forbidden');
+  assert.equal((await send(sa,'host_start_game',{roomId})).success,false);
+  assert.equal((await send(sa,'set_host_api',{roomId,mode:'site'})).balance,0);
+  assert.match((await send(sa,'host_start_game',{roomId})).message,/CDK/);
+  assert.equal((await send(sa,'redeem_cdk',{roomId,code:cdk})).balance,12);
+  assert.equal((await send(sa,'redeem_cdk',{roomId,code:cdk})).success,false);
+  assert.equal((await send(sa,'redeem_cdk',{roomId,code:'invalid'})).success,false);
+  assert.equal((await send(sa,'set_host_api',{roomId,mode:'custom',url:'https://127.0.0.1',key:'fixture',model:'test'})).success,false);
+
   assert.equal((await send(sa,'host_start_game',{roomId})).reason,'missing_character');
   assert.equal((await send(sb,'join_lobby',{roomId,characterInfo:{id:cb.id}})).success,true);
   const twin=(await api('/characters',x.cookie,{cardData:draft('调查员甲')})).data.card;
@@ -90,6 +107,7 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await send(sb,'player_action',{roomId,message:'我警戒。'})).success,true);
   await wait(()=>sa.turn?.mode==='waiting_rolls','two roll requests');
   assert.equal(sa.turn.pendingRolls.length,2);
+  assert.equal(sa.turn.pendingRolls.find(r => r.player === '调查员甲').characterId, ca.id);
   assert.equal(sa.lobby.players.find(p=>p.characterId===ca.id).hp,10,'pending rolls must not apply damage');
   const ra=sa.turn.pendingRolls.find(r=>r.player==='调查员甲').id, rb=sa.turn.pendingRolls.find(r=>r.player==='调查员乙').id;
   assert.equal((await send(sa,'player_action',{roomId,message:'偷偷行动'})).reason,'turn_locked');
@@ -118,6 +136,7 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   const second=(await send(sa2,'create_room',{})).roomId;
   await send(sa2,'leave_room',{roomId}); await send(sb,'leave_room',{roomId});
   await send(sa2,'join_lobby',{roomId:second,characterInfo:{id:ca.id}});
+  assert.equal((await send(sa2,'set_host_api',{roomId:second,mode:'site'})).balance,9,'three successful replies; failure and dice free');
   assert.equal((await send(sa2,'host_start_game',{roomId:second,loadSaveId:save.id})).reason,'save_party_mismatch');
   await send(sb,'join_lobby',{roomId:second,characterInfo:{id:cb.id}});
   assert.equal((await send(sa2,'host_start_game',{roomId:second,loadSaveId:save.id})).success,true);

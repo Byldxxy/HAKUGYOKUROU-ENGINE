@@ -42,7 +42,7 @@ export const emitWhenConnected = (eventName: string, ...args: unknown[]) => {
   });
 };
 
-export type SocketAck = { success: boolean; reason?: string; message?: string; roomId?: string; started?: boolean; characterId?: string };
+export type SocketAck = { balance?: number; mode?: "site" | "custom" | null; configured?: boolean; success: boolean; reason?: string; message?: string; roomId?: string; started?: boolean; characterId?: string };
 export const socketRequest = (event: string, payload: unknown): Promise<SocketAck> => new Promise((resolve, reject) => {
   ensureSocketConnected();
   socket.timeout(10000).emit(event, payload, (error: Error | null, result: SocketAck) => {

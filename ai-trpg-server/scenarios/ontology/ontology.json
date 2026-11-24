@@ -372,7 +372,7 @@
         "在集会大厅找到密道入口",
         "进入密道，决定是否使用毒剂"
       ],
-      "allowedFactChanges": ["warehouseExplored", "secretPassageFound", "poisonDeviceObtained", "signalJammerDestroyed", "policeAlerted", "nightExplorationStarted"],
+      "allowedFactChanges": ["warehouseExplored", "secretPassageFound", "poisonDeviceObtained", "poisonUsed", "signalJammerDestroyed", "policeAlerted", "nightExplorationStarted"],
       "allowedClockChanges": ["suspicion"],
       "availableClues": ["clue-signal-jammer", "clue-poison-weapon", "clue-secret-passage", "clue-underground-dormitory"],
       "suggestedChecks": [
@@ -468,7 +468,7 @@
       "id": "end-ultimate-evil",
       "priority": 110,
       "label": "END1 · 终极邪恶的胜利",
-      "conditions": { "fact": "poisonUsed", "equals": true },
+      "conditions": { "all": [{ "fact": "poisonDeviceObtained", "equals": true }, { "fact": "poisonUsed", "equals": true }] },
       "result": {
         "phase": "completed",
         "publicNarration": "毒剂在地下宿舍中迅速扩散。人类其实非常脆弱，他们就这样溃烂、化脓。苏醒的家伙反而更加可怜，生生承受着肉体的痛苦。\n\n做完了这一切之后，你回到客房——KPC沉睡的地方。你也躺在那张窄小的木床上，获得了无与伦比的安全感。不用考虑自己正枕在众多尸骨之上，因为大恶是不需要细想的。\n\n白昼再度降临时，你们轻松逃离了这里。没有人群的地方，也没有真正的难题。",

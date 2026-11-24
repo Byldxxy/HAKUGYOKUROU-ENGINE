@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Game.css';
+import HostApiPanel from '../../components/HostApiPanel';
 import RelationGraph, { type GraphNode, type GraphEdge } from '../../components/RelationGraph';
 import { apiFetch } from '../../config';
 import type { Character, PublicPlayer, Message, GameCharacter } from '../../domain/types';
@@ -14,12 +15,14 @@ import {
 
 type RollRequestWithState = RollRequest & {
   id?: string;
+  characterId?: string;
   originalPlayer?: string;
   resolved?: boolean;
   result?: string;
 };
 
 type TurnState = {
+  retryMessage?: string;
   canRetry?: boolean;
   mode: 'waiting_players' | 'waiting_rolls' | 'waiting_dm' | 'completed';
   inputLocked: boolean;
@@ -55,7 +58,7 @@ const findRollResult = (messages: Message[], dmIndex: number, roll: RollRequestW
   for (let index = dmIndex + 1; index < messages.length; index += 1) {
     const message = messages[index];
     if (message.role === 'dm') break;
-    if (message.role !== 'roll' || message.sender !== roll.player) continue;
+    if (message.role !== 'roll' || message.sender.trim() !== roll.player.trim()) continue;
 
     const content = String(message.content || '');
     if ((roll.id && message.rollId === roll.id) || content.startsWith(`[对 ${roll.skill} 进行检定]`)) {
@@ -187,8 +190,8 @@ export default function Game() {
   };
 
   // 检定数值、技能与随机数均由服务端计算。
-  const handleSkillRoll = async (playerName: string, rollId: string) => {
-    if (!connectionReady || playerName !== myCharacter?.name || rolledIndices.includes(rollId)) return;
+  const handleSkillRoll = async (rollId: string) => {
+    if (!connectionReady || !turnState?.pendingRolls.some(roll => roll.id === rollId && roll.characterId === myCharacter?.id) || rolledIndices.includes(rollId)) return;
     setRolledIndices(prev => [...prev, rollId]);
     try { await socketRequest('player_action', { roomId, rollId, isRoll: true }); }
     catch (error) { alert((error as Error).message); }
@@ -317,10 +320,12 @@ export default function Game() {
 
   // SECTION: 队友状态镜像
   // NOTE: lobby_update 是房间玩家列表的广播源，游戏页用它生成左侧队友卡片。
+  const [isOwner, setIsOwner] = useState(false);
   const [teammates, setTeammates] = useState<GameCharacter[]>([]);
 
   useEffect(() => {
-    const handleLobbyUpdate = (data: { players: PublicPlayer[] }) => {
+    const handleLobbyUpdate = (data: { players: PublicPlayer[]; ownerId?: string }) => {
+      setIsOwner(data.ownerId === socket.id);
       const selfId = localStorage.getItem('trpg_current_char_id');
       setTeammates(data.players.filter(p => p.characterId !== selfId).map(p => ({
         id: p.characterId || p.name, name: p.name, role: p.role, appearance: '', skills: {},
@@ -410,7 +415,7 @@ export default function Game() {
   const activeRollRequests = turnState?.rollRequests || fallbackRollRequests;
   const pendingRolls = turnState?.pendingRolls || activeRollRequests.filter(roll => !findRollResult(chatMessages, lastDmIndex, roll));
   const pendingRollPlayers = turnState?.pendingRollPlayers || Array.from(new Set(pendingRolls.map(roll => roll.player)));
-  const isWaitingForMyRoll = pendingRolls.some(roll => roll.player === myCharacter.name);
+  const isWaitingForMyRoll = pendingRolls.some(roll => roll.characterId === myCharacter.id);
   const isRollGateLocked = activeRollRequests.length > 0;
   const isCampaignLocked = Boolean(campaignState && campaignState.phase !== 'active');
   // NOTE: 输入锁优先使用后端 turn_state；本地历史推导只作为重连前的兜底。
@@ -450,6 +455,7 @@ export default function Game() {
       <div className="game-header flat-box">
         <span className="room-info">{campaignState?.title || '桃花岛历险记'} // {roomId}</span>
         <div style={{ display: 'flex', gap: '15px' }}>
+          {isOwner && roomId && <HostApiPanel roomId={roomId} />}
           <button className="flat-btn secondary small" onClick={handleSaveGame}>存档</button>
           <button className="flat-btn secondary small" onClick={async () => { try { await socketRequest('leave_room', { roomId }); navigate('/hall'); } catch (error) { alert((error as Error).message); } }}>退出</button>
         </div>
@@ -561,16 +567,16 @@ export default function Game() {
                                <div className="roll-result">
                                  {rollResult}
                                </div>
-                             ) : myCharacter.name === targetPlayer ? (
+                             ) : rollItem.characterId === myCharacter.id && idx === lastDmIndex ? (
                                <button
                                  className="flat-btn primary"
-                                 onClick={() => handleSkillRoll(targetPlayer, rollKey)}
+                                 onClick={() => handleSkillRoll(rollKey)}
                                  disabled={isRolling || !connectionReady || idx !== lastDmIndex || !turnState?.pendingRolls.some(roll => roll.id === rollKey)}
                                >
                                  {isRolling ? '同步中...' : '🎲 立即检定'}
                                </button>
                              ) : (
-                               <span className="roll-waiting">⏳ 等待 {targetPlayer} 掷骰...</span>
+                               <span className="roll-waiting">{idx === lastDmIndex ? `⏳ 等待 ${targetPlayer} 掷骰…` : '本轮已结束'}</span>
                              )}
                            </div>
                          );
@@ -593,7 +599,7 @@ export default function Game() {
           <div className="control-panel" style={{ flexDirection: 'column', gap: '10px' }}>
             {turnState?.canRetry && (
               <button className="flat-btn secondary" onClick={() => socketRequest('retry_dm', { roomId }).catch(error => alert(error.message))}>
-                主持回复失败，点击重试
+                {turnState.retryMessage || '主持回复失败'} 点击重试
               </button>
             )}
 
@@ -626,7 +632,7 @@ export default function Game() {
       {activeCard && (
         <div className="modal-overlay" onClick={() => setActiveCard(null)}>
           <div className="modal-content flat-box" onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setActiveCard(null)}>×</button>
+            <button className="close-btn" aria-label="关闭角色卡" onClick={() => setActiveCard(null)}>×</button>
             {renderModalContent()}
           </div>
         </div>
@@ -634,7 +640,7 @@ export default function Game() {
       {isNotebookOpen && (
         <div className="modal-overlay" onClick={() => setIsNotebookOpen(false)}>
           <div className="notebook-modal flat-box" onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setIsNotebookOpen(false)}>×</button>
+            <button className="close-btn" aria-label="关闭战役笔记" onClick={() => setIsNotebookOpen(false)}>×</button>
             <div className="notebook-tabs">
               <div className={`tab-item ${activeTab === 'relation' ? 'active' : ''}`} onClick={() => setActiveTab('relation')}>关系图谱</div>
               <div className={`tab-item ${activeTab === 'notes' ? 'active' : ''}`} onClick={() => setActiveTab('notes')}>自由笔记</div>

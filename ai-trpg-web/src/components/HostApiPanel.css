@@ -1,0 +1,8 @@
+.host-api-dialog { width: min(420px, calc(100vw - 32px)); max-height: 88dvh; overflow: auto; padding: 20px; color: var(--color-ink); }
+.host-api-dialog::backdrop { background: rgb(45 28 35 / 45%); }
+.host-api-title { display: flex; justify-content: space-between; align-items: center; }
+.host-api-title h3 { margin: 0; }
+.host-api-dialog form { display: grid; gap: 10px; padding-block: 14px; border-top: var(--border-soft); }
+.host-api-dialog form > label { display: grid; gap: 4px; }
+.host-api-dialog fieldset { display: flex; gap: 12px; border: var(--border-soft); }
+.host-api-dialog p { margin: 8px 0; font-size: .9rem; }

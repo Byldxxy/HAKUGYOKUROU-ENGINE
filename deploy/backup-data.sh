@@ -8,7 +8,7 @@ STAMP="$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$BACKUP_ROOT"
 SERVER_ROOT="$APP_ROOT/ai-trpg-server"
 ITEMS=()
-for item in users.json characters.json notebooks.json rooms.json logs saves; do
+for item in users.json characters.json notebooks.json rooms.json credits.json logs saves; do
   if [ -e "$SERVER_ROOT/$item" ]; then
     ITEMS+=("$item")
   fi

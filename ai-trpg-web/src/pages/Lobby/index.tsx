@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Lobby.css';
+import HostApiPanel from '../../components/HostApiPanel';
 import { apiFetch } from '../../config';
 import type { Character, PublicPlayer, Save, LobbyMessage } from '../../domain/types';
 import { socketRequest, socketErrorMessage, emitWhenConnected, ensureSocketConnected, socket } from '../../socket';
@@ -241,6 +242,7 @@ export default function Lobby() {
 
       <div className="lobby-content">
         <div className="lobby-left-panel flat-box">
+          {isOwner && roomId && <HostApiPanel roomId={roomId} />}
           <h3 className="section-title">剧本配置</h3>
           {/* SECTION: 房主配置区 */}
           {/* NOTE: 非房主不显示配置表单，避免误以为能更改剧本或存档。 */}

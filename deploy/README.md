@@ -54,6 +54,17 @@ npm run build
 
 风堇.com 的 PM2 进程为 `hakugyokurou-server`，后端目录为 `/root/ai-trpg-server`，静态站点位于 `/var/www/trpg`。下方 `/opt` 命令适用于按模板新建的实例。更新前备份后端和静态目录，保留生产环境变量、账号、角色、笔记、rooms.json、logs 和 saves。先发布带哈希的资源，再切换 index.html。重启 PM2 后核验 HTTPS、健康接口和 Socket.IO 握手。
 
+## 发行 CDK 和备份额度
+
+在风堇.com 的 ECS 终端执行以下命令，每次生成一个新的 **100 点**兑换码。将参数改为 1 至 1,000,000 的整数即可指定点数。把终端输出最后一行私下交给购买者。
+
+```bash
+cd /root/ai-trpg-server
+NODE_ENV=production node scripts/issue-cdk.js 100
+```
+
+兑换时会将点数记入当前房主账号。单实例后端使用数据目录中的 `credits.json` 同时记录账户余额和已兑换编号。备份脚本覆盖此文件。恢复旧账本会回退备份时间之后的扣点和兑码记录。发行和兑换使用同一生产 `SESSION_SECRET`，轮换后未兑换的旧码会失效，已有余额保留。
+
 ## 3. 旧密码迁移
 
 迁移前先备份 `users.json`，随后运行：

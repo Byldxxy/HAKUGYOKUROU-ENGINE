@@ -53,3 +53,5 @@ lerna-debug.log*
 
 # Persistent room membership
 ai-trpg-server/rooms.json
+
+ai-trpg-server/credits.json

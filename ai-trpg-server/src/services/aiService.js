@@ -49,18 +49,16 @@ const parseDirectorResponse = (content) => {
 
 // SECTION: 剧本导演回复生成
 // NOTE: directorContext 含服务端权威场景和状态；模型只能提出变化，不能直接提交。
-const generateDirectorReply = async ({ lines, directorContext }) => {
-  const completion = await openai.chat.completions.create({
-    model: config.openai.model,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'system', content: `当前权威导演上下文：\n${JSON.stringify(directorContext)}` },
-      ...buildHistoryContext(lines),
-    ],
-    temperature: 0.5,
-  });
-
-  const rawContent = completion.choices[0].message.content;
+const generateDirectorReply = async ({ lines, directorContext, provider }) => {
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: `当前权威导演上下文：\n${JSON.stringify(directorContext)}` },
+    ...buildHistoryContext(lines),
+  ];
+  const rawContent = provider
+    ? await require('./customProvider').complete(provider, messages, config.openai.timeout)
+    : (await openai.chat.completions.create({ model: config.openai.model, messages, temperature: 0.5 })).choices[0].message.content;
+  if (typeof rawContent !== 'string' || !rawContent.trim()) throw new Error('主持返回空回复。');
   if (config.openai.debugRaw) {
     console.log(`\n🤖 [AI 原始导演回复]\n${String(rawContent || '')}\n`);
   }

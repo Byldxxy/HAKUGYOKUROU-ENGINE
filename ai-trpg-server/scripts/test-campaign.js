@@ -90,4 +90,23 @@ campaignService.applyPartyStatsToPlayers(campaign, players);
 assert.equal(players[0].hp, 7, '动态 HP 应写入战役状态并同步到玩家');
 assert.equal(campaign.partyStats.tester.hp.current, 7);
 
-console.log('Campaign state machine tests passed.');
+// Replay each published ending from a fresh campaign through scene-authorized actions.
+const finish = (script, route, ending) => {
+  const final = route.reduce((state, action) => apply(state, action), campaignService.createCampaign(script));
+  assert.equal(final.endingId, ending);
+  assert.notEqual(final.phase, 'active');
+};
+finish('peach', [...steps.slice(0, 4), { facts: { eastRouteSecured: true }, transition: 'eastward-departure' }], 'chapter-success-independent');
+finish('peach', Array(3).fill({ clockDeltas: { pursuit: 2 } }), 'chapter-costly-capture');
+const nightRoute = [
+  { facts: { selfDiscovered: true }, transition: 'priest-procession' },
+  { facts: { f1Explored: true }, transition: 'f2-investigation' },
+  { facts: { f2Explored: true }, transition: 'night-kpc-room' },
+  { facts: { warehouseKeyObtained: true }, transition: 'night-exploration' },
+];
+finish('ontology', [...nightRoute, { facts: { poisonDeviceObtained: true, poisonUsed: true } }], 'end-ultimate-evil');
+finish('ontology', [...nightRoute, { facts: { signalJammerDestroyed: true, policeAlerted: true } }], 'end-modern-technology');
+finish('ontology', [...nightRoute, { facts: { nightExplorationStarted: true }, transition: 'ritual-morning' },
+  { facts: { ritualInterrupted: true }, transition: 'final-combat' }, { facts: { combatVictory: true } }], 'end-fortune-goddess');
+finish('ontology', [nightRoute[0], ...Array(3).fill({ clockDeltas: { suspicion: 2 } })], 'end-anti-intellectualism');
+console.log('Campaign state machine tests passed, including all seven endings.');

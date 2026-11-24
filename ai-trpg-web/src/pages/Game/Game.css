@@ -267,7 +267,7 @@
 
 /* SECTION: 通用弹窗遮罩 */
 .modal-overlay {
-  position: absolute;
+  position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background-color: rgba(74, 42, 51, 0.4);
   backdrop-filter: blur(2px);
@@ -281,6 +281,8 @@
 .modal-content {
   width: 400px;
   max-width: 90%;
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
   padding: 30px;
   position: relative;
 

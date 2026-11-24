@@ -10,6 +10,9 @@ const { normalizeRoomRules } = require('../domain/roomRules');
 const { parseRollRequests, stripDirectives, isRollResultMessage } = require('../domain/directives');
 const { skillValue, rollSkill } = require('../domain/dice');
 
+const credits = require('../services/creditService');
+const customProvider = require('../services/customProvider');
+const sameName = (left, right) => typeof left === 'string' && typeof right === 'string' && left.trim() === right.trim();
 const liveRooms = new Map();
 const ownedCharacter = (username, id) => characters.listByUsername(username).find((card) => card.id === id);
 const playerFrom = (username, card, id = null) => ({
@@ -30,8 +33,9 @@ const persist = (room, removedAccount) => {
   const members = previous.filter(member => member.accountName !== removedAccount &&
     !room.players.some(player => player.accountName === member.accountName));
   members.push(...room.players.map(({ accountName, characterId }) => ({ accountName, characterId })));
+  room.members = members;
   rooms.save({ id: room.id, ownerAccount: room.ownerAccount, config: room.config,
-    started: room.started, participants: room.participants, members });
+    started: room.started, billing: room.billing, participants: room.participants, members });
 };
 const ensureCampaign = (room) => {
   if (!room.campaign) return null;
@@ -44,18 +48,26 @@ const turnState = (room) => {
   const lines = logs.readRoomLines(room.id);
   const lastDmIndex = lines.map((line) => line.type).lastIndexOf('dm_reply');
   const round = lines.slice(lastDmIndex + 1);
+  // Pending checks belong to persisted party members even if another player reconnects first.
+  const rollTargets = room.players.slice();
+  for (const member of room.members) {
+    const name = room.campaign?.partyStats?.[member.accountName]?.characterName;
+    if (name && !rollTargets.some(player => player.accountName === member.accountName)) {
+      rollTargets.push({ ...member, name });
+    }
+  }
   const rollRequests = parseRollRequests(lines[lastDmIndex]?.content || '').flatMap((request) => {
-    const player = room.players.find((item) => item.name === request.player);
+    const player = rollTargets.find((item) => sameName(item.name, request.player));
     if (!player) return [];
     const id = `${lastDmIndex}-${request.index}-${player.name}-${request.skill}`;
     const result = round.find((line) => line.type === 'player_action' &&
-      (line.accountName ? line.accountName === player.accountName : line.playerName === player.name) &&
+      (line.accountName ? line.accountName === player.accountName : sameName(line.playerName, player.name)) &&
       (line.rollId === id || (!line.rollId && isRollResultMessage(line.content) && line.content.startsWith(`[对 ${request.skill} 进行检定]`))));
     return [{ ...request, id, characterId: player.characterId, resolved: Boolean(result), result: result?.content || '' }];
   });
   const pendingRolls = rollRequests.filter((request) => !request.resolved);
   const actedAccounts = room.players.filter((player) => round.some((line) => line.type === 'player_action' &&
-    !isRollResultMessage(line.content) && (line.accountName ? line.accountName === player.accountName : line.playerName === player.name)))
+    !isRollResultMessage(line.content) && (line.accountName ? line.accountName === player.accountName : sameName(line.playerName, player.name))))
     .map((player) => player.accountName);
   const pendingPlayers = room.players.filter((player) => !actedAccounts.includes(player.accountName)).map((player) => player.name);
   const completed = room.campaign?.phase !== 'active';
@@ -65,6 +77,7 @@ const turnState = (room) => {
     actedPlayers: room.players.filter((p) => actedAccounts.includes(p.accountName)).map((p) => p.name),
     pendingPlayers: rollRequests.length ? [] : pendingPlayers, rollRequests, pendingRolls,
     pendingRollPlayers: [...new Set(pendingRolls.map((request) => request.player))],
+    retryMessage: room.dmError ? room.dmErrorText : undefined,
     canRetry: Boolean(room.dmError) && !room.dmInFlight };
 };
 const emitState = (io, room) => {
@@ -90,19 +103,27 @@ const maybeRunDm = async (io, room) => {
   if (state.pendingRolls.length || (!state.rollRequests.length && state.pendingPlayers.length)) return;
   room.dmInFlight = true;
   room.dmError = false;
+  let settle;
+  const payer = room.ownerAccount;
   emitState(io, room);
   try {
+    if (room.billing?.owner !== payer) throw new Error('请房主选择主持 API。');
+    const byok = room.billing.mode === 'custom';
+    if (byok && !room.provider) throw new Error('请房主重新输入自有 API Key。');
+    if (!byok) settle = credits.reserve(payer);
     const result = campaignService.normalizeDirectorResult(await ai.generateDirectorReply({
+      provider: byok ? room.provider : undefined,
       lines: logs.readRoomLines(room.id),
       directorContext: campaignService.buildDirectorContext({ campaign: room.campaign, players: room.players }),
     }));
     const requestedCount = result.requestedRolls.length;
     const seen = new Set();
     result.requestedRolls = result.requestedRolls.filter((request) => {
-      const player = room.players.find((item) => item.name === request?.player);
+      const player = room.players.find((item) => sameName(item.name, request?.player));
       const skill = String(request?.skill || '').trim().replace(/:/g, '：').slice(0, 50);
       if (!player || seen.has(player.accountName) || /[<>:]/.test(skill) || skillValue(player, skill) === null) return false;
       request.skill = skill;
+      request.player = player.name.trim();
       seen.add(player.accountName);
       return true;
     });
@@ -111,7 +132,7 @@ const maybeRunDm = async (io, room) => {
     const changes = [];
     // A pending roll may not apply its consequences early, including HP/SAN/MP.
     for (const change of result.requestedRolls.length ? [] : result.statChanges.slice(0, room.players.length * 3)) {
-      const player = room.players.find((item) => item.name === change?.player);
+      const player = room.players.find((item) => sameName(item.name, change?.player));
       const type = String(change?.type || '').toUpperCase();
       const value = Math.round(Number(change?.value));
       if (player && ['HP', 'SAN', 'MP'].includes(type) && Number.isFinite(value) && value !== 0) {
@@ -126,13 +147,17 @@ const maybeRunDm = async (io, room) => {
       applied.transition?.entryNarration, applied.ending?.result?.publicNarration].filter(Boolean).join('\n\n');
     logs.appendDmReply({ roomId: room.id, content });
     logs.appendCampaignState({ roomId: room.id, campaign: room.campaign });
+    settle?.(true);
     io.to(room.id).emit('new_message', { role: 'dm', sender: '系统 DM', content });
   } catch (error) {
     room.dmError = true;
+    room.dmErrorText = /^(请房主|站点额度不足|自有 API 返回 HTTP \d{3}$|无法连接自有 API)/.test(error.message) ? error.message : '主持调用失败，请检查配置后重试。';
     console.error('AI 推进失败:', error.message);
     io.to(room.id).emit('dm_error', { message: '主持回复失败，行动已保留，可重试。' });
   } finally {
+    settle?.(false);
     room.dmInFlight = false;
+    io.to(room.id).emit('billing_changed');
     emitState(io, room);
   }
 };
@@ -144,12 +169,17 @@ const removePlayer = (io, socket, room, preserveMembership = false) => {
   socket.leave(room.id);
   if (socket.data.roomId === room.id) socket.data.roomId = null;
   const successor = room.players.find((p) => p.id);
-  if (room.ownerAccount === player.accountName && successor) room.ownerAccount = successor.accountName;
+  if (room.ownerAccount === player.accountName && (successor || !preserveMembership)) {
+    if (successor) room.ownerAccount = successor.accountName;
+    room.provider = null;
+    room.billing = null;
+  }
   if (!preserveMembership) persist(room, player.accountName);
   else {
     // Keep the disconnected player's selection for rejoin/restart, but transfer an offline owner.
     const record = rooms.get(room.id);
     record.ownerAccount = room.ownerAccount;
+    record.billing = room.billing;
     rooms.save(record);
   }
   emitState(io, room);
@@ -214,7 +244,7 @@ module.exports = (io) => {
       const characterId = room.started ? savedMember.characterId : characterInfo.id;
       const card = characterId ? ownedCharacter(username, characterId) : null;
       if (characterId && !card) return ack({ success: false, reason: 'invalid_character' });
-      if (room.players.some((p) => p.accountName !== username && p.name === (card?.name || username))) {
+      if (room.players.some((p) => p.accountName !== username && sameName(p.name, card?.name || username))) {
         return ack({ success: false, reason: 'duplicate_name' });
       }
       attach(room, card);
@@ -251,10 +281,32 @@ module.exports = (io) => {
       emitState(io, room);
       ack({ success: true, roomConfig: room.config });
     });
+    const ownerOnly = (event, callback) => handle(event, (data, ack) => {
+      const room = member(data?.roomId);
+      if (!room || room.ownerAccount !== username) return ack({ success: false, reason: 'forbidden' });
+      try { callback(room, data, ack); }
+      catch (error) { ack({ success: false, message: error.message }); }
+    });
+    const accountState = room => ({ success: true, balance: credits.balance(username),
+      mode: room.billing?.owner === username ? room.billing.mode : null,
+      configured: room.billing?.owner === username && (room.billing.mode === 'site' || Boolean(room.provider)) });
+    ownerOnly('host_api_status', (room, _, ack) => ack(accountState(room)));
+    ownerOnly('redeem_cdk', (room, data, ack) => { credits.redeem(username, data.code); ack(accountState(room)); });
+    ownerOnly('set_host_api', (room, data, ack) => {
+      if (room.dmInFlight) return ack({ success: false, message: '请等待当前主持回复后再切换。' });
+      if (!['custom', 'site'].includes(data.mode)) return ack({ success: false, message: '请选择 API。' });
+      const provider = data.mode === 'custom' ? customProvider.validate(data) : null;
+      room.billing = { owner: username, mode: data.mode };
+      room.provider = provider;
+      persist(room);
+      ack(accountState(room));
+    });
     handle('host_start_game', (data, ack) => {
       const room = member(data?.roomId);
       if (!room || room.ownerAccount !== username) return ack({ success: false, reason: 'forbidden' });
       if (room.started || room.dmInFlight) return ack({ success: false, reason: 'game_started' });
+      if (room.billing?.owner !== username || (room.billing.mode === 'custom' && !room.provider)) return ack({ success: false, message: '请先配置主持 API。' });
+      if (room.billing.mode === 'site' && credits.balance(username) < 1) return ack({ success: false, message: '请先兑换 CDK 或使用自有 API。' });
       if (!room.players.length || room.players.some((p) => !p.characterId || !p.id)) return ack({ success: false, reason: 'missing_character' });
       for (const player of room.players) {
         const card = ownedCharacter(player.accountName, player.characterId);
@@ -270,7 +322,7 @@ module.exports = (io) => {
         if (!campaign) return ack({ success: false, reason: 'invalid_save' });
         const savedParty = Object.entries(campaign.partyStats || {});
         if (savedParty.length !== room.players.length || savedParty.some(([account, stats]) =>
-          !room.players.some((p) => p.accountName === account && p.characterId === stats.characterId && p.name === stats.characterName))) {
+          !room.players.some((p) => p.accountName === account && p.characterId === stats.characterId && sameName(p.name, stats.characterName)))) {
           return ack({ success: false, reason: 'save_party_mismatch' });
         }
         if (!logs.loadLogFrom(room.id, saves.getSavePath(save.id))) return ack({ success: false, reason: 'invalid_save' });
