@@ -55,6 +55,10 @@ npm run build
 
 风堇.com 的 PM2 进程为 `hakugyokurou-server`，后端目录为 `/root/ai-trpg-server`，静态站点位于 `/var/www/trpg`。下方 `/opt` 命令适用于按模板新建的实例。更新前备份后端和静态目录，保留生产环境变量、账号、角色、笔记、rooms.json、logs 和 saves。先发布带哈希的资源，再切换 index.html。重启 PM2 后核验 HTTPS、健康接口和 Socket.IO 握手。
 
+## 备份房间闲聊和自有接口
+
+备份脚本包含 `logs/lobby-chat/` 与 `provider-profiles/`。后者的 `accounts.json` 与权限为 0600 的 `encryption.key` 需要一起恢复；备份归档也需限制访问。首次保存自有接口时，服务会生成该实例专用的随机加密密钥。旧版只在内存中的配置需要由房主首次重新保存。
+
 ## 发行 CDK 和备份额度
 
 在风堇.com 的 ECS 终端执行以下命令，每次生成一个新的 **100 点**兑换码。将参数改为 1 至 1,000,000 的整数即可指定点数。把终端输出最后一行私下交给购买者。

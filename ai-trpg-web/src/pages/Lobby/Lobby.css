@@ -245,8 +245,9 @@
 
 
 /* SECTION: 大厅闲聊 */
-/* NOTE: 聊天不持久化，样式只服务开局前交流。 */
+
 .chat-box {
+  overflow-anchor: none;
   flex: 1;
   min-height: 0;
   border: 1.5px solid #4A2A33;
@@ -256,7 +257,7 @@
   overflow-y: auto;
   background: var(--color-canvas);
 }
-.chat-msg { margin-bottom: 10px; font-size: 0.95rem; line-height: 1.5; }
+.chat-msg { overflow-wrap: anywhere; margin-bottom: 10px; font-size: 0.95rem; line-height: 1.5; }
 .chat-msg span { font-weight: 800; margin-right: 5px; }
 .chat-msg.system span { color: #A0858D; }
 .chat-input-area { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 10px; }

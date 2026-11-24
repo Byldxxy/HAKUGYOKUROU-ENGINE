@@ -11,7 +11,8 @@ const { parseRollRequests, stripDirectives, isRollResultMessage } = require('../
 const { skillValue, rollSkill } = require('../domain/dice');
 
 const credits = require('../services/creditService');
-const customProvider = require('../services/customProvider');
+const profiles = require('../services/accountProviderService');
+const lobbyChat = require('../repositories/lobbyChatRepository');
 const sameName = (left, right) => typeof left === 'string' && typeof right === 'string' && left.trim() === right.trim();
 const liveRooms = new Map();
 const ownedCharacter = (username, id) => characters.listByUsername(username).find((card) => card.id === id);
@@ -109,10 +110,11 @@ const maybeRunDm = async (io, room) => {
   try {
     if (room.billing?.owner !== payer) throw new Error('请房主选择主持 API。');
     const byok = room.billing.mode === 'custom';
-    if (byok && !room.provider) throw new Error('请房主重新输入自有 API Key。');
+    const provider = byok ? profiles.load(payer) : undefined;
+    if (byok && !provider) throw new Error('请房主保存自有 API 配置。');
     if (!byok) settle = credits.reserve(payer);
     const result = campaignService.normalizeDirectorResult(await ai.generateDirectorReply({
-      provider: byok ? room.provider : undefined,
+      provider,
       lines: logs.readRoomLines(room.id),
       directorContext: campaignService.buildDirectorContext({ campaign: room.campaign, players: room.players }),
     }));
@@ -169,9 +171,8 @@ const removePlayer = (io, socket, room, preserveMembership = false) => {
   socket.leave(room.id);
   if (socket.data.roomId === room.id) socket.data.roomId = null;
   const successor = room.players.find((p) => p.id);
-  if (room.ownerAccount === player.accountName && (successor || !preserveMembership)) {
+  if (room.ownerAccount === player.accountName && (successor || (!preserveMembership && room.billing?.mode !== 'custom'))) {
     if (successor) room.ownerAccount = successor.accountName;
-    room.provider = null;
     room.billing = null;
   }
   if (!preserveMembership) persist(room, player.accountName);
@@ -232,6 +233,10 @@ module.exports = (io) => {
     };
     handle('create_room', (_, ack) => {
       const room = rooms.create(username);
+      if (profiles.summary(username)?.preferred) {
+        room.billing = { owner: username, mode: 'custom' };
+        rooms.save(room);
+      }
       ack({ success: true, roomId: room.id });
     });
     handle('join_lobby', (data, ack) => {
@@ -249,6 +254,7 @@ module.exports = (io) => {
       }
       attach(room, card);
       emitState(io, room);
+      if (!room.started) socket.emit('lobby_chat_snapshot', { roomId, ...lobbyChat.history(roomId) });
       ack({ success: true, started: room.started, characterId: card?.id || null });
     });
     handle('join_room', (roomId, ack) => {
@@ -287,25 +293,33 @@ module.exports = (io) => {
       try { callback(room, data, ack); }
       catch (error) { ack({ success: false, message: error.message }); }
     });
-    const accountState = room => ({ success: true, balance: credits.balance(username),
-      mode: room.billing?.owner === username ? room.billing.mode : null,
-      configured: room.billing?.owner === username && (room.billing.mode === 'site' || Boolean(room.provider)) });
+    const accountState = room => {
+      const profile = profiles.summary(username);
+      const mode = room.billing?.owner === username ? room.billing.mode : null;
+      return { success: true, balance: credits.balance(username), mode, profile,
+        configured: mode === 'site' || (mode === 'custom' && Boolean(profile)) };
+    };
     ownerOnly('host_api_status', (room, _, ack) => ack(accountState(room)));
     ownerOnly('redeem_cdk', (room, data, ack) => { credits.redeem(username, data.code); ack(accountState(room)); });
     ownerOnly('set_host_api', (room, data, ack) => {
       if (room.dmInFlight) return ack({ success: false, message: '请等待当前主持回复后再切换。' });
       if (!['custom', 'site'].includes(data.mode)) return ack({ success: false, message: '请选择 API。' });
-      const provider = data.mode === 'custom' ? customProvider.validate(data) : null;
+      if (data.mode === 'custom') profiles.save(username, data);
+      else profiles.preferSite(username);
       room.billing = { owner: username, mode: data.mode };
-      room.provider = provider;
       persist(room);
+      ack(accountState(room));
+    });
+    ownerOnly('forget_host_api', (room, _, ack) => {
+      if (room.dmInFlight) return ack({ success: false, message: '请等待当前主持回复结束。' });
+      profiles.forget(username);
       ack(accountState(room));
     });
     handle('host_start_game', (data, ack) => {
       const room = member(data?.roomId);
       if (!room || room.ownerAccount !== username) return ack({ success: false, reason: 'forbidden' });
       if (room.started || room.dmInFlight) return ack({ success: false, reason: 'game_started' });
-      if (room.billing?.owner !== username || (room.billing.mode === 'custom' && !room.provider)) return ack({ success: false, message: '请先配置主持 API。' });
+      if (room.billing?.owner !== username || (room.billing.mode === 'custom' && !profiles.load(username))) return ack({ success: false, message: '请先配置主持 API。' });
       if (room.billing.mode === 'site' && credits.balance(username) < 1) return ack({ success: false, message: '请先兑换 CDK 或使用自有 API。' });
       if (!room.players.length || room.players.some((p) => !p.characterId || !p.id)) return ack({ success: false, reason: 'missing_character' });
       for (const player of room.players) {
@@ -343,12 +357,19 @@ module.exports = (io) => {
       io.to(room.id).emit('go_to_game');
       emitState(io, room);
     });
+    handle('lobby_chat_history', (data, ack) => {
+      const room = member(data?.roomId);
+      if (!room) return ack({ success: false, reason: 'forbidden' });
+      ack({ success: true, roomId: room.id, ...lobbyChat.history(room.id, data.page) });
+    });
     handle('lobby_chat_send', (data, ack) => {
       const room = member(data?.roomId);
       if (!room) return ack({ success: false, reason: 'forbidden' });
       const player = room.players.find((p) => p.accountName === username);
       const text = String(data.msg?.text || '').trim().slice(0, 2000);
-      if (text) io.to(room.id).emit('lobby_chat_receive', { id: Date.now(), sender: player.name, text, isSystem: false });
+      if (!text) return ack({ success: false, message: '请输入消息。' });
+      const message = lobbyChat.append(room.id, player.name, text);
+      io.to(room.id).emit('lobby_chat_receive', message);
       ack({ success: true });
     });
     handle('leave_room', (data, ack) => {

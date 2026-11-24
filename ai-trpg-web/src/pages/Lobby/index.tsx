@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Lobby.css';
 import HostApiPanel from '../../components/HostApiPanel';
 import { apiFetch } from '../../config';
 import type { Character, PublicPlayer, Save, LobbyMessage } from '../../domain/types';
-import { socketRequest, socketErrorMessage, emitWhenConnected, ensureSocketConnected, socket } from '../../socket';
+import { socketRequest, socketErrorMessage, ensureSocketConnected, socket } from '../../socket';
 import StyledSelect from '../../components/StyledSelect';
 import { DEFAULT_ROOM_RULES, type RoomRules } from '../../domain/roomRules';
 
@@ -23,13 +23,29 @@ const createRoomRuleDrafts = (rules: RoomRules): RoomRuleDrafts => ({
 });
 
 export default function Lobby() {
-  const navigate = useNavigate();
   const { roomId } = useParams();
+  return <RoomLobby key={roomId} roomId={roomId} />;
+}
+
+function RoomLobby({ roomId }: { roomId?: string }) {
+  const navigate = useNavigate();
 
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState<LobbyMessage[]>([
-    { id: 1, sender: '系统', text: '欢迎来到房间。', isSystem: true },
-  ]);
+  const [chatMessages, setChatMessages] = useState<LobbyMessage[]>([]);
+  const [previousPage, setPreviousPage] = useState<number | null>(null);
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatReady, setChatReady] = useState(false);
+  const chatBox = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
+  const heightBeforePrepend = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const box = chatBox.current;
+    if (!box) return;
+    if (heightBeforePrepend.current !== null) {
+      box.scrollTop += box.scrollHeight - heightBeforePrepend.current;
+      heightBeforePrepend.current = null;
+    } else if (followLatest.current) box.scrollTop = box.scrollHeight;
+  }, [chatMessages]);
   const [starting, setStarting] = useState(false);
   // SECTION: 大厅状态
   // NOTE: 房主身份由后端 ownerName 广播决定，前端不自行猜测。
@@ -95,10 +111,6 @@ export default function Lobby() {
     loadCharacters();
   }, [loadCharacters]);
 
-  // SECTION: 当前玩家身份
-  // NOTE: 未选角色时 Lobby 暂用登录账号展示；进入游戏后仍必须使用角色卡姓名。
-  const myName = activeCharacter?.name || localStorage.getItem('trpg_username') || '未登录玩家';
-
   // SECTION: 下拉选项派生
   // NOTE: useMemo 减少每次输入聊天时重建选项数组。
   const characterOptions = useMemo(
@@ -124,6 +136,7 @@ export default function Lobby() {
   // NOTE: 角色卡加载完成后才加入房间，并把角色摘要交给后端维护玩家列表。
   useEffect(() => {
     if (!roomId || !isCharactersLoaded) return;
+    let active = true;
     ensureSocketConnected();
     const handleLobbyUpdate = (data: { players: PublicPlayer[]; ownerName: string; ownerId: string; roomConfig: { scriptId: string; rules: RoomRules } }) => {
       setRoomPlayers(data.players);
@@ -133,10 +146,17 @@ export default function Lobby() {
       if (data.roomConfig?.rules) setRoomRules(data.roomConfig.rules);
     };
 
-    const handleLobbyChatReceive = (msg: LobbyMessage) => {
-      // NOTE: 闲聊消息不持久化，只在当前大厅会话中广播显示。
-      setChatMessages(prev => [...prev, msg]);
+    const handleLobbyChatSnapshot = (data: { roomId: string; messages: LobbyMessage[]; previousPage: number | null }) => {
+      if (data.roomId !== roomId) return;
+      followLatest.current = true;
+      setChatMessages(data.messages);
+      setPreviousPage(data.previousPage);
+      setChatReady(true);
     };
+    const handleLobbyChatReceive = (msg: LobbyMessage & { roomId: string }) => {
+      if (msg.roomId === roomId) setChatMessages(prev => [...prev, msg]);
+    };
+    const disconnected = () => setChatReady(false);
 
     const handleGoToGame = () => {
       navigate(`/game/${roomId}`);
@@ -148,17 +168,20 @@ export default function Lobby() {
     };
 
     socket.on('lobby_update', handleLobbyUpdate);
+    socket.on('disconnect', disconnected);
+    socket.on('lobby_chat_snapshot', handleLobbyChatSnapshot);
     socket.on('lobby_chat_receive', handleLobbyChatReceive);
     socket.on('go_to_game', handleGoToGame);
     socket.on('connect_error', handleConnectError);
     const join = async () => {
       try {
         const result = await socketRequest('join_lobby', { roomId, characterInfo: { id: activeCharacter?.id || null } });
+        if (!active) return;
         if (result.started) {
           if (result.characterId) localStorage.setItem('trpg_current_char_id', result.characterId);
           navigate(`/game/${roomId}`, { replace: true });
         }
-      } catch (error) { alert((error as Error).message); navigate('/hall', { replace: true }); }
+      } catch (error) { if (active) { alert((error as Error).message); navigate('/hall', { replace: true }); } }
     };
     const handleSessionError = (data: { reason: string }) => {
       alert(socketErrorMessage(data.reason)); navigate('/hall', { replace: true });
@@ -167,23 +190,40 @@ export default function Lobby() {
     socket.on('connect', join);
     if (socket.connected) void join();
     return () => {
+      active = false;
       socket.off('connect', join);
       socket.off('session_error', handleSessionError);
       socket.off('lobby_update', handleLobbyUpdate);
       socket.off('go_to_game', handleGoToGame);
+      socket.off('disconnect', disconnected);
+      socket.off('lobby_chat_snapshot', handleLobbyChatSnapshot);
       socket.off('lobby_chat_receive', handleLobbyChatReceive);
       socket.off('connect_error', handleConnectError);
     };
-  }, [roomId, myName, activeCharacter?.id, isCharactersLoaded, navigate]);
+  }, [roomId, activeCharacter?.id, isCharactersLoaded, navigate]);
 
   // SECTION: 大厅聊天发送
   // NOTE: 发送后只清空本地输入，显示由 lobby_chat_receive 广播统一追加。
-  const handleLobbyChat = () => {
-    if (!chatInput.trim()) return;
-    ensureSocketConnected();
-    const msgData = { id: Date.now(), sender: myName, text: chatInput, isSystem: false };
-    emitWhenConnected('lobby_chat_send', { roomId, msg: msgData });
-    setChatInput('');
+  const handleLobbyChat = async () => {
+    const text = chatInput.trim();
+    if (!text || chatBusy || !chatReady) return;
+    setChatBusy(true);
+    try {
+      await socketRequest('lobby_chat_send', { roomId, msg: { text } });
+      setChatInput(current => current.trim() === text ? '' : current);
+    } catch (error) { alert((error as Error).message); }
+    finally { setChatBusy(false); }
+  };
+  const loadOlderChat = async () => {
+    if (previousPage === null || chatBusy) return;
+    setChatBusy(true);
+    try {
+      const page = await socketRequest('lobby_chat_history', { roomId, page: previousPage });
+      heightBeforePrepend.current = chatBox.current?.scrollHeight ?? null;
+      setChatMessages(current => [...(page.messages || []).filter(msg => !current.some(m => m.id === msg.id)), ...current]);
+      setPreviousPage(page.previousPage ?? null);
+    } catch (error) { alert((error as Error).message); }
+    finally { setChatBusy(false); }
   };
 
   const updateRoomConfig = async (scriptId: string, rules: RoomRules) => {
@@ -424,7 +464,12 @@ export default function Lobby() {
           <h3 className="section-title">闲聊频道</h3>
           {/* SECTION: 大厅聊天 */}
           {/* NOTE: 这里只是开局前沟通，不进入正式房间日志和 AI 上下文。 */}
-          <div className="chat-box">
+          <div className="chat-box" ref={chatBox} onScroll={event => {
+            const box = event.currentTarget;
+            followLatest.current = box.scrollHeight - box.clientHeight - box.scrollTop < 24;
+          }}>
+            {previousPage === null ? <div className="chat-msg system">欢迎来到房间。</div> :
+              <button className="flat-btn secondary small" disabled={chatBusy || !chatReady} onClick={loadOlderChat}>查看更早的闲聊</button>}
             {chatMessages.map(msg => (
               <div key={msg.id} className={`chat-msg ${msg.isSystem ? 'system' : ''}`}>
                 <span>[{msg.sender}]</span> {msg.text}
@@ -435,12 +480,12 @@ export default function Lobby() {
             <input 
               type="text" 
               className="flat-input" 
-              placeholder="随便聊点什么..." 
+              placeholder="随便聊点什么..." maxLength={2000}
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleLobbyChat()} 
             />
-            <button className="flat-btn secondary" onClick={handleLobbyChat}>发送</button>
+            <button className="flat-btn secondary" disabled={chatBusy || !chatReady || !chatInput.trim()} onClick={handleLobbyChat}>发送</button>
           </div>
         </div>
       </div>

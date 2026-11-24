@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -eu
+umask 077
 
 APP_ROOT="${1:-/opt/hakugyokurou}"
 BACKUP_ROOT="${2:-/var/backups/hakugyokurou}"
@@ -8,7 +9,7 @@ STAMP="$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$BACKUP_ROOT"
 SERVER_ROOT="$APP_ROOT/ai-trpg-server"
 ITEMS=()
-for item in users.json characters.json notebooks.json rooms.json credits.json logs saves; do
+for item in users.json characters.json notebooks.json rooms.json credits.json provider-profiles logs saves; do
   if [ -e "$SERVER_ROOT/$item" ]; then
     ITEMS+=("$item")
   fi

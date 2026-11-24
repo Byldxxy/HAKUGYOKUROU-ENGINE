@@ -55,3 +55,5 @@ lerna-debug.log*
 ai-trpg-server/rooms.json
 
 ai-trpg-server/credits.json
+
+ai-trpg-server/provider-profiles/
