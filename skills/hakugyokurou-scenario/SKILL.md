@@ -1,6 +1,6 @@
 ---
 name: hakugyokurou-scenario
-description: 将小说、跑团模组、剧本、设定集或世界书等长文本改编成白玉楼 TRPG（风堇.com / HAKUGYOKUROU ENGINE）可加载、可推进、可结算的中文结构化剧本 JSON。用于为这个网站编制、续编或验证剧本。
+description: 将小说、跑团模组、剧本、设定集或世界书等长文本改编成白玉楼 TRPG（HAKUGYOKUROU ENGINE）可加载、可推进、可结算的中文结构化剧本 JSON。用于为这个网站编制、续编或验证剧本。
 ---
 
 # 白玉楼剧本编制
@@ -28,7 +28,7 @@ description: 将小说、跑团模组、剧本、设定集或世界书等长文�
 
 ## 编码、验证与交付
 
-1. 找到含有 `ai-trpg-server` 的项目根目录。本机项目在 `/Users/yewenyu/Desktop/trpg`。写 JSON 前读 [引擎字段与接入说明](references/engine.md)，对照当前仓库的实现。可从 [广播室示例](assets/broadcast.json) 起稿。系列用稳定的 `scenarioId`，各章用独立的 `id`；续编既有内容时保留存档使用的场景、事实和线索 ID。
+1. 找到含有 `ai-trpg-server` 的项目根目录。写 JSON 前读 [引擎字段与接入说明](references/engine.md)，对照当前仓库的实现。可从 [广播室示例](assets/broadcast.json) 起稿。系列用稳定的 `scenarioId`，各章用独立的 `id`；续编既有内容时保留存档使用的场景、事实和线索 ID。
 2. 写入用户指定的交付目录；在项目中编制时，沿用 `ai-trpg-server/scenarios/<作品>/<章节>.json`。多章节逐章交付并写清承接事实。将关键 NPC 反应、线索的发现方式、结局触发语义写进 KP 实际读得到的场景。核对玩家视图是否提前泄露秘密。
 3. 为该章编写少量回放数据，覆盖各预期结局、检定等待、失败后的推进和容易抢先触发的分支。用 Node 执行本技能的 [校验器](scripts/check-scenario.cjs)，参数依次为项目根目录、章节文件、可选的回放文件。格式见 [示例回放](assets/broadcast.routes.json)。不带回放时只验证结构与引擎初始化。检查结果有误时修正 **剧本的因果或字段** 并重跑。
 4. 交付章节文件、素材覆盖范围、关键改编取舍和验证到的结局。区分“JSON 已通过本地引擎回放”和“大厅已可选择”。用户要求接入大厅时，再按字段说明增加注册并做相应构建或联调。发布到服务器按当次请求的授权执行。

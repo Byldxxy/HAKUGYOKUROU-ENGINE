@@ -46,14 +46,15 @@ npm ci --omit=dev
 
 cd /opt/hakugyokurou/ai-trpg-web
 npm ci
+# 如需展示备案信息，先设置下文的构建参数
 npm run build
 ```
 
 前端默认使用当前页面域名访问 `/api` 和 `/socket.io`，无需把域名写死进源码。
 
-登录首页和大厅默认展示本站两项备案号。其他站点可在前端构建时设置 `VITE_ICP_NUMBER` 和 `VITE_POLICE_NUMBER`。
+构建前可在 `ai-trpg-web/.env.production.local` 或构建环境中设置 `VITE_ICP_NUMBER` 和 `VITE_POLICE_NUMBER`。登录页和大厅分别显示已填写的备案链接。修改后重新构建前端。该本地文件由 Git 忽略，`VITE_` 变量的值会进入浏览器资源，只应填写面向访客展示的内容。
 
-风堇.com 的 PM2 进程为 `hakugyokurou-server`，后端目录为 `/root/ai-trpg-server`，静态站点位于 `/var/www/trpg`。下方 `/opt` 命令适用于按模板新建的实例。更新前备份后端和静态目录，保留生产环境变量、账号、角色、笔记、rooms.json、logs 和 saves。先发布带哈希的资源，再切换 index.html。重启 PM2 后核验 HTTPS、健康接口和 Socket.IO 握手。
+更新时先备份运行数据，发布带哈希的静态资源后再切换 `index.html`。重启服务后核验 HTTPS、`/api/health` 和 Socket.IO 握手。
 
 ## 备份房间闲聊和自有接口
 
@@ -61,10 +62,10 @@ npm run build
 
 ## 发行 CDK 和备份额度
 
-在风堇.com 的 ECS 终端执行以下命令，每次生成一个新的 **100 点**兑换码。将参数改为 1 至 1,000,000 的整数即可指定点数。把终端输出最后一行私下交给购买者。
+在后端安装目录生成一次性兑换码。下例面额为 100 点，参数接受 1 至 1,000,000 的整数。将标准输出的兑换码私下交给使用者。
 
 ```bash
-cd /root/ai-trpg-server
+cd /opt/hakugyokurou/ai-trpg-server
 NODE_ENV=production node scripts/issue-cdk.js 100
 ```
 
