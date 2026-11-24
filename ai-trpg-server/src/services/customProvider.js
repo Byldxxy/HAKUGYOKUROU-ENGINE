@@ -71,7 +71,10 @@ const complete = async ({ endpoint, key, model }, messages, timeout) => {
         }
       });
     });
-    const timer = setTimeout(() => request.destroy(new Error('API 响应超时。')), timeout);
+    const timer = setTimeout(() => {
+      reject(new Error('自有 API 响应超时，请稍后重试。'));
+      request.destroy();
+    }, timeout);
     request.on('close', () => clearTimeout(timer));
     request.on('error', () => reject(new Error('无法连接自有 API，请检查配置。')));
     request.end(JSON.stringify({ model, messages, temperature: 0.5 }));

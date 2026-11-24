@@ -27,6 +27,7 @@ API_KEY=模型服务密钥
 BASE_URL=https://api.openai.com/v1
 MODEL_NAME=实际模型名
 AI_TIMEOUT_MS=30000
+CUSTOM_AI_TIMEOUT_MS=90000
 ```
 
 生成会话密钥：

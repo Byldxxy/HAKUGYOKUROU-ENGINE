@@ -47,6 +47,7 @@ const config = {
     baseURL: process.env.BASE_URL || 'https://api.openai.com/v1',
     model: process.env.MODEL_NAME || 'gpt-3.5-turbo',
     timeout: Number(process.env.AI_TIMEOUT_MS || 30000),
+    customTimeout: Number(process.env.CUSTOM_AI_TIMEOUT_MS || 90000),
     debugRaw: parseBoolean(process.env.AI_DEBUG_RAW, !isProduction),
   },
   reconnectGraceMs: Number(process.env.RECONNECT_GRACE_MS || 30000),

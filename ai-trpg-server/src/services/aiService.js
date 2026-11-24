@@ -56,7 +56,7 @@ const generateDirectorReply = async ({ lines, directorContext, provider }) => {
     ...buildHistoryContext(lines),
   ];
   const rawContent = provider
-    ? await require('./customProvider').complete(provider, messages, config.openai.timeout)
+    ? await require('./customProvider').complete(provider, messages, config.openai.customTimeout)
     : (await openai.chat.completions.create({ model: config.openai.model, messages, temperature: 0.5 })).choices[0].message.content;
   if (typeof rawContent !== 'string' || !rawContent.trim()) throw new Error('主持返回空回复。');
   if (config.openai.debugRaw) {

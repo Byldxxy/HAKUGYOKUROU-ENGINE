@@ -151,7 +151,7 @@ const maybeRunDm = async (io, room) => {
     io.to(room.id).emit('new_message', { role: 'dm', sender: '系统 DM', content });
   } catch (error) {
     room.dmError = true;
-    room.dmErrorText = /^(请房主|站点额度不足|自有 API 返回 HTTP \d{3}$|无法连接自有 API)/.test(error.message) ? error.message : '主持调用失败，请检查配置后重试。';
+    room.dmErrorText = /^(请房主|站点额度不足|自有 API 响应超时|自有 API 返回 HTTP \d{3}$|无法连接自有 API)/.test(error.message) ? error.message : '主持调用失败，请检查配置后重试。';
     console.error('AI 推进失败:', error.message);
     io.to(room.id).emit('dm_error', { message: '主持回复失败，行动已保留，可重试。' });
   } finally {
