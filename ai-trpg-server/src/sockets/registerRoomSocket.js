@@ -115,10 +115,11 @@ const maybeRunDm = async (io, room) => {
     const provider = byok ? profiles.load(payer) : undefined;
     if (byok && !provider) throw new Error('请房主保存自有 API 配置。');
     if (!byok) settle = credits.reserve(payer);
+    const lines = logs.readRoomLines(room.id);
     const result = campaignService.normalizeDirectorResult(await ai.generateDirectorReply({
       provider,
-      lines: logs.readRoomLines(room.id),
-      directorContext: campaignService.buildDirectorContext({ campaign: room.campaign, players: room.players }),
+      lines,
+      directorContext: campaignService.buildDirectorContext({ campaign: room.campaign, players: room.players, lines }),
     }));
     const requestedCount = result.requestedRolls.length;
     const seen = new Set();

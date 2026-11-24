@@ -135,6 +135,14 @@ interestSkillLimit = 70
 6. AI 回复通过 `new_message` 广播，并同步 `turn_state` 与 `campaign_state`。
 7. 任一玩家仍有待完成检定时，所有人的行动输入都应保持锁定。
 
+### KP 长期记忆
+
+`campaignMemory.js` 在服务器校验导演提议。每条记录有 kind、稳定 id、label、初次和最近变更回合、场景、叙述原句。item 记录持有人或地点与物件状态；promise 记录约定双方、内容与进度；information 记录某种说法、消息来源与获取方式。observers 分别保留每个人上一次获得的版本。初始队伍库存来自剧本，旧存档从已有库存开始，不推测以往对话中的变化。
+
+每次请求从当前玩家行动、上一段对话、场景及未结约定中选取至多 12 条记录。等待检定时暂缓写入，掷骰后的结算回复可提交。记忆先于线索、转场和结局判定更新；编剧可在条件中使用 itemHeldBy、promiseStatus。读档沿用原有战役快照；对玩家的公开投影只取既有公开字段。
+
+在后端执行 `npm run test:campaign` 验证七个结局和跨 22 回合记忆，`npm test` 另外验证 Socket 回合、持久化及换房读档。技能内的广播室示例可用其校验器执行偏航回放。
+
 ### 剧本状态机
 
 - 首个剧本文件：`ai-trpg-server/scenarios/peach-island/chapter-03.json`

@@ -11,7 +11,7 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trpg-test-'));
 const sockets = [];
 let child, output = '', aiCalls = 0, failNext = false, port;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const empty = { narration: '主持继续叙述。调查员甲，你现在可以：\n- 追问\n- 观察', requestedRolls: [], statChanges: [], revealedClueIds: [], proposedStateChanges: {}, proposedTransition: null, pacing: 'hold' };
+const empty = { narration: '主持继续叙述。KPC收好信封。调查员甲，你现在可以：\n- 追问\n- 观察', requestedRolls: [], statChanges: [], revealedClueIds: [], proposedStateChanges: {}, proposedTransition: null, pacing: 'hold' };
 const mock = http.createServer(async (req, res) => {
   let body = ''; for await (const chunk of req) body += chunk;
   assert.ok(JSON.parse(body).messages.some(m => m.role === 'system' && m.content.includes('权威导演上下文')));
@@ -19,6 +19,10 @@ const mock = http.createServer(async (req, res) => {
   aiCalls++;
   const content = aiCalls === 1 ? { ...empty, requestedRolls: [{ player: '调查员甲', skill: '侦查' }, { player: '调查员乙', skill: '射击:手枪' }], statChanges: [{ player: '调查员甲', type: 'HP', value: -5 }] }
     : { ...empty, statChanges: [{ player: '调查员甲', type: 'HP', value: -2 }] };
+  if (aiCalls <= 2) content.memoryChanges = [{ kind: 'item', id: 'folded-letter', label: '信封',
+    holder: 'npc-kpc', witnesses: ['调查员甲', 'npc-kpc'], evidence: 'KPC收好信封。' }];
+  const ctx = JSON.parse(JSON.parse(body).messages[1].content.split('\n').slice(1).join('\n'));
+  assert.equal(ctx.recalledMemory.some(e => e.id === 'folded-letter'), aiCalls > 2);
   res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }));
 });
 const start = async () => {
@@ -168,6 +172,10 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   await send(sb,'join_lobby',{roomId:second,characterInfo:{id:cb.id}});
   assert.equal((await send(sa2,'host_start_game',{roomId:second,loadSaveId:save.id})).success,true);
   await wait(()=>sa2.lobby.players.find(p=>p.characterId===ca.id).hp===6,'save HP');
+  const restoredCampaign = fs.readFileSync(path.join(dataDir, 'logs', 'room_' + second + '.jsonl'), 'utf8')
+    .trim().split('\n').map(line => JSON.parse(line)).filter(line => line.type === 'campaign_state').at(-1).campaign;
+  assert.equal(restoredCampaign.memory.find(e => e.id === 'folded-letter').state.holder, 'npc-kpc');
+  assert.ok(!JSON.stringify(history).includes('folded-letter'), 'private memory must stay out of room history');
   const fixture = { roomId: second, mode: 'custom', url: 'https://model.example/v1', model: 'sample', key: 'private-fixture-key' };
   const savedApi = await send(sa2, 'set_host_api', fixture);
   assert.equal(savedApi.configured, true);

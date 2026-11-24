@@ -1,0 +1,22 @@
+[
+  {"ending":"named-credit","steps":[
+    {"reply":{"requestedRolls":[{"player":"林宁","skill":"聆听"}],"proposedStateChanges":{"facts":{"verified":true}},"revealedClueIds":["station-id"],"proposedTransition":"booth"},"expect":{"scene":"counter","facts":{"verified":false},"clues":[]}},
+    {"note":"模拟失败后改用备用机，复核台呼。","reply":{"proposedStateChanges":{"facts":{"verified":true},"clockDeltas":{"closing":1}},"revealedClueIds":["station-id"],"proposedTransition":"booth"},"expect":{"scene":"booth","clocks":{"closing":1},"clues":["station-id"]}},
+    {"reply":{"proposedStateChanges":{"facts":{"consent":true}}},"expect":{"phase":"active"}},
+    {"reply":{"proposedStateChanges":{"facts":{"signed":true}}}}
+  ]},
+  {"ending":"anonymous-credit","steps":[
+    {"reply":{"proposedStateChanges":{"facts":{"verified":true}},"proposedTransition":"booth","revealedClueIds":["station-id"]},"expect":{"scene":"booth"}},
+    {"action":"收下磁带，答应匿名登记。","reply":{"narration":"馆员收下录音带，答应余青隐去姓名。","memoryChanges":[{"kind":"item","id":"item-tape","label":"录音带","holder":"npc-clerk","witnesses":["npc-clerk","npc-yu"],"evidence":"馆员收下录音带"},{"kind":"promise","id":"keep-name","label":"匿名约定","from":"npc-clerk","to":"npc-yu","terms":"隐去姓名","status":"open","witnesses":["npc-clerk","npc-yu"],"evidence":"答应余青隐去姓名"}]},"expect":{"phase":"active","memory":[{"kind":"promise","id":"keep-name","state":{"status":"open"}}]}},
+    {"action":"当着余青的面完成匿名登记。","reply":{"narration":"馆员留下匿名展卡，余青点了点头。","memoryChanges":[{"kind":"promise","id":"keep-name","label":"匿名约定","from":"npc-clerk","to":"npc-yu","terms":"隐去姓名","status":"kept","witnesses":["npc-clerk","npc-yu"],"evidence":"馆员留下匿名展卡"}],"proposedStateChanges":{"facts":{"anonymous":true}}},"expect":{"memory":[{"kind":"promise","id":"keep-name","state":{"status":"kept"}}]}}
+  ]},
+  {"name":"拒绝登记，把证物还给主人后离场","steps":[
+    {"action":"我不登记，把磁带还给余青。","reply":{"narration":"余青把录音带装进口袋，展卡仍空着。","memoryChanges":[{"kind":"item","id":"item-tape","label":"录音带","holder":"npc-yu","witnesses":["npc-yu"],"evidence":"余青把录音带装进口袋"}]},"expect":{"facts":{"verified":false,"signed":false},"memory":[{"kind":"item","id":"item-tape","state":{"holder":"npc-yu"}}]}},
+    {"action":"我先离开声音馆。","reply":{"narration":"门铃在你身后响了一声。"},"expect":{"phase":"active","clues":[],"memory":[{"kind":"item","id":"item-tape","who":"npc-clerk","absent":true}]}}
+  ]},
+  {"name":"误信传闻，连续两次辨听失败","steps":[
+    {"action":"馆员说这是港口录的，我信他。","reply":{"narration":"余青听见馆员说带子来自港口。","memoryChanges":[{"kind":"information","id":"origin","label":"来历传闻","source":"馆员","statement":"带子来自港口","basis":"heard","witnesses":["npc-yu"],"evidence":"余青听见馆员说带子来自港口。"}]},"expect":{"facts":{"verified":false},"memory":[{"kind":"information","id":"origin","who":"npc-yu","state":{"basis":"heard"}}]}},
+    {"action":"第一次辨听失败。","reply":{"narration":"底噪吞没了带尾。","proposedStateChanges":{"clockDeltas":{"closing":1}}},"expect":{"clocks":{"closing":1},"clues":[]}},
+    {"action":"换耳机再听，仍然失败。","reply":{"narration":"耳机里仍是沙沙声，值班员把播出记录放到桌面。","proposedStateChanges":{"clockDeltas":{"closing":1}}},"expect":{"scene":"counter","phase":"active","facts":{"verified":false},"clocks":{"closing":2},"clues":[]}}
+  ]}
+]

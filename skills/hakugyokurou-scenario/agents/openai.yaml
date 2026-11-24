@@ -1,0 +1,4 @@
+interface:
+  display_name: "白玉楼剧本编制"
+  short_description: "把长篇小说、模组和世界设定改编为白玉楼可运行、可验证的跑团章节"
+  default_prompt: "使用 $hakugyokurou-scenario 把我提供的素材改编成白玉楼可运行的结构化剧本，并验证各个结局。"

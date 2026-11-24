@@ -1,10 +1,12 @@
 const scenarioRepository = require('../repositories/scenarioRepository');
 
+const memory = require('../domain/campaignMemory');
+
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 const createCampaign = (scriptId = 'peach') => {
   const scenario = scenarioRepository.loadByScriptId(scriptId);
-  return {
+  const campaign = {
     scriptId,
     scenarioId: scenario.scenarioId,
     chapterId: scenario.id,
@@ -21,10 +23,13 @@ const createCampaign = (scriptId = 'peach') => {
     endingId: null,
     endingLabel: null,
   };
+  campaign.memory = memory.seed(campaign, scenario);
+  return campaign;
 };
 
 const migrateCampaign = (campaign) => {
   if (!campaign || typeof campaign !== 'object') return campaign;
+  if (!Array.isArray(campaign.memory)) campaign.memory = memory.seed(campaign, getScenario(campaign));
   if (campaign.clocks?.injury) delete campaign.clocks.injury;
   if (
     campaign.endingId === 'chapter-costly-capture' &&
@@ -102,6 +107,14 @@ const evaluateCondition = (condition, campaign) => {
   if (!condition) return true;
   if (Array.isArray(condition.all)) return condition.all.every((item) => evaluateCondition(item, campaign));
   if (Array.isArray(condition.any)) return condition.any.some((item) => evaluateCondition(item, campaign));
+  if (condition.itemHeldBy) {
+    const { id, holder } = condition.itemHeldBy;
+    return Boolean(holder && campaign.memory?.some(e => e.kind === 'item' && e.id === id && e.state.holder === holder));
+  }
+  if (condition.promiseStatus) {
+    const { id, status } = condition.promiseStatus;
+    return campaign.memory?.some(e => e.kind === 'promise' && e.id === id && e.state.status === status) || false;
+  }
   if (condition.fact) return campaign.facts[condition.fact] === condition.equals;
   if (condition.clock) return Number(campaign.clocks[condition.clock]?.value || 0) >= Number(condition.atLeast || 0);
   return false;
@@ -138,12 +151,13 @@ const normalizeDirectorResult = (result) => {
       ? value.proposedStateChanges
       : {},
     proposedTransition: typeof value.proposedTransition === 'string' ? value.proposedTransition : null,
+    memoryChanges: Array.isArray(value.memoryChanges) ? value.memoryChanges : [],
     pacing: ['hold', 'advance', 'escalate'].includes(value.pacing) ? value.pacing : 'hold',
   };
 };
 
 const applyDirectorResult = ({ campaign, directorResult }) => {
-  const next = clone(campaign);
+  const next = migrateCampaign(clone(campaign));
   const scenario = getScenario(next);
   const scene = getCurrentScene(scenario, next);
   const result = normalizeDirectorResult(directorResult);
@@ -163,6 +177,8 @@ const applyDirectorResult = ({ campaign, directorResult }) => {
     if (!clock || !allowedClocks.has(clockId) || !Number.isFinite(delta)) continue;
     clock.value = Math.min(clock.max, Math.max(0, clock.value + Math.min(2, Math.max(-2, delta))));
   }
+
+  if (!waitingForRolls) memory.apply(next, scenario, result.memoryChanges, result.narration);
 
   const allowedClues = new Set(scene.availableClues || []);
   const clueMap = new Map((scenario.clues || []).map((clue) => [clue.id, clue]));
@@ -207,11 +223,13 @@ const applyDirectorResult = ({ campaign, directorResult }) => {
   return { campaign: next, result, transition, ending };
 };
 
-const buildDirectorContext = ({ campaign, players }) => {
+const buildDirectorContext = ({ campaign, players, lines = [] }) => {
   const scenario = getScenario(campaign);
   const scene = getCurrentScene(scenario, campaign);
   const clueMap = new Map((scenario.clues || []).map((clue) => [clue.id, clue]));
 
+  const { memory: entries, ...campaignState } = migrateCampaign(campaign);
+  const actors = memory.actorDirectory(scenario, campaign);
   return {
     chapter: {
       id: scenario.id,
@@ -223,7 +241,10 @@ const buildDirectorContext = ({ campaign, players }) => {
     resolutionRules: scenario.resolutionRules || [],
     protectedSecrets: scenario.directorSecrets,
     currentScene: scene,
-    campaignState: campaign,
+    campaignState,
+    actorDirectory: actors,
+    itemDirectory: (scenario.items || []).map(({ id, name }) => ({ id, name })),
+    recalledMemory: memory.recall(entries, scene.id, lines, actors),
     revealedClues: campaign.revealedClueIds.map((id) => clueMap.get(id)).filter(Boolean),
     players: players.map((player) => ({ name: player.name, role: player.role })),
     outputContract: scenario.directorOutputContract,

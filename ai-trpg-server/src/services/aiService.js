@@ -10,7 +10,7 @@ const openai = new OpenAI({
 });
 
 // SECTION: AI 上下文构造
-// NOTE: 只取最近 15 条，控制 token 成本；长期记忆目前通过存档/日志文件保留。
+// NOTE: 只取最近 15 条，控制 token 成本；长期记忆由导演上下文单独召回。
 const buildHistoryContext = (lines) => {
   return lines
     .filter((line) => line.type === 'dm_reply' || line.type === 'player_action')

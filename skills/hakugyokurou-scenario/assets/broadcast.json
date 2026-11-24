@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "type": "chapter",
+  "status": "draft",
+  "id": "broadcast-last-tape",
+  "scenarioId": "harbour-voices",
+  "title": "闭馆前的十秒",
+  "summary": "港口声音馆闭馆前收到一盘标成空白的录音带。临时编目员要核对来源，再为明早的展览处理署名。",
+  "chapterGoal": "让录音有可核验的来源，并依照捐赠者的意愿完成编目。",
+  "adaptationRules": ["调查员是临时编目员。由玩家决定如何核验和登记。"],
+  "resolutionRules": ["先按已声明的方法给出能感知的结果。有辨听困难时提出聆听检定，等服务器骰点再结算。"],
+  "directorSecrets": ["潮汛广播停播前的最后一段是值班员余青录下的。她捐出磁带，但不愿馆方把捐赠误写成主持节目。"],
+  "initialState": {
+    "phase": "active", "currentSceneId": "counter", "round": 1,
+    "facts": {"verified": false, "consent": false, "signed": false, "anonymous": false},
+    "clocks": {"closing": {"label": "闭馆延迟", "value": 0, "max": 3}}, "inventory": []
+  },
+  "actors": [{"id":"npc-yu","name":"余青"},{"id":"npc-clerk","name":"馆员"}],
+  "items": [{"id":"item-tape","name":"录音带"}],
+  "clues": [
+    {"id": "station-id", "title": "十秒台呼", "content": "带尾的台呼与港口电台最后一晚的播出记录相符。", "requires": {"fact": "verified", "equals": true}}
+  ],
+  "scenes": [
+    {
+      "id": "counter", "title": "编目台", "location": "声音馆一楼",
+      "entryNarration": "卷闸门落到一半。柜台上摊着昨夜的播出日志，一盘写着“空白”的磁带压在最后一页。门边的女人把捐赠单放下，署名栏还空着。",
+      "objectives": ["余青带来磁带，愿意说明来历。带尾残留短台呼，日志上有对应时刻。播放或比对日志足以核实时设置 verified，揭示 station-id，进入 booth。若退还磁带或离开，尊重去向，展卡继续空白。传闻和失败的辨听都不足以核实台呼。"],
+      "allowedFactChanges": ["verified"], "allowedClockChanges": ["closing"], "availableClues": ["station-id"],
+      "suggestedChecks": [{"skill":"聆听","purpose":"只靠杂音辨出台呼的来源。","onFailure":"短促的女声淹没在底噪中。值班员从柜下搬来备用机复核，闭馆推迟一格；台呼依然能和日志对上。"}],
+      "transition": {"to": "booth", "when": {"fact": "verified", "equals": true}}
+    },
+    {
+      "id": "booth", "title": "登记间", "location": "编目台后的小间",
+      "entryNarration": "桌上的打字机夹着一张新卡。女人指尖停在“录制者”一栏：“那晚我按了录音键，说话的人不是我。”",
+      "objectives": ["余青愿意以录制者身份署名，也接受匿名。若玩家向她核实署名意愿，她会明确答复，设置 consent。经她同意实际登记录制者时才置 signed；余青接受匿名时，馆员答应隐去姓名，约定 ID 为 keep-name。实际完成匿名登记时置 anonymous，并将 keep-name 标为 kept；收件时将 item-tape 转交给馆员 npc-clerk。对话中的假设不会完成登记。"],
+      "allowedFactChanges": ["consent", "signed", "anonymous"], "allowedClockChanges": [], "availableClues": [],
+      "suggestedChecks": [], "transition": null
+    }
+  ],
+  "endings": [
+    {"id":"named-credit","label":"录制者一栏","priority":20,"conditions":{"all":[{"fact":"consent","equals":true},{"fact":"signed","equals":true}]},"result":{"phase":"completed","publicNarration":"次日的展柜里，卡片写着“录制：余青”。她站在玻璃外，听完了那十秒。"}},
+    {"id":"anonymous-credit","label":"匿名捐赠","priority":10,"conditions":{"all":[{"fact":"anonymous","equals":true},{"itemHeldBy":{"id":"item-tape","holder":"npc-clerk"}},{"promiseStatus":{"id":"keep-name","status":"kept"}}]},"result":{"phase":"completed","publicNarration":"展卡写着“匿名捐赠”。开馆的铃声过后，第一位观众把耳机戴上。"}}
+  ],
+  "directorOutputContract": {"format":"json","requiredFields":["narration","requestedRolls","statChanges","revealedClueIds","proposedStateChanges","proposedTransition","pacing"]}
+}
