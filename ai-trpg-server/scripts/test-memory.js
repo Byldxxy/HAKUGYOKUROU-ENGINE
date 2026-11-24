@@ -23,7 +23,7 @@ turn(handover.evidence + pledge.evidence, [handover, pledge]);
 assert.ok(!state.inventory.includes(mirror.id));
 const hide = { ...mirror, id: 'a-new-model-id', holder: undefined, location: '旧柜夹层',
   witnesses: ['npc-kpc'], evidence: 'KPC独自将怀表镜放入旧柜夹层。' };
-turn(hide.evidence, [hide]);
+turn('柜门被轻轻拉开。\n\n' + hide.evidence, [{ ...hide, evidence: undefined, evidenceParagraph: 2 }]);
 let entry = state.memory.find(e => e.id === mirror.id);
 assert.equal(state.memory.filter(e => e.kind === 'item').length, 1);
 assert.equal(entry.state.location, '旧柜夹层');

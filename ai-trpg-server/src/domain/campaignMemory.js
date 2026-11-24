@@ -52,10 +52,14 @@ function readState(change, actors) {
 
 function apply(campaign, scenario, changes, narration) {
   const actors = actorDirectory(scenario, campaign);
+  const paragraphs = narration.split(/\n+/).map(p => p.trim()).filter(Boolean);
   for (const change of changes.slice(0, 12)) {
     if (!kinds.has(change?.kind)) continue;
-    const label = short(change.label, 60), evidence = short(change.evidence, 180);
-    if (!label || !evidence || !narration.includes(evidence)) continue;
+    const label = short(change.label, 60);
+    const quote = short(change.evidence, 180);
+    const paragraph = Number.isInteger(change.evidenceParagraph) ? paragraphs[change.evidenceParagraph - 1] : '';
+    const evidence = quote && narration.includes(quote) ? quote : short(paragraph, 1200);
+    if (!label || !evidence) continue;
     let id = short(change.id, 80);
     if (!/^[\p{L}\p{N}][\p{L}\p{N}_-]*$/u.test(id)) continue;
     const def = change.kind === 'item' && scenario.items?.find(i => i.id === id || i.name === label);

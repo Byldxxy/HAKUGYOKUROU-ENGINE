@@ -24,28 +24,32 @@ const buildHistoryContext = (lines) => {
 
 const parseDirectorResponse = (content) => {
   const text = String(content || '').trim();
-  try {
-    return JSON.parse(text);
-  } catch {
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start !== -1 && end > start) {
-      try {
-        return JSON.parse(text.slice(start, end + 1));
-      } catch {
-        // NOTE: 供应商未遵循 JSON 要求时降级为纯叙述，禁止产生任何状态副作用。
-      }
+  const start = text.indexOf('{'), end = text.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    const objectText = text.slice(start, end + 1);
+    // Some compatible providers emit literal line breaks inside quoted JSON strings.
+    // Escape control characters only inside complete strings, preserving all other syntax.
+    const escaped = objectText.replace(/"(?:[^"\\]|\\[\s\S])*"/g,
+      str => str.replace(/[\u0000-\u001f]/g, ch => JSON.stringify(ch).slice(1, -1)));
+    try {
+      const parsed = JSON.parse(escaped);
+      if (typeof parsed.narration === 'string' && parsed.narration.trim()) return parsed;
+    } catch {
+      // Structured responses that remain invalid are retryable, never shown as KP prose.
     }
-    return {
-      narration: text || '空气短暂地安静下来，局势没有发生新的变化。',
-      requestedRolls: [],
-      statChanges: [],
-      revealedClueIds: [],
-      proposedStateChanges: {},
-      proposedTransition: null,
-      pacing: 'hold',
-    };
   }
+  if (/^\s*(?:```|[\[{])/.test(text) || /"narration"\s*:/.test(text)) {
+    throw new Error('主持返回的导演数据不完整。');
+  }
+  return {
+    narration: text || '空气短暂地安静下来，局势没有发生新的变化。',
+    requestedRolls: [],
+    statChanges: [],
+    revealedClueIds: [],
+    proposedStateChanges: {},
+    proposedTransition: null,
+    pacing: 'hold',
+  };
 };
 
 // SECTION: 剧本导演回复生成

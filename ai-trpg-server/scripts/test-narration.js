@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const { cleanKpNarration } = require('../src/domain/narration');
 process.env.API_KEY = 'offline-test';
-const { buildHistoryContext } = require('../src/services/aiService');
+const { buildHistoryContext, parseDirectorResponse } = require('../src/services/aiService');
 
 const scene = '他的目光移回你身上，看不出波澜。';
 const inline = scene + '你现在可以： · 继续追问KPC · 观察台下的黑袍人群';
@@ -22,3 +22,9 @@ const history = buildHistoryContext([
 assert.equal(history[0].content, scene);
 assert.ok(history[1].content.endsWith(inline));
 console.log('PASS inline and multiline KP menus, old history, NPC speech, player messages and check directives.');
+
+const multiline = '{"narration":"第一段。\n\n第二段。","memoryChanges":[]}';
+assert.equal(parseDirectorResponse(multiline).narration, '第一段。\n\n第二段。');
+assert.deepEqual(parseDirectorResponse(JSON.stringify({narration:'门上写着 "A"。'})), {narration:'门上写着 "A"。'});
+assert.throws(() => parseDirectorResponse('{"narration":"截断'), /导演数据/);
+assert.equal(parseDirectorResponse('雨停了。').narration, '雨停了。');

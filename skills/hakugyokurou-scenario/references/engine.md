@@ -31,6 +31,6 @@
 
 ## 战役记忆与回放
 
-导演提交的每个 `memoryChanges` 元素含 `id`、`kind`、`label`、`witnesses` 和摘自本次公开叙述的 `evidence`。道具填 `holder` 或 `location`，可带 `condition`；承诺填 `from/to/terms/status`；情报填 `statement/source/basis`。现场所见用 observed，转述用 heard。NPC 优先用剧本演员 ID，玩家用角色目录中的 pc:角色卡ID。等骰点时服务端暂缓全部记忆变更。实况、每人最近一次所知和相应出处随快照保存。用普通事实记录「曾经取得」，用 itemHeldBy 判断「此刻在谁手中」。
+导演提交的每个 `memoryChanges` 元素含 `id`、`kind`、`label`、`witnesses` 和依据所在的非空段号 `evidenceParagraph`（从 1 起）。也可给出本次公开叙述的原句 `evidence`。道具填 `holder` 或 `location`，可带 `condition`；承诺填 `from/to/terms/status`；情报填 `statement/source/basis`。现场所见用 observed，转述用 heard。NPC 优先用剧本演员 ID，玩家用角色目录中的 pc:角色卡ID。等骰点时服务端暂缓全部记忆变更。实况、每人最近一次所知和相应出处随快照保存。用普通事实记录「曾经取得」，用 itemHeldBy 判断「此刻在谁手中」。
 
 回放的短路线可用 `name` 代替 `ending`，末步应断言仍能行动。每步的 `action` 记玩家选择，`reply` 是测试注入的已知导演提议，`expect.memory` 用 kind、id 指定对象，可核对 state 中字段，或给 who 核对特定观察者。absent:true 检查记录或该人的见闻缺失。结局覆盖仍需完整路线。示例里的拒绝、错误传闻、连续失败与离场不会触发署名。
