@@ -64,7 +64,7 @@
       "max": 18
     },
     "maxStagnantRounds": 2,
-    "stagnationResponse": "提供一个环境变化、NPC提醒或代价明确的可执行选择，但不得直接替玩家作决定。",
+    "stagnationResponse": "按已经发生的事呈现环境变化或NPC自身的反应，停在可观察的后果处，等待玩家行动。",
     "failForward": true,
     "criticalCluesCannotBeLost": true,
     "pursuitAdvanceTriggers": [

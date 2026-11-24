@@ -141,7 +141,7 @@ const maybeRunDm = async (io, room) => {
     }
     room.campaign = applied.campaign;
     campaignService.applyPartyStatChanges(room.campaign, changes);
-    const content = [stripDirectives(result.narration) || '局势暂时没有变化，请决定下一步行动。',
+    const content = [stripDirectives(result.narration) || '局势暂时没有变化。',
       ...result.requestedRolls.map((request) => `<<ROLL:${request.skill}:${request.player}>>`),
       ...changes.map((change) => `<<STAT:${change.playerName}:${change.type}:${change.value}>>`),
       applied.transition?.entryNarration, applied.ending?.result?.publicNarration].filter(Boolean).join('\n\n');

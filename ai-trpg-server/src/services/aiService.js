@@ -1,5 +1,6 @@
 const { OpenAI } = require('openai');
 const config = require('../config');
+const { cleanKpNarration } = require('../domain/narration');
 const SYSTEM_PROMPT = require('../ai/systemPrompt');
 
 const openai = new OpenAI({
@@ -17,7 +18,7 @@ const buildHistoryContext = (lines) => {
     .map((line) => ({
     // NOTE: dm_reply 作为 assistant，玩家行动作为 user，贴近 Chat Completions 角色语义。
     role: line.type === 'dm_reply' ? 'assistant' : 'user',
-    content: line.type === 'dm_reply' ? line.content : `[${line.playerName}的行动]: ${line.content}`,
+    content: line.type === 'dm_reply' ? cleanKpNarration(line.content) : `[${line.playerName}的行动]: ${line.content}`,
     }));
 };
 
@@ -62,7 +63,9 @@ const generateDirectorReply = async ({ lines, directorContext, provider }) => {
   if (config.openai.debugRaw) {
     console.log(`\n🤖 [AI 原始导演回复]\n${String(rawContent || '')}\n`);
   }
-  return parseDirectorResponse(rawContent);
+  const result = parseDirectorResponse(rawContent);
+  if (typeof result?.narration === 'string') result.narration = cleanKpNarration(result.narration);
+  return result;
 };
 
 module.exports = {

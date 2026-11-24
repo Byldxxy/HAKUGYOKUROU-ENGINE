@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { cleanKpNarration } = require('../domain/narration');
 const config = require('../config');
 const { appendJsonLine, ensureDir, readJsonLines } = require('../storage/jsonFile');
 
@@ -75,7 +76,7 @@ const listRoomMessages = (roomId) => {
     .map(({ line, logIndex }) => ({
       role: line.type === 'dm_reply' ? 'dm' : ((line.content || '').includes('D100 =') ? 'roll' : 'player'),
       sender: line.playerName,
-      content: line.content,
+      content: line.type === 'dm_reply' ? cleanKpNarration(line.content) : line.content,
       rollId: line.rollId,
       logIndex,
     }));

@@ -11,7 +11,7 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trpg-test-'));
 const sockets = [];
 let child, output = '', aiCalls = 0, failNext = false, port;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const empty = { narration: '主持继续叙述。', requestedRolls: [], statChanges: [], revealedClueIds: [], proposedStateChanges: {}, proposedTransition: null, pacing: 'hold' };
+const empty = { narration: '主持继续叙述。调查员甲，你现在可以：\n- 追问\n- 观察', requestedRolls: [], statChanges: [], revealedClueIds: [], proposedStateChanges: {}, proposedTransition: null, pacing: 'hold' };
 const mock = http.createServer(async (req, res) => {
   let body = ''; for await (const chunk of req) body += chunk;
   assert.ok(JSON.parse(body).messages.some(m => m.role === 'system' && m.content.includes('权威导演上下文')));
@@ -117,6 +117,10 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await send(sb,'player_action',{roomId,isRoll:true,rollId:rb})).success,true);
   await wait(()=>sa.turn?.mode==='waiting_players' && sa.lobby.players.find(p=>p.characterId===ca.id).hp===8,'settlement');
   const history=(await api('/room_history?roomId='+roomId,a.cookie)).data;
+  assert.ok(history.messages.some(m => m.role === 'dm' && m.content.includes('主持继续叙述。')));
+  assert.ok(history.messages.every(m => !m.content.includes('你现在可以')));
+  const written = fs.readFileSync(path.join(dataDir, 'logs', 'room_' + roomId + '.jsonl'), 'utf8');
+  assert.ok(!written.includes('你现在可以'), 'new replies must be cleaned before persistence');
   assert.equal(history.messages.filter(m=>m.role==='roll').length,2);
   assert.ok(history.messages.filter(m=>m.role==='roll').every(m=>!m.content.includes('999')));
   assert.equal((await api('/notebooks',a.cookie,{roomId,notebook:{freeNotes:'线索记录',clues:['线索一'],graphNodes:[],graphEdges:[]}},'PUT')).status,200);
