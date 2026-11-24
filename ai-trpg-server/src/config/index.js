@@ -9,6 +9,7 @@ const envFileName = requestedNodeEnv === 'production' ? '.env.production' : '.en
 dotenv.config({ path: path.join(serverRoot, envFileName) });
 const nodeEnv = process.env.NODE_ENV || requestedNodeEnv;
 const isProduction = nodeEnv === 'production';
+const dataRoot = path.resolve(process.env.TRPG_DATA_DIR || serverRoot);
 
 const parseBoolean = (value, fallback) => {
   if (value === undefined || value === '') return fallback;
@@ -48,14 +49,16 @@ const config = {
     timeout: Number(process.env.AI_TIMEOUT_MS || 30000),
     debugRaw: parseBoolean(process.env.AI_DEBUG_RAW, !isProduction),
   },
+  reconnectGraceMs: Number(process.env.RECONNECT_GRACE_MS || 30000),
   paths: {
+    roomsFile: path.join(dataRoot, 'rooms.json'),
     // NOTE: 当前原型使用本地文件；上线迁数据库时，仓储层可以替换实现而不改路由。
-    usersFile: path.join(serverRoot, 'users.json'),
-    charactersFile: path.join(serverRoot, 'characters.json'),
-    logsDir: path.join(serverRoot, 'logs'),
-    savesDir: path.join(serverRoot, 'saves'),
-    savesMetaFile: path.join(serverRoot, 'saves', 'meta.json'),
-    notebooksFile: path.join(serverRoot, 'notebooks.json'),
+    usersFile: path.join(dataRoot, 'users.json'),
+    charactersFile: path.join(dataRoot, 'characters.json'),
+    logsDir: path.join(dataRoot, 'logs'),
+    savesDir: path.join(dataRoot, 'saves'),
+    savesMetaFile: path.join(dataRoot, 'saves', 'meta.json'),
+    notebooksFile: path.join(dataRoot, 'notebooks.json'),
   },
 };
 

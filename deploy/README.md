@@ -50,6 +50,10 @@ npm run build
 
 前端默认使用当前页面域名访问 `/api` 和 `/socket.io`，无需把域名写死进源码。
 
+登录首页和大厅默认展示本站两项备案号。其他站点可在前端构建时设置 `VITE_ICP_NUMBER` 和 `VITE_POLICE_NUMBER`。
+
+风堇.com 的 PM2 进程为 `hakugyokurou-server`，后端目录为 `/root/ai-trpg-server`，静态站点位于 `/var/www/trpg`。下方 `/opt` 命令适用于按模板新建的实例。更新前备份后端和静态目录，保留生产环境变量、账号、角色、笔记、rooms.json、logs 和 saves。先发布带哈希的资源，再切换 index.html。重启 PM2 后核验 HTTPS、健康接口和 Socket.IO 握手。
+
 ## 3. 旧密码迁移
 
 迁移前先备份 `users.json`，随后运行：

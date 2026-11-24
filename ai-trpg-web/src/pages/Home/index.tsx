@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 import { apiFetch } from '../../config';
-import { socket } from '../../socket';
+import type { Character } from '../../domain/types';
+import { socketRequest, socket } from '../../socket';
 import StyledSelect from '../../components/StyledSelect';
+import SiteFooter from '../../components/SiteFooter';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -11,8 +13,8 @@ export default function Home() {
   // SECTION: 加入房间输入
   // NOTE: 房间号保持 6 位纯数字，和创建房间的随机规则一致。
   const [joinId, setJoinId] = useState('');
-  const [characterList, setCharacterList] = useState<any[]>([]);
-  const [activeCharacter, setActiveCharacter] = useState<any>(null);
+  const [characterList, setCharacterList] = useState<Character[]>([]);
+  const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
 
   useEffect(() => {
     const loadCharacters = async () => {
@@ -21,7 +23,7 @@ export default function Home() {
         const data = await response.json();
         const cards = data.success ? (data.cards || []) : [];
         const savedCharacterId = localStorage.getItem('trpg_current_char_id');
-        const selected = cards.find((card: any) => card.id === savedCharacterId) || cards[0] || null;
+        const selected = cards.find((card: Character) => card.id === savedCharacterId) || cards[0] || null;
         setCharacterList(cards);
         setActiveCharacter(selected);
         if (selected) localStorage.setItem('trpg_current_char_id', selected.id);
@@ -45,16 +47,20 @@ export default function Home() {
   };
 
   // SECTION: 创建房间
-  // NOTE: 当前房间 ID 由前端随机生成；上线前可改成后端生成避免碰撞。
-  const handleCreateRoom = () => {
-    const randomId = Math.floor(100000 + Math.random() * 900000).toString();
-    navigate(`/lobby/${randomId}`);
+  const [creatingRoom, setCreatingRoom] = useState(false);
+  const handleCreateRoom = async () => {
+    if (creatingRoom) return;
+    setCreatingRoom(true);
+    try {
+      const result = await socketRequest('create_room', {});
+      navigate(`/lobby/${result.roomId}`);
+    } catch (error) { alert((error as Error).message); }
+    finally { setCreatingRoom(false); }
   };
 
   // SECTION: 加入房间
-  // NOTE: 这里只校验长度，房间是否存在由 Socket 大厅状态自然创建/同步。
   const handleJoinRoom = () => {
-    if (joinId.length === 6) {
+    if (/^\d{6}$/.test(joinId)) {
       navigate(`/lobby/${joinId}`);
     } else {
       alert("请输入正确的 6 位数房间号！");
@@ -65,9 +71,11 @@ export default function Home() {
   // NOTE: 同时清理当前角色 ID，避免下个账号继承上个账号的出战角色。
   const handleLogout = async () => {
     try {
-      await apiFetch('/api/logout', { method: 'POST' });
+      const response = await apiFetch('/api/logout', { method: 'POST' });
+      if (!response.ok) throw new Error('logout');
     } catch {
-      // NOTE: 即使网络失败也清理本地状态，避免共用设备残留上一个账号。
+      alert('退出失败，请检查网络后重试。');
+      return;
     }
     localStorage.removeItem('trpg_username');
     localStorage.removeItem('trpg_nickname');
@@ -111,7 +119,7 @@ export default function Home() {
             </div>
           </div>
 
-          <button className="flat-btn primary" onClick={handleCreateRoom}>
+          <button className="flat-btn primary" disabled={creatingRoom} onClick={handleCreateRoom}>
             创建新房间
           </button>
           
@@ -124,7 +132,8 @@ export default function Home() {
               placeholder="输入 6 位房间号" 
               maxLength={6}
               value={joinId}
-              onChange={(e) => setJoinId(e.target.value)}
+              inputMode="numeric"
+              onChange={(e) => setJoinId(e.target.value.replace(/\D/g, ''))}
             />
             <button className="flat-btn secondary" onClick={handleJoinRoom}>进入</button>
           </div>
@@ -132,6 +141,7 @@ export default function Home() {
         
         <div className="footer-text">极简 · 沉浸 · 纯粹</div>
       </div>
+      <SiteFooter />
     </div>
   );
 }

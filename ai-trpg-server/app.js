@@ -35,6 +35,7 @@ const io = new Server(server, {
   maxHttpBufferSize: 512 * 1024,
 });
 io.use(authenticateSocket);
+app.set('io', io);
 
 // SECTION: Express 中间件
 // NOTE: JSON 限制 2mb，足够当前角色卡/笔记 payload，避免过大的请求压垮本地文件写入。

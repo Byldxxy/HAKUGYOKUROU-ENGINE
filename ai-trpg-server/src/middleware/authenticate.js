@@ -5,7 +5,7 @@ const getAuthenticatedUser = (cookieHeader) => {
   const session = securityService.getSessionFromCookieHeader(cookieHeader);
   if (!session) return null;
   const user = userRepository.findByUsername(session.username);
-  return user ? { username: user.username, expiresAt: session.expiresAt } : null;
+  return user && (user.sessionVersion || 0) === session.version ? { username: user.username, expiresAt: session.expiresAt } : null;
 };
 
 const requireAuth = (req, res, next) => {
@@ -23,6 +23,7 @@ const authenticateSocket = (socket, next) => {
 };
 
 module.exports = {
+  getAuthenticatedUser,
   authenticateSocket,
   requireAuth,
 };

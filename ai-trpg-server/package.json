@@ -9,7 +9,9 @@
     "start:prod": "NODE_ENV=production node app.js",
     "check": "node --check app.js",
     "test:campaign": "node scripts/test-campaign.js",
-    "migrate:passwords": "node scripts/migrate-passwords.js"
+    "migrate:passwords": "node scripts/migrate-passwords.js",
+    "test": "npm run test:campaign && node scripts/generate-character-rules.js --check && node scripts/test-integration.js",
+    "test:live-ai": "node scripts/test-live-ai.js"
   },
   "keywords": [],
   "author": "",

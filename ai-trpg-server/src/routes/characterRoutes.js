@@ -18,6 +18,7 @@ router.post('/', (req, res, next) => {
       return res.status(400).json({ success: false, message: '缺少卡片数据' });
     }
     const username = req.user.username;
+    if (cardData.id && require('../repositories/roomRepository').characterInUse(username, cardData.id)) return res.status(409).json({ success: false, error: '角色正在战役中使用，请先退出该战役。' });
 
     // NOTE: repository 会返回归一化后的摘要，前端用它刷新大厅角色下拉框。
     const { card, created } = characterRepository.saveForUsername(username, cardData);
@@ -33,6 +34,7 @@ router.post('/', (req, res, next) => {
 router.delete('/:id', (req, res) => {
   const { id } = req.params;
   const username = req.user.username;
+  if (require('../repositories/roomRepository').characterInUse(username, id)) return res.status(409).json({ success: false, error: '角色正在战役中使用，请先退出该战役。' });
   const deleted = characterRepository.deleteForUsername(username, id);
 
   if (!deleted) {

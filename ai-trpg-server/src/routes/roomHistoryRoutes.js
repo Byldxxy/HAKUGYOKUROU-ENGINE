@@ -1,3 +1,4 @@
+const rooms = require('../repositories/roomRepository');
 const express = require('express');
 const roomLogRepository = require('../repositories/roomLogRepository');
 const campaignService = require('../services/campaignService');
@@ -11,6 +12,7 @@ router.get('/', (req, res) => {
   const { roomId } = req.query;
   if (!isValidRoomId(roomId)) return res.status(400).json({ success: false, messages: [] });
 
+  if (!rooms.canRead(roomId, req.user.username)) return res.status(403).json({ success: false, error: '无权访问该房间。' });
   const campaign = roomLogRepository.getLatestCampaignState(roomId);
   res.json({
     success: true,

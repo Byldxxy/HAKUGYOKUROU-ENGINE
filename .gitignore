@@ -50,3 +50,6 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Persistent room membership
+ai-trpg-server/rooms.json

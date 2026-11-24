@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Lobby.css';
 import { apiFetch } from '../../config';
-import { emitWhenConnected, ensureSocketConnected, socket } from '../../socket';
+import type { Character, PublicPlayer, Save, LobbyMessage } from '../../domain/types';
+import { socketRequest, socketErrorMessage, emitWhenConnected, ensureSocketConnected, socket } from '../../socket';
 import StyledSelect from '../../components/StyledSelect';
 import { DEFAULT_ROOM_RULES, type RoomRules } from '../../domain/roomRules';
 
@@ -24,28 +25,28 @@ export default function Lobby() {
   const navigate = useNavigate();
   const { roomId } = useParams();
 
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<LobbyMessage[]>([
+    { id: 1, sender: '系统', text: '欢迎来到房间。', isSystem: true },
+  ]);
+  const [starting, setStarting] = useState(false);
   // SECTION: 大厅状态
   // NOTE: 房主身份由后端 ownerName 广播决定，前端不自行猜测。
-  const [roomPlayers, setRoomPlayers] = useState<any[]>([]);
+  const [roomPlayers, setRoomPlayers] = useState<PublicPlayer[]>([]);
   const [isOwner, setIsOwner] = useState(false);
   const [roomOwnerName, setRoomOwnerName] = useState('');
 
   // SECTION: 角色与存档状态
   // NOTE: activeCharacter 决定玩家在大厅和游戏内的展示名，也是 ROLL 归属依据。
-  const [characterList, setCharacterList] = useState<any[]>([]);
-  const [activeCharacter, setActiveCharacter] = useState<any>(null);
+  const [characterList, setCharacterList] = useState<Character[]>([]);
+  const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [isCharactersLoaded, setIsCharactersLoaded] = useState(false);
-  const [saveList, setSaveList] = useState<any[]>([]);
+  const [saveList, setSaveList] = useState<Save[]>([]);
   const [selectedSaveId, setSelectedSaveId] = useState('');
   const [selectedScriptId, setSelectedScriptId] = useState('peach');
   const [roomRules, setRoomRules] = useState<RoomRules>(DEFAULT_ROOM_RULES);
   const [roomRuleDrafts, setRoomRuleDrafts] = useState<RoomRuleDrafts>(() => createRoomRuleDrafts(DEFAULT_ROOM_RULES));
   const [editingRoomRule, setEditingRoomRule] = useState<keyof RoomRules | null>(null);
-
-  // NOTE: 服务端房规更新后刷新输入草稿；用户键入期间只改草稿，不逐字符广播。
-  useEffect(() => {
-    if (!editingRoomRule) setRoomRuleDrafts(createRoomRuleDrafts(roomRules));
-  }, [roomRules, editingRoomRule]);
 
   // SECTION: 剧本选项
   // NOTE: 当前只作为 UI 选择保留，AI 实际模型和提示词仍由后端配置控制。
@@ -58,35 +59,18 @@ export default function Lobby() {
 
   // SECTION: 角色卡加载
   // NOTE: 加载完成前不 join_lobby，避免用“未知调查员”占位写入房间玩家列表。
-  const loadCharacters = useCallback(async () => {
-    const username = localStorage.getItem('trpg_username');
-    if (!username) {
-      setIsCharactersLoaded(true);
-      return;
-    }
-
-    try {
-      setIsCharactersLoaded(false);
-      const res = await apiFetch('/api/characters');
-      const data = await res.json();
-      const cards = data.success ? (data.cards || []) : [];
+  const loadCharacters = useCallback(() => apiFetch('/api/characters')
+    .then(response => { if (!response.ok) throw new Error('角色卡加载失败'); return response.json(); })
+    .then(data => {
+      const cards: Character[] = data.success ? (data.cards || []) : [];
       const savedCharId = localStorage.getItem('trpg_current_char_id');
-      // NOTE: 优先恢复上次选中的角色；没有缓存时默认使用第一张卡。
-      const selected = cards.find((card: any) => card.id === savedCharId) || cards[0] || null;
-
+      const selected = cards.find(card => card.id === savedCharId) || cards[0] || null;
       setCharacterList(cards);
       setActiveCharacter(selected);
-      if (selected) {
-        localStorage.setItem('trpg_current_char_id', selected.id);
-      } else {
-        localStorage.removeItem('trpg_current_char_id');
-      }
-    } catch (error) {
-      console.error('拉取角色卡失败', error);
-    } finally {
+      if (selected) localStorage.setItem('trpg_current_char_id', selected.id);
+      else localStorage.removeItem('trpg_current_char_id');
       setIsCharactersLoaded(true);
-    }
-  }, []);
+    }).catch(error => { console.error(error); alert('角色卡加载失败，请刷新重试。'); }), []);
 
   // SECTION: 存档列表加载
   // NOTE: 存档只供房主选择，普通玩家仍会看到等待配置提示。
@@ -140,15 +124,15 @@ export default function Lobby() {
   useEffect(() => {
     if (!roomId || !isCharactersLoaded) return;
     ensureSocketConnected();
-    const handleLobbyUpdate = (data: any) => {
+    const handleLobbyUpdate = (data: { players: PublicPlayer[]; ownerName: string; ownerId: string; roomConfig: { scriptId: string; rules: RoomRules } }) => {
       setRoomPlayers(data.players);
       setRoomOwnerName(data.ownerName);
-      setIsOwner(myName === data.ownerName);
+      setIsOwner(socket.id === data.ownerId);
       if (data.roomConfig?.scriptId) setSelectedScriptId(data.roomConfig.scriptId);
       if (data.roomConfig?.rules) setRoomRules(data.roomConfig.rules);
     };
 
-    const handleLobbyChatReceive = (msg: any) => {
+    const handleLobbyChatReceive = (msg: LobbyMessage) => {
       // NOTE: 闲聊消息不持久化，只在当前大厅会话中广播显示。
       setChatMessages(prev => [...prev, msg]);
     };
@@ -166,29 +150,30 @@ export default function Lobby() {
     socket.on('lobby_chat_receive', handleLobbyChatReceive);
     socket.on('go_to_game', handleGoToGame);
     socket.on('connect_error', handleConnectError);
-    emitWhenConnected(
-      'join_lobby',
-      { roomId, characterInfo: { id: activeCharacter?.id || null } },
-      (result: { success?: boolean; reason?: string }) => {
-        if (result?.success) return;
-        console.error('加入 Lobby 失败', result?.reason || 'unknown');
-      }
-    );
+    const join = async () => {
+      try {
+        const result = await socketRequest('join_lobby', { roomId, characterInfo: { id: activeCharacter?.id || null } });
+        if (result.started) {
+          if (result.characterId) localStorage.setItem('trpg_current_char_id', result.characterId);
+          navigate(`/game/${roomId}`, { replace: true });
+        }
+      } catch (error) { alert((error as Error).message); navigate('/hall', { replace: true }); }
+    };
+    const handleSessionError = (data: { reason: string }) => {
+      alert(socketErrorMessage(data.reason)); navigate('/hall', { replace: true });
+    };
+    socket.on('session_error', handleSessionError);
+    socket.on('connect', join);
+    if (socket.connected) void join();
     return () => {
+      socket.off('connect', join);
+      socket.off('session_error', handleSessionError);
       socket.off('lobby_update', handleLobbyUpdate);
       socket.off('go_to_game', handleGoToGame);
       socket.off('lobby_chat_receive', handleLobbyChatReceive);
       socket.off('connect_error', handleConnectError);
     };
   }, [roomId, myName, activeCharacter?.id, isCharactersLoaded, navigate]);
-
-  // SECTION: 大厅闲聊状态
-  // NOTE: 初始两条消息只是 UI 占位，不会写入后端日志。
-  const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState([
-    { id: 1, sender: '系统', text: '欢迎来到房间。', isSystem: true },
-    { id: 2, sender: '玩家A', text: '房主搞快点，我的骰子已经饥渴难耐了！', isSystem: false }
-  ]);
 
   // SECTION: 大厅聊天发送
   // NOTE: 发送后只清空本地输入，显示由 lobby_chat_receive 广播统一追加。
@@ -200,10 +185,9 @@ export default function Lobby() {
     setChatInput('');
   };
 
-  const updateRoomConfig = (scriptId: string, rules: RoomRules) => {
-    setSelectedScriptId(scriptId);
-    setRoomRules(rules);
-    socket.emit('update_room_config', { roomId, scriptId, rules });
+  const updateRoomConfig = async (scriptId: string, rules: RoomRules) => {
+    try { await socketRequest('update_room_config', { roomId, scriptId, rules }); }
+    catch (error) { alert((error as Error).message); }
   };
 
   const updateRoomRule = (key: keyof RoomRules, value: number) => {
@@ -277,9 +261,9 @@ export default function Lobby() {
                     type="number"
                     min="100"
                     max="1000"
-                    value={roomRuleDrafts.pointBuyLimit}
+                    value={editingRoomRule === 'pointBuyLimit' ? roomRuleDrafts.pointBuyLimit : String(roomRules.pointBuyLimit)}
                     onChange={(event) => setRoomRuleDrafts(current => ({ ...current, pointBuyLimit: event.target.value }))}
-                    onFocus={() => setEditingRoomRule('pointBuyLimit')}
+                    onFocus={() => { setRoomRuleDrafts(createRoomRuleDrafts(roomRules)); setEditingRoomRule('pointBuyLimit'); }}
                     onBlur={() => { commitRoomRule('pointBuyLimit'); setEditingRoomRule(null); }}
                     onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
                   />
@@ -290,9 +274,9 @@ export default function Lobby() {
                     type="number"
                     min="1"
                     max="100"
-                    value={roomRuleDrafts.occupationSkillLimit}
+                    value={editingRoomRule === 'occupationSkillLimit' ? roomRuleDrafts.occupationSkillLimit : String(roomRules.occupationSkillLimit)}
                     onChange={(event) => setRoomRuleDrafts(current => ({ ...current, occupationSkillLimit: event.target.value }))}
-                    onFocus={() => setEditingRoomRule('occupationSkillLimit')}
+                    onFocus={() => { setRoomRuleDrafts(createRoomRuleDrafts(roomRules)); setEditingRoomRule('occupationSkillLimit'); }}
                     onBlur={() => { commitRoomRule('occupationSkillLimit'); setEditingRoomRule(null); }}
                     onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
                   />
@@ -303,9 +287,9 @@ export default function Lobby() {
                     type="number"
                     min="1"
                     max="100"
-                    value={roomRuleDrafts.interestSkillLimit}
+                    value={editingRoomRule === 'interestSkillLimit' ? roomRuleDrafts.interestSkillLimit : String(roomRules.interestSkillLimit)}
                     onChange={(event) => setRoomRuleDrafts(current => ({ ...current, interestSkillLimit: event.target.value }))}
-                    onFocus={() => setEditingRoomRule('interestSkillLimit')}
+                    onFocus={() => { setRoomRuleDrafts(createRoomRuleDrafts(roomRules)); setEditingRoomRule('interestSkillLimit'); }}
                     onBlur={() => { commitRoomRule('interestSkillLimit'); setEditingRoomRule(null); }}
                     onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
                   />
@@ -331,7 +315,7 @@ export default function Lobby() {
             {characterList.length === 0 ? (
               <div className="character-empty-state">
                 <span>[警告] 检测到当前账号暂无活动的角色卡。</span>
-                <button className="flat-btn primary small" onClick={() => navigate('/create-character')}>
+                <button className="flat-btn primary small" onClick={() => navigate('/create-character', { state: { roomRules, lockRoomLimits: true } })}>
                   + 建立新档案 (COC 7th)
                 </button>
               </div>
@@ -344,7 +328,7 @@ export default function Lobby() {
                   options={characterOptions}
                   onChange={(selectedId) => {
                     const selected = characterList.find(c => c.id === selectedId);
-                    setActiveCharacter(selected);
+                    setActiveCharacter(selected || null);
                     if (selected) {
                       localStorage.setItem('trpg_current_char_id', selected.id);
                     } else {
@@ -370,9 +354,10 @@ export default function Lobby() {
                       if (!activeCharacter) return;
                       if (window.confirm(`确定要永久销毁档案 [${activeCharacter.name}] 吗？(撕卡不可逆)`)) {
                         try {
-                          await apiFetch(`/api/characters/${activeCharacter.id}`, { method: 'DELETE' });
+                          const response = await apiFetch(`/api/characters/${activeCharacter.id}`, { method: 'DELETE' });
+                          if (!response.ok) throw new Error('delete');
                           await loadCharacters();
-                        } catch (err) {
+                        } catch {
                           alert("撕卡失败，请检查星舰网络连接！");
                         }
                       }
@@ -401,7 +386,7 @@ export default function Lobby() {
             {roomPlayers.map(player => (
               <li key={`${player.characterName || player.name}-${player.id}`} className="player-item">
                 <div className="player-info">
-                  <span className={`status-dot ${player.isReady ? 'ready' : 'unready'}`}></span>
+                  <span className={`status-dot ${(player.id && player.characterId) ? 'ready' : 'unready'}`}></span>
                   <span className="player-name">
                     {player.characterName || player.name || '未命名调查员'}
                     {player.name === roomOwnerName ? ' 👑 (房主)' : ' 👥'}
@@ -414,7 +399,13 @@ export default function Lobby() {
           {isOwner ? (
             <button 
               className="flat-btn primary start-btn" 
-              onClick={() => socket.emit('host_start_game', { roomId, loadSaveId: selectedSaveId })}
+              disabled={starting}
+              onClick={async () => {
+                setStarting(true);
+                try { await socketRequest('host_start_game', { roomId, loadSaveId: selectedSaveId }); }
+                catch (error) { alert((error as Error).message); }
+                finally { setStarting(false); }
+              }}
             >
               开始游戏 (全员发车)
             </button>

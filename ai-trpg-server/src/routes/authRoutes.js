@@ -1,7 +1,7 @@
 const express = require('express');
 const userRepository = require('../repositories/userRepository');
 const securityService = require('../services/securityService');
-const { requireAuth } = require('../middleware/authenticate');
+const { requireAuth, getAuthenticatedUser } = require('../middleware/authenticate');
 const createRateLimit = require('../middleware/rateLimit');
 
 const router = express.Router();
@@ -12,7 +12,7 @@ const authRateLimit = createRateLimit({
 });
 
 const normalizeUsername = (value) => String(value || '').trim();
-const isValidUsername = (value) => /^[A-Za-z0-9_.-]{3,32}$/.test(value);
+const isValidUsername = (value) => /^[A-Za-z0-9_.-]{3,32}$/.test(value) && !['__proto__', 'constructor', 'prototype'].includes(value);
 const isValidPassword = (value) => typeof value === 'string' && value.length >= 10 && value.length <= 128;
 
 // SECTION: 注册接口
@@ -48,7 +48,7 @@ router.post('/register', authRateLimit, (req, res, next) => {
 router.post('/login', authRateLimit, (req, res) => {
   const username = normalizeUsername(req.body.username);
   const { password } = req.body;
-  if (!username || !password) {
+  if (!username || typeof password !== 'string' || !password || password.length > 128) {
     return res.status(400).json({ error: '请输入完整的账号和密码。' });
   }
 
@@ -81,6 +81,13 @@ router.get('/me', requireAuth, (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
+  const user = getAuthenticatedUser(req.headers.cookie);
+  if (user) {
+    userRepository.revokeSessions(user.username);
+    for (const socket of req.app.get('io')?.sockets.sockets.values() || []) {
+      if (socket.data.user.username === user.username) socket.disconnect(true);
+    }
+  }
   res.setHeader('Set-Cookie', securityService.createLogoutCookie());
   res.json({ success: true });
 });

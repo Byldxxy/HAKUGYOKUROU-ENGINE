@@ -15,7 +15,10 @@
     "幻觉分层规则：叙述只呈现调查员当前认知层的内容。调查员受'智慧之毒'影响时，看到的世界是被药物扭曲的版本。不得在叙述中主动揭示'你看到的是幻觉'，除非玩家通过线索和检定自行推断。",
     "不得替玩家决定是否相信幻觉、是否信任KPC、是否饮用葡萄酒、是否使用毒剂。这些关键抉择必须由玩家自主作出。",
     "使用角色卡姓名称呼玩家，不得擅自给玩家改名或赋予剧本中不存在的新身份。",
-    "探索场景中，当玩家表示要去某个区域时，AI应详细描写该区域的环境、可互动物体和NPC，并主动列出可执行的行动选项。"
+    "探索场景中，当玩家表示要去某个区域时，AI应详细描写该区域的环境、可互动物体和NPC，并主动列出可执行的行动选项。",
+    "线索揭示规则：availableClues 中的线索只有在玩家明确执行了对应的探索行动（如搜索特定区域、与特定NPC对话、检查特定物品）后才能通过 revealedClueIds 揭示。AI不得在玩家尚未执行对应行动前就在叙述中主动透露线索内容。例如：玩家没有去厨房，就不能在叙述中提到厨房里的药剂；玩家没有翻阅KPC的日记，就不能透露日记内容。",
+    "NPC对话规则：NPC只回答玩家明确提出的问题或回应玩家的具体行动。NPC不得主动倾倒信息——泰坦不会无缘无故提起'聪明粉'，教徒不会主动议论罗德岛来信。只有当玩家与NPC互动并触发相关话题时，NPC才会根据检定结果透露对应信息。",
+    "信息渐进规则：每次回复只描述玩家当前能直接感知到的环境信息（看到的、听到的、闻到的）。推断性信息、背景故事和隐藏真相必须通过玩家的主动探索和检定逐步发现，不得一次性灌输给玩家。"
   ],
   "resolutionRules": [
     "一次导演回复中，每名玩家最多只能收到一项检定。",
@@ -64,7 +67,8 @@
       "policeAlerted": false,
       "poisonUsed": false,
       "ritualInterrupted": false,
-      "combatVictory": false
+      "combatVictory": false,
+      "nightExplorationStarted": false
     },
     "clocks": {
       "suspicion": { "label": "怀疑", "value": 0, "max": 5 },
@@ -180,70 +184,80 @@
       "title": "凯恩的真实身份",
       "critical": true,
       "content": "戴面具的'凯恩先生'并非罗德岛教区视察员，而是本质会的真正祭司。罗德岛教区曾来信否定本质会的教义。",
-      "sources": ["谈话室的罗德岛信件", "柜子中的手记", "亚当和伊芙的对话"]
+      "sources": ["谈话室的罗德岛信件", "柜子中的手记", "亚当和伊芙的对话"],
+      "requires": { "fact": "cainIdentitySuspected", "equals": true }
     },
     {
       "id": "clue-wisdom-poison",
       "title": "智慧之毒",
       "critical": true,
       "content": "厨房中有两种特殊药剂：Gift of Wisdom（致幻）和Gift of Silence（麻醉）。泰坦承认'聪明粉'被添加在每天的餐食中。",
-      "sources": ["厨房侦查", "与泰坦交谈"]
+      "sources": ["厨房侦查", "与泰坦交谈"],
+      "requires": { "fact": "kitchenVisited", "equals": true }
     },
     {
       "id": "clue-secret-passage",
       "title": "密道的存在",
       "critical": true,
       "content": "本质之钥的结构暗示祭坛与集会大厅之间存在暗道。集会大厅遗像背后有隐藏的门。",
-      "sources": ["莉莉图的提示", "侦查本质之钥", "夜间侦查遗像"]
+      "sources": ["莉莉图的提示", "侦查本质之钥", "夜间侦查遗像"],
+      "requires": { "fact": "secretPassageHintFound", "equals": true }
     },
     {
       "id": "clue-kpc-diary",
       "title": "KPC的日记",
       "critical": true,
       "content": "KPC记录了潜入调查的全过程：他发现密道、被抓获、遭受虐待，最终在3月27日后认知被完全改变。日记揭示了他目前的精神控制状态。",
-      "sources": ["囚室2写字桌抽屉（密码=PC生日）"]
+      "sources": ["囚室2写字桌抽屉（密码=PC生日）"],
+      "requires": { "fact": "diaryRead", "equals": true }
     },
     {
       "id": "clue-signal-jammer",
       "title": "信号屏蔽仪",
       "critical": false,
       "content": "仓库中有一台正在工作的信号屏蔽仪，破坏后手机可以正常通讯。",
-      "sources": ["仓库侦查"]
+      "sources": ["仓库侦查"],
+      "requires": { "fact": "warehouseExplored", "equals": true }
     },
     {
       "id": "clue-poison-weapon",
       "title": "毒剂装置",
       "critical": false,
       "content": "铁箱中（用本质之钥开启）藏有可混合的毒剂装置和防毒面具。说明指示'必要时令一切噤声'。",
-      "sources": ["仓库铁箱"]
+      "sources": ["仓库铁箱"],
+      "requires": { "fact": "poisonDeviceObtained", "equals": true }
     },
     {
       "id": "clue-rhodes-rejection",
       "title": "罗德岛教区的否定",
       "critical": true,
       "content": "罗德岛教区来信严厉否定本质会的自创教义，称其为'偏离原教旨的末流'。这证明此前已有视察员到访并给出否定评价。",
-      "sources": ["谈话室茶几上的信件"]
+      "sources": ["谈话室茶几上的信件"],
+      "requires": { "fact": "cainIdentitySuspected", "equals": true }
     },
     {
       "id": "clue-underground-dormitory",
       "title": "地下集体宿舍",
       "critical": false,
       "content": "通过密道的圆形玻璃框（潜望镜）可以看到地下并排的床铺，所有教徒每晚在此集体昏睡。",
-      "sources": ["密道圆形玻璃框（幸运成功）"]
+      "sources": ["密道圆形玻璃框（幸运成功）"],
+      "requires": { "fact": "secretPassageFound", "equals": true }
     },
     {
       "id": "clue-cult-doctrine",
       "title": "本质会教义的虚伪",
       "critical": false,
       "content": "KPC的批注揭示了教义的矛盾：宣扬平等的同时建立等级关系，'亲缘关系'为混乱的性关系和剥削提供便利。",
-      "sources": ["囚室2碎纸屑", "接待室宣传册"]
+      "sources": ["囚室2碎纸屑", "接待室宣传册"],
+      "requires": { "any": [{ "fact": "receptionVisited", "equals": true }, { "fact": "diaryRead", "equals": true }] }
     },
     {
       "id": "clue-sample-experiments",
       "title": "人体实验记录",
       "critical": false,
       "content": "手记记录了三个'样本'：样本1号（已死记者乔布）、样本2号（昏迷中的调查员）、样本3号（KPC）。调查员就是被绑架的受害者。",
-      "sources": ["谈话室柜子中的手记"]
+      "sources": ["谈话室柜子中的手记"],
+      "requires": { "fact": "cainIdentitySuspected", "equals": true }
     }
   ],
   "scenes": [
@@ -260,7 +274,8 @@
       "allowedClockChanges": [],
       "availableClues": [],
       "suggestedChecks": [
-        { "skill": "心理学", "purpose": "从KPC的神态中判断他是否在说谎。", "onFailure": "KPC的伪装非常到位，你无法确定他的真实想法。" }
+        { "skill": "心理学", "purpose": "从KPC的神态中判断他是否在说谎。", "onFailure": "KPC的伪装非常到位，你无法确定他的真实想法。" },
+        { "skill": "SAN检定", "purpose": "目睹镜中异形自我（成功损失1点SAN，失败损失1d4点SAN）。这是自动触发的理智检定，在看到镜中影像时必须立即执行。", "onFailure": "SAN损失1d4点，你对自己的存在产生了深刻的恐惧与怀疑。" }
       ],
       "kpcDialogueGuide": {
         "whoAreYou": "PC？是PC在说话吗！我实在不知道该怎么感谢您，祭司大人！您教导我主持的仪式一定会顺利进行的。",

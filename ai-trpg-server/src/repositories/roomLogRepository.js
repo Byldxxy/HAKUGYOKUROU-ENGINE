@@ -11,12 +11,13 @@ const getRoomLogPath = (roomId) => path.join(config.paths.logsDir, `room_${roomI
 
 // SECTION: 玩家行动写入
 // NOTE: rollId 只在检定结果上存在，用来防刷新重复投骰和回填结果框。
-const appendAction = ({ roomId, playerName, content, rollId }) => {
+const appendAction = ({ roomId, playerName, content, rollId, accountName }) => {
   const entry = {
     timestamp: new Date().toISOString(),
     type: 'player_action',
     roomId,
     playerName,
+    accountName,
     content,
   };
   if (rollId) entry.rollId = rollId;

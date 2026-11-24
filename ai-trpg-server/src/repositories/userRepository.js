@@ -57,7 +57,14 @@ const migratePasswordHash = (username, passwordHash) => {
   return true;
 };
 
+const revokeSessions = (username) => {
+  const users = readUsers();
+  const user = users.find(item => item.username === username);
+  if (user) { user.sessionVersion = (user.sessionVersion || 0) + 1; writeUsers(users); }
+};
+
 module.exports = {
+  revokeSessions,
   readUsers,
   findByUsername,
   createUser,

@@ -16,7 +16,7 @@ const hashPassword = (password) => {
 const isPasswordHash = (value) => typeof value === 'string' && value.startsWith(`${passwordPrefix}$`);
 
 const verifyPassword = (password, storedHash) => {
-  if (!isPasswordHash(storedHash)) return false;
+  if (typeof password !== 'string' || password.length > 128 || !isPasswordHash(storedHash)) return false;
   const [, salt, expectedValue] = storedHash.split('$');
   if (!salt || !expectedValue) return false;
 
@@ -34,6 +34,7 @@ const createSessionToken = (username) => {
   const now = Math.floor(Date.now() / 1000);
   const payload = encode(JSON.stringify({
     sub: username,
+    version: require('../repositories/userRepository').findByUsername(username)?.sessionVersion || 0,
     iat: now,
     exp: now + config.session.maxAgeSeconds,
   }));
@@ -56,7 +57,7 @@ const verifySessionToken = (token) => {
     const data = JSON.parse(decode(payload));
     const now = Math.floor(Date.now() / 1000);
     if (!data.sub || !data.exp || data.exp <= now) return null;
-    return { username: data.sub, issuedAt: data.iat, expiresAt: data.exp };
+    return { username: data.sub, issuedAt: data.iat, expiresAt: data.exp, version: data.version || 0 };
   } catch {
     return null;
   }

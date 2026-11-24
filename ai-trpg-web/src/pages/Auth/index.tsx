@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../config';
 import './Auth.css';
+import SiteFooter from '../../components/SiteFooter';
 
 export default function Auth() {
   const navigate = useNavigate();
 
   // SECTION: 表单状态
   // NOTE: 注册页已经删除昵称输入，账号只用于登录，游戏名由角色卡决定。
+  const [submitting, setSubmitting] = useState(false);
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -19,10 +21,12 @@ export default function Auth() {
   // NOTE: 两种模式复用一个 submit，先做前端轻校验，再交给后端做最终判断。
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
 
     if (isLoginMode) {
       if (!username || !password) return alert("请输入完整的账号和密码！");
 
+      setSubmitting(true);
       try {
         const response = await apiFetch('/api/login', {
           method: 'POST',
@@ -39,14 +43,15 @@ export default function Auth() {
         } else {
           alert(data.error);
         }
-      } catch (error) {
+      } catch {
         alert("无法连接到白玉楼引擎服务器，请检查终端状态！");
-      }
+      } finally { setSubmitting(false); }
 
     } else {
       if (!username || !password || !confirmPassword) return alert("请填写完整的注册信息！");
       if (password !== confirmPassword) return alert("两次输入的密码不一致，请重新确认！");
 
+      setSubmitting(true);
       try {
         const response = await apiFetch('/api/register', {
           method: 'POST',
@@ -64,9 +69,9 @@ export default function Auth() {
         } else {
           alert(data.error);
         }
-      } catch (error) {
+      } catch {
         alert("无法连接到白玉楼引擎服务器，请检查终端状态！");
-      }
+      } finally { setSubmitting(false); }
     }
   };
 
@@ -143,13 +148,14 @@ export default function Auth() {
             </div>
           )}
 
-          <button type="submit" className="flat-btn primary submit-btn">
+          <button type="submit" className="flat-btn primary submit-btn" disabled={submitting}>
             {isLoginMode ? '验证并进入' : '建立档案并进入'}
           </button>
         </form>
 
-        <div className="auth-footer">※ 档案将被永久加密储存于服务器</div>
+        <div className="auth-footer">※ 密码以安全哈希保存，角色档案仅供登录后使用</div>
       </div>
+      <SiteFooter />
     </div>
   );
 }

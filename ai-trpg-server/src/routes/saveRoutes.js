@@ -1,3 +1,4 @@
+const rooms = require('../repositories/roomRepository');
 const express = require('express');
 const saveRepository = require('../repositories/saveRepository');
 const { isValidRoomId, normalizeText } = require('../domain/validation');
@@ -19,6 +20,7 @@ router.post('/', (req, res, next) => {
       return res.status(400).json({ error: '缺少房间号。' });
     }
 
+    if (!rooms.canRead(roomId, req.user.username)) return res.status(403).json({ success: false, error: '无权访问该房间。' });
     saveRepository.createSave({
       username: req.user.username,
       roomId,

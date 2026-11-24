@@ -1,3 +1,4 @@
+const rooms = require('../repositories/roomRepository');
 const express = require('express');
 const notebookRepository = require('../repositories/notebookRepository');
 const { isValidRoomId, sanitizeNotebook } = require('../domain/validation');
@@ -12,6 +13,7 @@ router.get('/', (req, res) => {
     return res.status(400).json({ success: false, error: '缺少房间号。' });
   }
 
+  if (!rooms.canRead(roomId, req.user.username)) return res.status(403).json({ success: false, error: '无权访问该房间。' });
   res.json({
     success: true,
     notebook: notebookRepository.getNotebook({ roomId, username: req.user.username }),
@@ -27,6 +29,7 @@ router.put('/', (req, res, next) => {
       return res.status(400).json({ success: false, error: '缺少房间号或笔记内容。' });
     }
 
+    if (!rooms.canRead(roomId, req.user.username)) return res.status(403).json({ success: false, error: '无权访问该房间。' });
     const savedNotebook = notebookRepository.saveNotebook({
       roomId,
       username: req.user.username,

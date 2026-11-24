@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import './Game.css';
 import RelationGraph, { type GraphNode, type GraphEdge } from '../../components/RelationGraph';
 import { apiFetch } from '../../config';
-import { emitWhenConnected, ensureSocketConnected, socket } from '../../socket';
+import type { Character, PublicPlayer, Message, GameCharacter } from '../../domain/types';
+import { socketRequest, socketErrorMessage, ensureSocketConnected, socket } from '../../socket';
 import {
   parseRollRequests,
   parseStatDirectives,
@@ -19,6 +20,7 @@ type RollRequestWithState = RollRequest & {
 };
 
 type TurnState = {
+  canRetry?: boolean;
   mode: 'waiting_players' | 'waiting_rolls' | 'waiting_dm' | 'completed';
   inputLocked: boolean;
   actedPlayers: string[];
@@ -47,7 +49,7 @@ type CampaignState = {
 
 // SECTION: 检定结果查找
 // NOTE: 新日志优先按 rollId 匹配；旧日志没有 rollId 时，用“角色 + 技能”兼容历史数据。
-const findRollResult = (messages: any[], dmIndex: number, roll: RollRequestWithState) => {
+const findRollResult = (messages: Message[], dmIndex: number, roll: RollRequestWithState) => {
   if (roll.result) return roll.result;
 
   for (let index = dmIndex + 1; index < messages.length; index += 1) {
@@ -71,7 +73,7 @@ export default function Game() {
   // SECTION: UI 状态
   // NOTE: activeCard 控制角色详情弹窗；myCharacter 是当前客户端唯一的“我”。
   const [activeCard, setActiveCard] = useState<string | null>(null);
-  const [myCharacter, setMyCharacter] = useState<any>(null);
+  const [myCharacter, setMyCharacter] = useState<GameCharacter | null>(null);
 
   // SECTION: 战役笔记状态
   // NOTE: 关系图状态提升到 Game，避免切换笔记页签时节点和边丢失。
@@ -85,39 +87,16 @@ export default function Game() {
   // SECTION: 聊天与回合状态
   // NOTE: turnState 来自后端，是输入锁和等待提示的权威来源。
   const [inputText, setInputText] = useState('');
-  const [forceUnlock, setForceUnlock] = useState(false);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [connectionReady, setConnectionReady] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [turnState, setTurnState] = useState<TurnState | null>(null);
   const [campaignState, setCampaignState] = useState<CampaignState | null>(null);
-
-  // SECTION: 房间历史加载
-  // NOTE: 首屏先拉取 JSONL 历史，保证刷新后消息、检定结果和 DM 回复都能恢复。
-  useEffect(() => {
-    const fetchRoomHistory = async () => {
-      setTurnState(null);
-      try {
-        const res = await apiFetch(`/api/room_history?roomId=${roomId}`);
-        const data = await res.json();
-
-        if (data.success && data.messages.length > 0) {
-          setChatMessages(data.messages);
-        } else {
-          setChatMessages([
-            { role: 'dm', sender: '系统 DM', content: '战役状态正在恢复，请稍候。' }
-          ]);
-        }
-        if (data.success && data.campaign) setCampaignState(data.campaign);
-      } catch (error) {
-        console.error('拉取历史记录失败', error);
-      }
-    };
-    if (roomId) fetchRoomHistory();
-  }, [roomId]);
 
   // SECTION: 手动存档
   // NOTE: 当前存档以房间日志为主体，服务端按登录会话归属存档。
   const handleSaveGame = async () => {
-    const saveName = window.prompt('请输入存档名称：', `桃花岛战役_${new Date().toLocaleDateString()}`);
+    const saveName = window.prompt('请输入存档名称：', `战役_${new Date().toLocaleDateString()}`);
     if (!saveName) return;
 
     try {
@@ -132,7 +111,7 @@ export default function Game() {
       } else {
         alert('存档失败：' + data.error);
       }
-    } catch (e) {
+    } catch {
       alert('网络连接断开，存档请求失败！');
     }
   };
@@ -151,7 +130,7 @@ export default function Game() {
   // NOTE: new_message 只追加聊天；turn_state 只更新状态，二者职责分离。
   useEffect(() => {
     ensureSocketConnected();
-    const handleNewMessage = (msg: any) => {
+    const handleNewMessage = (msg: Message) => {
       setChatMessages(prev => [...prev, msg]);
     };
     const handleTurnState = (state: TurnState) => {
@@ -163,57 +142,57 @@ export default function Game() {
     socket.on('new_message', handleNewMessage);
     socket.on('turn_state', handleTurnState);
     socket.on('campaign_state', handleCampaignState);
-    if (roomId) emitWhenConnected('join_room', roomId);
+    const handleSnapshot = (data: { roomId: string; messages: Message[]; campaign: CampaignState; turnState: TurnState }) => {
+      if (data.roomId !== roomId) return;
+      setChatMessages(data.messages);
+      setCampaignState(data.campaign);
+      setTurnState(data.turnState);
+      setRolledIndices([]);
+      setConnectionReady(true);
+    };
+    const join = async () => {
+      try {
+        const { characterId } = await socketRequest('join_room', roomId);
+        if (characterId) { localStorage.setItem('trpg_current_char_id', characterId); setSelectedId(characterId); }
+      }
+      catch (error) { alert((error as Error).message); navigate('/hall', { replace: true }); }
+    };
+    const disconnected = () => setConnectionReady(false);
+    const sessionError = (data: { reason: string }) => { alert(socketErrorMessage(data.reason)); navigate('/hall', { replace: true }); };
+    socket.on('room_snapshot', handleSnapshot);
+    socket.on('connect', join);
+    socket.on('disconnect', disconnected);
+    socket.on('session_error', sessionError);
+    if (socket.connected) void join();
     return () => {
+      socket.off('room_snapshot', handleSnapshot);
+      socket.off('connect', join);
+      socket.off('disconnect', disconnected);
+      socket.off('session_error', sessionError);
       socket.off('new_message', handleNewMessage);
       socket.off('turn_state', handleTurnState);
       socket.off('campaign_state', handleCampaignState);
     };
-  }, [roomId]);
+  }, [roomId, navigate]);
 
   // SECTION: 玩家普通行动
   // NOTE: 普通行动不带 isRoll，后端会把它纳入“本轮已行动玩家”统计。
-  const handleSendMessage = () => {
-    if (!inputText.trim()) return;
-    emitWhenConnected('player_action', {
-      roomId: roomId,
-      message: inputText
-    });
-    setInputText('');
-    setForceUnlock(false);
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || !connectionReady) return;
+    const sent = inputText;
+    try {
+      await socketRequest('player_action', { roomId, message: sent });
+      setInputText(current => current === sent ? '' : current);
+    } catch (error) { alert((error as Error).message); }
   };
 
-  // SECTION: COC D100 检定
-  // NOTE: 前端只负责生成随机骰和显示结果文本；是否允许重复提交由后端 rollId 决定。
-  const handleSkillRoll = (skillName: string, playerName: string, rollId: string) => {
-    if (playerName !== myCharacter.name) return;
-    if (rolledIndices.includes(rollId)) return;
+  // 检定数值、技能与随机数均由服务端计算。
+  const handleSkillRoll = async (playerName: string, rollId: string) => {
+    if (!connectionReady || playerName !== myCharacter?.name || rolledIndices.includes(rollId)) return;
     setRolledIndices(prev => [...prev, rollId]);
-    const skillValue = myCharacter.skills[skillName] || 1;
-    const roll = Math.floor(Math.random() * 100) + 1;
-    let result = '';
-    if (roll === 1) {
-      result = '大成功 (Critical Success)';
-    } else if (skillValue < 50 && roll >= 96) {
-      result = '大失败 (Fumble)';
-    } else if (skillValue >= 50 && roll === 100) {
-      result = '大失败 (Fumble)';
-    } else if (roll <= Math.floor(skillValue / 5)) {
-      result = '极难成功 (Extreme Success)';
-    } else if (roll <= Math.floor(skillValue / 2)) {
-      result = '困难成功 (Hard Success)';
-    } else if (roll <= skillValue) {
-      result = '常规成功 (Regular Success)';
-    } else {
-      result = '失败 (Failure)';
-    }
-    const rollMessage = `掷出了 D100 = ${roll} / ${skillValue}，结果：【${result}】`;
-    emitWhenConnected('player_action', {
-      roomId: roomId,
-      message: `[对 ${skillName} 进行检定]：${rollMessage}`,
-      rollId,
-      isRoll: true
-    });
+    try { await socketRequest('player_action', { roomId, rollId, isRoll: true }); }
+    catch (error) { alert((error as Error).message); }
+    finally { setRolledIndices(prev => prev.filter(id => id !== rollId)); }
   };
 
   // SECTION: 关系图状态
@@ -236,11 +215,10 @@ export default function Game() {
           setClues(Array.isArray(data.notebook.clues) ? data.notebook.clues : []);
           setGraphNodes(Array.isArray(data.notebook.graphNodes) ? data.notebook.graphNodes : []);
           setGraphEdges(Array.isArray(data.notebook.graphEdges) ? data.notebook.graphEdges : []);
+          setIsNotebookLoaded(true);
         }
       } catch (error) {
         console.error('拉取战役笔记失败:', error);
-      } finally {
-        setIsNotebookLoaded(true);
       }
     };
 
@@ -288,24 +266,16 @@ export default function Game() {
   // NOTE: 大厅只存当前角色 ID，游戏页必须重新拉完整角色卡用于技能和属性检定。
   useEffect(() => {
     const fetchCharacter = async () => {
-      const username = localStorage.getItem('trpg_username');
-      const charId = localStorage.getItem('trpg_current_char_id');
-
-      if (!username || !charId) {
-        alert('未检测到出战角色，请返回大厅选择！');
-        navigate(`/lobby/${roomId}`);
-        return;
-      }
-
+      if (!selectedId) return;
       try {
         const res = await apiFetch('/api/characters');
         const data = await res.json();
         if (data.success) {
-          const targetChar = data.cards.find((c: any) => c.id === charId);
+          const targetChar = data.cards.find((c: Character) => c.id === selectedId);
           if (targetChar) {
             const full = targetChar.fullData;
             const parsedSkills: Record<string, number> = {};
-            full.skills.forEach((s: any) => {
+            (full.skills || []).forEach((s: Character['fullData']['skills'][number]) => {
               const shortName = s.name.split(' ')[0];
               parsedSkills[shortName] = s.base + (s.job || 0) + (s.interest || 0) + (s.grow || 0);
             });
@@ -329,15 +299,11 @@ export default function Game() {
               id: targetChar.id,
               name: full.basicInfo.name,
               role: full.basicInfo.occupation || '未知职业',
-              appearance: full.bgInfo.description || '这个调查员很神秘，没有留下任何外貌描述。',
+              appearance: full.bgInfo?.description || '这个调查员很神秘，没有留下任何外貌描述。',
               hp: { current: targetChar.hp, max: targetChar.hp },
               san: { current: targetChar.san, max: full.stats.pow },
               mp: { current: targetChar.mp, max: targetChar.mp },
               skills: parsedSkills
-            });
-            emitWhenConnected('sync_character', {
-              roomId,
-              fullData: targetChar
             });
           }
         }
@@ -347,52 +313,29 @@ export default function Game() {
     };
 
     fetchCharacter();
-  }, [roomId, navigate]);
+  }, [selectedId]);
 
   // SECTION: 队友状态镜像
   // NOTE: lobby_update 是房间玩家列表的广播源，游戏页用它生成左侧队友卡片。
-  const [teammates, setTeammates] = useState<any[]>([]);
+  const [teammates, setTeammates] = useState<GameCharacter[]>([]);
 
   useEffect(() => {
-    const handleLobbyUpdate = (data: any) => {
-      const selfName = myCharacter?.name;
-      const mates = data.players.filter((p: any) => {
-        const playerName = p.characterName || p.fullData?.basicInfo?.name || p.fullData?.fullData?.basicInfo?.name || p.name;
-        return playerName !== selfName;
-      });
-
-      const formattedMates = mates.map((m: any) => {
-        const hp = m.hp ?? m.fullData?.hp ?? (m.fullData?.stats ? Math.floor((m.fullData.stats.con + m.fullData.stats.siz)/10) : '?');
-        const san = m.san ?? m.fullData?.san ?? m.fullData?.stats?.pow ?? '?';
-        const mp = m.mp ?? m.fullData?.mp ?? (m.fullData?.stats ? Math.floor(m.fullData.stats.pow/5) : '?');
-
-        return {
-          id: m.id,
-          name: m.characterName || m.fullData?.basicInfo?.name || m.fullData?.fullData?.basicInfo?.name || m.name,
-          role: m.role || m.fullData?.basicInfo?.occupation || '未选定角色',
-          hp: { current: hp, max: m.hpMax ?? hp },
-          san: { current: san, max: m.sanMax ?? san },
-          mp: { current: mp, max: m.mpMax ?? mp }
-        };
-      });
-      setTeammates(formattedMates);
-
-      const self = data.players.find((p: any) => (
-        (p.characterName || p.name) === selfName
-      ));
-      if (self) {
-        setMyCharacter((current: any) => current ? ({
-          ...current,
-          hp: { current: self.hp, max: self.hpMax ?? current.hp.max },
-          san: { current: self.san, max: self.sanMax ?? current.san.max },
-          mp: { current: self.mp, max: self.mpMax ?? current.mp.max },
-        }) : current);
-      }
+    const handleLobbyUpdate = (data: { players: PublicPlayer[] }) => {
+      const selfId = localStorage.getItem('trpg_current_char_id');
+      setTeammates(data.players.filter(p => p.characterId !== selfId).map(p => ({
+        id: p.characterId || p.name, name: p.name, role: p.role, appearance: '', skills: {},
+        hp: { current: p.hp, max: p.hpMax }, san: { current: p.san, max: p.sanMax }, mp: { current: p.mp, max: p.mpMax },
+      })));
+      const self = data.players.find(p => p.characterId === selfId);
+      if (self) setMyCharacter(current => current ? ({ ...current,
+        hp: { current: self.hp, max: self.hpMax }, san: { current: self.san, max: self.sanMax }, mp: { current: self.mp, max: self.mpMax },
+      }) : current);
     };
 
     socket.on('lobby_update', handleLobbyUpdate);
+    if (myCharacter?.id && connectionReady) void socketRequest('sync_character', { roomId }).catch(() => {});
     return () => { socket.off('lobby_update', handleLobbyUpdate); };
-  }, [myCharacter?.name]);
+  }, [myCharacter?.id, connectionReady, roomId]);
 
   // SECTION: 线索提取
   // NOTE: 右键选中文本会写入关键线索列表，随后由笔记防抖保存。
@@ -408,7 +351,7 @@ export default function Game() {
   // SECTION: 角色卡弹窗内容
   // NOTE: 自己能看完整技能，队友只显示表观信息。
   const renderModalContent = () => {
-    if (activeCard === 'self') {
+    if (activeCard === 'self' && myCharacter) {
       return (
         <>
           <h3 className="modal-title">{myCharacter.name} - 完整角色卡</h3>
@@ -474,10 +417,10 @@ export default function Game() {
   const isTurnLocked = turnState
     ? (
       (turnState.mode === 'waiting_dm' && activeRollRequests.length === 0) ||
-      (turnState.mode === 'waiting_players' && isMyTurnDone && !forceUnlock)
+      (turnState.mode === 'waiting_players' && isMyTurnDone)
     )
-    : (isMyTurnDone && !forceUnlock);
-  const isInputLocked = isCampaignLocked || isRollGateLocked || isTurnLocked;
+    : (isMyTurnDone);
+  const isInputLocked = !connectionReady || isCampaignLocked || isRollGateLocked || isTurnLocked;
 
   // SECTION: 输入提示文案
   // NOTE: 文案优先级为检定锁、回合锁、可自由行动。
@@ -508,7 +451,7 @@ export default function Game() {
         <span className="room-info">{campaignState?.title || '桃花岛历险记'} // {roomId}</span>
         <div style={{ display: 'flex', gap: '15px' }}>
           <button className="flat-btn secondary small" onClick={handleSaveGame}>存档</button>
-          <button className="flat-btn secondary small" onClick={() => navigate(`/lobby/${roomId}`)}>退出</button>
+          <button className="flat-btn secondary small" onClick={async () => { try { await socketRequest('leave_room', { roomId }); navigate('/hall'); } catch (error) { alert((error as Error).message); } }}>退出</button>
         </div>
       </div>
 
@@ -621,8 +564,8 @@ export default function Game() {
                              ) : myCharacter.name === targetPlayer ? (
                                <button
                                  className="flat-btn primary"
-                                 onClick={() => handleSkillRoll(targetSkill, targetPlayer, rollKey)}
-                                 disabled={isRolling}
+                                 onClick={() => handleSkillRoll(targetPlayer, rollKey)}
+                                 disabled={isRolling || !connectionReady || idx !== lastDmIndex || !turnState?.pendingRolls.some(roll => roll.id === rollKey)}
                                >
                                  {isRolling ? '同步中...' : '🎲 立即检定'}
                                </button>
@@ -648,13 +591,9 @@ export default function Game() {
             <div ref={messagesEndRef} />
           </div>
           <div className="control-panel" style={{ flexDirection: 'column', gap: '10px' }}>
-            {!isCampaignLocked && isTurnLocked && !isRollGateLocked && (
-              <button
-                className="force-unlock-btn"
-                onClick={() => setForceUnlock(true)}
-                title="强制打破回合锁，自由发言"
-              >
-                防卡死越权发言
+            {turnState?.canRetry && (
+              <button className="flat-btn secondary" onClick={() => socketRequest('retry_dm', { roomId }).catch(error => alert(error.message))}>
+                主持回复失败，点击重试
               </button>
             )}
 

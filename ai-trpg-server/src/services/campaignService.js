@@ -165,10 +165,13 @@ const applyDirectorResult = ({ campaign, directorResult }) => {
   }
 
   const allowedClues = new Set(scene.availableClues || []);
+  const clueMap = new Map((scenario.clues || []).map((clue) => [clue.id, clue]));
   for (const clueId of waitingForRolls ? [] : result.revealedClueIds) {
-    if (allowedClues.has(clueId) && !next.revealedClueIds.includes(clueId)) {
-      next.revealedClueIds.push(clueId);
-    }
+    if (!allowedClues.has(clueId) || next.revealedClueIds.includes(clueId)) continue;
+    // NOTE: 线索若有 requires 前置条件，必须满足后才允许揭示，防止 AI 在玩家尚未探索时就提前剧透。
+    const clueDef = clueMap.get(clueId);
+    if (clueDef?.requires && !evaluateCondition(clueDef.requires, next)) continue;
+    next.revealedClueIds.push(clueId);
   }
 
   let transition = null;
@@ -228,6 +231,7 @@ const buildDirectorContext = ({ campaign, players }) => {
 };
 
 module.exports = {
+  normalizeDirectorResult,
   applyPartyStatChanges,
   applyPartyStatsToPlayers,
   applyDirectorResult,

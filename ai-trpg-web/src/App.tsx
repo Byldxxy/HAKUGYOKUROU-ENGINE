@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import SessionGate from './components/SessionGate';
 import Auth from './pages/Auth'; 
 import Home from './pages/Home';
 import Lobby from './pages/Lobby';
@@ -12,6 +13,7 @@ export default function App() {
         {/* SECTION: 入口路由 */}
         {/* NOTE: / 是登录/注册页，登录成功后进入大厅首页 /hall。 */}
         <Route path="/" element={<Auth />} />
+        <Route element={<SessionGate />}>
         <Route path="/hall" element={<Home />} />
 
         {/* SECTION: 房间与游戏路由 */}
@@ -22,6 +24,7 @@ export default function App() {
         {/* SECTION: 角色卡路由 */}
         {/* NOTE: 新建和编辑共用同一页，编辑数据通过 navigate state 传入。 */}
         <Route path="/create-character" element={<CreateCharacter />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../../config';
 import { COC_OCCUPATIONS, type CocOccupation } from '../../data/cocOccupations';
@@ -114,7 +114,10 @@ type SkillGrowthContext = {
 
 // SECTION: 技能成长公式接口
 // NOTE: 写卡阶段成长固定为 0；后续“过去经历”规则接入时只需替换该函数实现。
-const calculateSkillGrowth = (_skill: Skill, _context: SkillGrowthContext) => 0;
+const calculateSkillGrowth = (skill: Skill, context: SkillGrowthContext) => {
+  void skill; void context;
+  return 0;
+};
 
 type OccupationChoiceGroup = {
   id: string;
@@ -481,7 +484,7 @@ export default function CreateCharacter() {
   const [buyLimit, setBuyLimit] = useState(() => (
     lockRoomLimits ? roomRules!.pointBuyLimit : (editData?.fullData?.buyLimit || 480)
   ));
-  const [stats, setStats] = useState<Record<string, number>>({
+  const [stats, setRawStats] = useState<Record<string, number>>({
     ...emptyStats,
     ...(editData?.fullData?.stats || {})
   });
@@ -526,13 +529,13 @@ export default function CreateCharacter() {
 
   // SECTION: 属性联动技能
   // NOTE: 闪避基础值依赖 DEX，母语基础值依赖 EDU；属性改动后自动刷新。
-  useEffect(() => {
-    setSkills(prev => prev.map(s => {
-      if (s.name.includes('闪避')) return { ...s, base: Math.floor(stats.dex / 2) || 0 };
-      if (s.name.includes('母语')) return { ...s, base: stats.edu || 0 };
-      return s;
-    }));
-  }, [stats.dex, stats.edu]);
+  const setStats = (next: Record<string, number>) => {
+    setRawStats(next);
+    setSkills(prev => prev.map(skill => ({ ...skill,
+      base: skill.name.includes('闪避') ? Math.floor(next.dex / 2) || 0
+        : skill.name.includes('母语') ? next.edu || 0 : skill.base,
+    })));
+  };
 
   // SECTION: 技能字段更新
   // NOTE: 技能名保持字符串，点数字段统一转 number，空输入视为 0。
@@ -647,8 +650,8 @@ export default function CreateCharacter() {
   }, [visibleOccupations, selectedOccupationId]);
 
   const activeOccupation = useMemo(() => {
-    return COC_OCCUPATIONS.find((occupation) => occupation.name === basicInfo.occupation) || selectedOccupation;
-  }, [basicInfo.occupation, selectedOccupation]);
+    return COC_OCCUPATIONS.find((occupation) => occupation.name === basicInfo.occupation);
+  }, [basicInfo.occupation]);
 
   const occupationSkillRules = useMemo(() => {
     return parseOccupationSkillRules(activeOccupation?.skills || '');
@@ -669,35 +672,15 @@ export default function CreateCharacter() {
     return Array.from(new Set([...occupationSkillRules.fixedSkills, ...selectedChoiceSkillNames]));
   }, [occupationSkillRules.fixedSkills, selectedChoiceSkillNames]);
 
-  const occupationalSkillNameSet = useMemo(() => new Set(occupationalSkillNames), [occupationalSkillNames]);
+  const occupationalSkillNameSet = new Set(occupationalSkillNames);
 
-  const orderedSkills = useMemo(() => {
-    return [...skills].sort((a, b) => {
-      const aIsOccupationSkill = occupationalSkillNameSet.has(a.name);
-      const bIsOccupationSkill = occupationalSkillNameSet.has(b.name);
-      if (aIsOccupationSkill !== bIsOccupationSkill) return aIsOccupationSkill ? -1 : 1;
-      return 0;
-    });
-  }, [skills, occupationalSkillNameSet]);
-
-  useEffect(() => {
-    const requiredSkillNames = occupationalSkillNames.filter(Boolean);
-    if (requiredSkillNames.length === 0) return;
-
-    setSkills((prevSkills) => {
-      const nextSkills = [...prevSkills];
-      requiredSkillNames.forEach((skillName) => {
-        if (!nextSkills.some((skill) => skill.name === skillName)) {
-          nextSkills.push(createSkillFromName(skillName, stats));
-        }
-      });
-      return nextSkills;
-    });
-  }, [occupationalSkillNames, stats]);
+  const orderedSkills = [...skills].sort((a, b) =>
+    Number(occupationalSkillNameSet.has(b.name)) - Number(occupationalSkillNameSet.has(a.name)));
 
   const addOccupationChoice = (group: OccupationChoiceGroup, value: string) => {
     const normalizedValue = normalizeSkillName(value);
     if (!normalizedValue) return;
+    setSkills(prev => prev.some(skill => skill.name === normalizedValue) ? prev : [...prev, createSkillFromName(normalizedValue, stats)]);
 
     setOccupationSkillChoices((prevChoices) => {
       const currentValues = prevChoices[group.id] || [];
@@ -743,12 +726,16 @@ export default function CreateCharacter() {
     );
     const templateNames = new Set(COC_SKILL_TEMPLATES.map((t) => t.name));
 
-    setSkills((prev) => prev.filter((skill) => {
+    setSkills((prev) => {
+      const next = prev.filter((skill) => {
       if (!skill.id.startsWith('custom_')) return true;
       if (templateNames.has(skill.name)) return true;
       if (oldRequiredNames.has(skill.name) && !newRequiredNames.has(skill.name)) return false;
       return true;
-    }));
+      }).map(skill => ({ ...skill, job: 0 }));
+      for (const name of newRules.fixedSkills) if (!next.some(skill => skill.name === name)) next.push(createSkillFromName(name, stats));
+      return next;
+    });
 
     setBasicInfo({ ...basicInfo, occupation: occupation.name });
     setBgInfo({ ...bgInfo, credit: occupation.creditRange || bgInfo.credit });
@@ -786,7 +773,7 @@ export default function CreateCharacter() {
   // SECTION: 保存角色卡
   // NOTE: 保存前做最小完整性校验；更复杂的房规校验后续可集中到后端。
   const handleSave = async () => {
-    if (!basicInfo.name || stats.str === 0) return alert('请至少填写姓名并检定核心属性！');
+    if (!basicInfo.name.trim() || Object.values(stats).some(value => !Number.isInteger(value) || value < 1 || value > 99)) return alert('请至少填写姓名并检定核心属性！');
     if (statMode === 'buy' && remainStatPoints < 0) return alert('基础属性购点已超过房规上限！');
     if (remainJob < 0 || remainInt < 0) return alert('技能点数已透支，请检查加点！');
     if (lockRoomLimits) {
@@ -828,9 +815,10 @@ export default function CreateCharacter() {
 
       if (result.success) {
         alert(`调查员 [${basicInfo.name}] 档案已成功刻录进星舰数据库！`);
+        if (result.card?.id) localStorage.setItem('trpg_current_char_id', result.card.id);
         navigate(-1);
       } else {
-        alert(`保存失败: ${result.message}`);
+        alert(`保存失败: ${result.message || result.error}`);
       }
     } catch (error) {
       console.error('API 请求报错:', error);
@@ -961,7 +949,7 @@ export default function CreateCharacter() {
                             className="flat-btn secondary small luc-dice-btn" 
                             title="单独投掷幸运"
                             aria-label="单独投掷幸运"
-                            onClick={() => setStats({...stats, luc: rollD6() * 5})}
+                            onClick={() => setStats({...stats, luc: (rollD6() + rollD6() + rollD6()) * 5})}
                             >
                             🎲
                             </button>

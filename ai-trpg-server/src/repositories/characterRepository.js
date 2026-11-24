@@ -19,7 +19,7 @@ const writeCharacters = (data) => {
 // NOTE: 登录账号只负责归档角色卡；游戏内展示名以后统一来自角色卡姓名。
 const listByUsername = (username) => {
   const db = readCharacters();
-  return db[username] || [];
+  return Object.hasOwn(db, username) && Array.isArray(db[username]) ? db[username] : [];
 };
 
 // SECTION: 角色摘要生成
@@ -45,8 +45,9 @@ const deriveCharacterSummary = (cardData, id) => {
 // SECTION: 新建或更新角色
 // NOTE: 前端编辑旧角色时会带 id；没有 id 时才生成新角色。
 const saveForUsername = (username, cardData) => {
+  cardData = require('../domain/characterValidation').normalizeCharacter(cardData);
   const db = readCharacters();
-  if (!db[username]) db[username] = [];
+  if (!Object.hasOwn(db, username)) db[username] = [];
 
   const existingIndex = db[username].findIndex((card) => card.id === cardData.id);
 
@@ -60,6 +61,9 @@ const saveForUsername = (username, cardData) => {
     return { card: db[username][existingIndex], created: false };
   }
 
+  if (cardData.id) {
+    const error = new Error('角色卡不存在或不属于当前账号。'); error.statusCode = 404; throw error;
+  }
   const id = `char_${crypto.randomUUID()}`;
   const newCard = deriveCharacterSummary(cardData, id);
   db[username].push(newCard);
