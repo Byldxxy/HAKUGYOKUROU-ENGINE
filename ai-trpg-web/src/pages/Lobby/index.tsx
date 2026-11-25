@@ -468,7 +468,9 @@ function RoomLobby({ roomId }: { roomId?: string }) {
                     {player.avatarPath && <img className="player-portrait" src={apiUrl(player.avatarPath)} alt={player.name + '的头像'} />}
                     <span className="player-name">
                       {player.characterName || player.name || '未命名调查员'}
-                      {player.name === roomOwnerName ? ' 👑 (房主)' : ' 👥'}
+                    </span>
+                    <span className="player-marker">
+                      {player.name === roomOwnerName ? <><span aria-hidden="true">👑</span> (房主)</> : <span aria-hidden="true">👥</span>}
                     </span>
                   </div>
                   <div className="player-readiness">

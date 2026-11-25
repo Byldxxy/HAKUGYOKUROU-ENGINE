@@ -104,13 +104,14 @@
   align-content: start;
   gap: 6px;
 }
-.player-item { justify-content: space-between; min-width: 0; padding: 8px 10px; border: var(--border-soft); border-radius: var(--radius-control); }
-.player-info { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 700; }
-.player-name, .player-readiness { min-width: 0; overflow-wrap: anywhere; }
-.player-readiness { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 4px 8px; text-align: end; font-size: .875rem; }
+.player-item { flex-wrap: wrap; row-gap: 4px; min-width: 0; padding: 8px 10px; border: var(--border-soft); border-radius: var(--radius-control); }
+.player-info { display: flex; flex: 1 0 auto; align-items: center; gap: 6px; min-width: 0; max-width: 100%; font-weight: 700; }
+.player-name { min-width: 0; overflow-wrap: anywhere; }
+.player-marker { flex: none; white-space: nowrap; }
+.player-readiness { display: flex; min-width: 0; max-width: 100%; margin-inline-start: auto; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 4px 8px; text-align: end; overflow-wrap: anywhere; font-size: .875rem; }
 .status-dot { flex: 0 0 10px; height: 10px; border: var(--border-strong); border-radius: 50%; background: var(--color-canvas); }
 .status-dot.ready { background-color: var(--color-primary); }
-.player-portrait { width: 32px; height: 32px; object-fit: cover; border-radius: var(--radius-control); }
+.player-portrait { flex: none; width: 32px; height: 32px; object-fit: cover; border-radius: var(--radius-control); }
 .readiness-link { border: 0; padding: 4px; color: var(--color-ink); text-decoration: underline; text-underline-offset: 3px; background: transparent; cursor: pointer; }
 
 .lobby-launch {
