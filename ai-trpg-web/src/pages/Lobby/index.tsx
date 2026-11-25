@@ -64,6 +64,7 @@ function RoomLobby({ roomId }: { roomId?: string }) {
     } else if (followLatest.current) box.scrollTop = box.scrollHeight;
   }, [chatMessages]);
   const [starting, setStarting] = useState(false);
+  const [rulesExpanded, setRulesExpanded] = useState(false);
   const [startError, setStartError] = useState('');
   const [hostStatus, setHostStatus] = useState<HostReadiness | null>(null);
   const characterControls = useRef<HTMLDivElement>(null);
@@ -300,32 +301,36 @@ function RoomLobby({ roomId }: { roomId?: string }) {
 
   return (
     <div className="lobby-container">
-      <div className="lobby-header flat-box">
-        <h2>房间号: <span className="highlight-text">{roomId}</span></h2>
-        <button 
-          className="flat-btn secondary small" 
-          onClick={handleExitLobby}
-        >
-          退出大厅
-        </button>
-      </div>
-
-      <div className="lobby-content">
-        <div className="lobby-left-panel flat-box">
-          <h3 className="section-title">剧本配置</h3>
-          {/* SECTION: 房主配置区 */}
-          {/* NOTE: 非房主不显示配置表单，避免误以为能更改剧本或存档。 */}
-          {isOwner ? (
-            <div className="config-form">
-              <div className="room-rule-grid">
-                <div className="room-rule-script">
-                  <label>选择剧本</label>
-                  <StyledSelect
-                    value={selectedScriptId}
-                    options={scriptOptions}
-                    onChange={(scriptId) => updateRoomConfig(scriptId, roomRules)}
-                  />
-                </div>
+      <section className="lobby-setup flat-box" aria-label="剧本配置">
+        <header className="lobby-header">
+          <h2>房间号 <span className="highlight-text">{roomId}</span></h2>
+          <div className="lobby-header-actions">
+            {isOwner && <button type="button" className="flat-btn secondary small rule-toggle"
+              aria-expanded={rulesExpanded} aria-controls="room-rule-limits"
+              onClick={() => setRulesExpanded(open => !open)}>房规</button>}
+            <button className="flat-btn secondary small" onClick={handleExitLobby}>退出大厅</button>
+          </div>
+        </header>
+        {isOwner ? (
+          <div className="config-form">
+            <div className="room-rule-grid">
+              <div className="room-rule-script">
+                <span className="config-label">选择剧本</span>
+                <StyledSelect
+                  value={selectedScriptId}
+                  options={scriptOptions}
+                  onChange={(scriptId) => updateRoomConfig(scriptId, roomRules)}
+                />
+              </div>
+              <div className="room-rule-save">
+                <span className="config-label">选择存档</span>
+                <StyledSelect
+                  value={selectedSaveId}
+                  options={saveOptions}
+                  onChange={value => { setSelectedSaveId(value); setStartError(''); }}
+                />
+              </div>
+              <div id="room-rule-limits" className={`room-rule-limits${rulesExpanded ? ' expanded' : ''}`}>
                 <label className="room-rule-field">
                   <span>购点上限</span>
                   <input
@@ -366,157 +371,160 @@ function RoomLobby({ roomId }: { roomId?: string }) {
                   />
                 </label>
               </div>
-
-              {!selectedSaveId && <p className="scenario-introduction">{scenarioIntroductions[selectedScriptId]}</p>}
-              <label>选择存档</label>
-              <StyledSelect
-                value={selectedSaveId}
-                options={saveOptions}
-                onChange={value => { setSelectedSaveId(value); setStartError(''); }}
-                disabled={!isOwner}
-              />
             </div>
-          ) : (
-            <div className="waiting-box">房主正在配置本次战役</div>
-          )}
 
-          <h3 className="section-title lobby-section-spaced">我的调查员档案</h3>
-          {/* SECTION: 出战角色选择 */}
-          {/* NOTE: 切换角色会同步 localStorage，并通过 join_lobby effect 更新后端玩家身份。 */}
-          <div className="character-panel" ref={characterControls}>
-            {characterList.length === 0 ? (
-              <div className="character-empty-state">
-                <span>[警告] 检测到当前账号暂无活动的角色卡。</span>
-                <button className="flat-btn primary small" onClick={() => navigate('/create-character', { state: { roomId, roomRules, lockRoomLimits: true } })}>
-                  + 建立新档案 (COC 7th)
-                </button>
-              </div>
-            ) : (
-              <div className="character-select-row">
-                <label>出战角色：</label>
-                
-                <StyledSelect
-                  value={activeCharacter?.id || ''}
-                  options={characterOptions}
-                  onChange={(selectedId) => {
-                    const selected = characterList.find(c => c.id === selectedId);
-                    setActiveCharacter(selected || null);
-                    if (selected) {
-                      localStorage.setItem('trpg_current_char_id', selected.id);
-                    } else {
-                      localStorage.removeItem('trpg_current_char_id');
-                    }
-                  }}
-                />
-                <div className="character-actions">
-                  <button 
-                    className="flat-btn secondary small" 
-                    disabled={!activeCharacter}
-                    onClick={() => activeCharacter && navigate('/create-character', {
-                      state: { character: activeCharacter, roomId, roomRules, lockRoomLimits: true },
-                    })}
-                  >
-                    编辑
+            {!selectedSaveId && <p className="scenario-introduction">{scenarioIntroductions[selectedScriptId]}</p>}
+          </div>
+        ) : (
+          <div className="waiting-box">房主正在配置本次战役</div>
+        )}
+      </section>
+
+      <div className="lobby-content">
+        <div className="lobby-left-panel flat-box">
+          <section className="lobby-character" aria-labelledby="investigator-heading">
+            <h3 className="section-title" id="investigator-heading">我的调查员档案</h3>
+            {/* SECTION: 出战角色选择 */}
+            {/* NOTE: 切换角色会同步 localStorage，并通过 join_lobby effect 更新后端玩家身份。 */}
+            <div className="character-panel" ref={characterControls}>
+              {characterList.length === 0 ? (
+                <div className="character-empty-state">
+                  <span>[警告] 检测到当前账号暂无活动的角色卡。</span>
+                  <button className="flat-btn primary small" onClick={() => navigate('/create-character', { state: { roomId, roomRules, lockRoomLimits: true } })}>
+                    + 建立新档案 (COC 7th)
                   </button>
+                </div>
+              ) : (
+                <div className="character-select-row">
+                  <label>出战角色：</label>
 
-                  <button 
-                    className="flat-btn secondary small" 
-                    disabled={!activeCharacter}
-                    onClick={async () => {
-                      if (!activeCharacter) return;
-                      if (window.confirm(`确定要永久销毁档案 [${activeCharacter.name}] 吗？(撕卡不可逆)`)) {
-                        try {
-                          const response = await apiFetch(`/api/characters/${activeCharacter.id}`, { method: 'DELETE' });
-                          if (!response.ok) throw new Error('delete');
-                          await loadCharacters();
-                        } catch {
-                          alert("撕卡失败，请检查星舰网络连接！");
-                        }
+                  <StyledSelect
+                    value={activeCharacter?.id || ''}
+                    options={characterOptions}
+                    onChange={(selectedId) => {
+                      const selected = characterList.find(c => c.id === selectedId);
+                      setActiveCharacter(selected || null);
+                      if (selected) {
+                        localStorage.setItem('trpg_current_char_id', selected.id);
+                      } else {
+                        localStorage.removeItem('trpg_current_char_id');
                       }
                     }}
-                  >
-                    删除
-                  </button>
-
-                  <button 
-                    className="flat-btn secondary small" 
-                    onClick={() => navigate('/create-character', {
-                      state: { roomId, roomRules, lockRoomLimits: true },
-                    })}
-                  >
-                    新建
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {roomId && <OfflineRollPreference roomId={roomId} enabled={roomPlayers.find(p => p.id === socket.id)?.offlineRoll} />}
-          <h3 className="section-title lobby-section-spaced">开团准备</h3>
-          {/* SECTION: 玩家列表 */}
-          {/* NOTE: key 混合角色名和 socket id，兼顾同名角色测试与连接刷新。 */}
-          <ul className="player-list">
-            {roomPlayers.map(player => (
-              <li key={`${player.characterName || player.name}-${player.id}`} className="player-item">
-                <div className="player-info">
-                  <span className={`status-dot ${playerBlocker(player) ? 'unready' : 'ready'}`}></span>
-                  {player.avatarPath && <img className="player-portrait" src={apiUrl(player.avatarPath)} alt={player.name + '的头像'} />}
-                  <span className="player-name">
-                    {player.characterName || player.name || '未命名调查员'}
-                    {player.name === roomOwnerName ? ' 👑 (房主)' : ' 👥'}
-                  </span>
-                </div>
-                <div className="player-readiness">
-                  <span>{playerBlocker(player) || player.role || '已就绪'}</span>
-                  {player.id === socket.id && !player.characterId && (
-                    <button type="button" className="readiness-link" onClick={focusCharacterChoice}>
-                      {characterList.length ? '选择角色' : '建立角色'}
+                  />
+                  <div className="character-actions">
+                    <button
+                      className="flat-btn secondary small"
+                      disabled={!activeCharacter}
+                      onClick={() => activeCharacter && navigate('/create-character', {
+                        state: { character: activeCharacter, roomId, roomRules, lockRoomLimits: true },
+                      })}
+                    >
+                      编辑
                     </button>
-                  )}
-                  {player.id === socket.id && player.fitsRoomRules === false && activeCharacter && (
-                    <button type="button" className="readiness-link" onClick={() => navigate('/create-character', {
-                      state: { character: activeCharacter, roomId, roomRules, lockRoomLimits: true },
-                    })}>调整角色卡</button>
-                  )}
+
+                    <button
+                      className="flat-btn secondary small"
+                      disabled={!activeCharacter}
+                      onClick={async () => {
+                        if (!activeCharacter) return;
+                        if (window.confirm(`确定要永久销毁档案 [${activeCharacter.name}] 吗？(撕卡不可逆)`)) {
+                          try {
+                            const response = await apiFetch(`/api/characters/${activeCharacter.id}`, { method: 'DELETE' });
+                            if (!response.ok) throw new Error('delete');
+                            await loadCharacters();
+                          } catch {
+                            alert("撕卡失败，请检查星舰网络连接！");
+                          }
+                        }
+                      }}
+                    >
+                      删除
+                    </button>
+
+                    <button
+                      className="flat-btn secondary small"
+                      onClick={() => navigate('/create-character', {
+                        state: { roomId, roomRules, lockRoomLimits: true },
+                      })}
+                    >
+                      新建
+                    </button>
+                  </div>
                 </div>
-              </li>
-            ))}
-          </ul>
-          {isOwner && roomId && (
-            <div className="host-readiness">
-              <span role="status">{!hostStatus ? '正在确认主持配置…' : missingApi ? '主持接口待配置'
-                : missingCredits ? '站点额度不足 1 点' : hostStatus.mode === 'custom' ? '自有主持接口已配置' : '站点主持接口已配置'}</span>
-              <HostApiPanel roomId={roomId} onReadiness={setHostStatus} />
+              )}
             </div>
-          )}
-          {isOwner && (!chatReady || blockers > 0 || selectedSaveId || startError) && (
-            <p className="start-readiness" role="status">
-              {!chatReady ? '正在同步房间…' : blockers ? `还有 ${blockers} 项开团准备待完成`
-                : startError || '读档时需原班玩家选择各自的原角色卡。'}
-            </p>
-          )}
-          {isOwner ? (
-            <button
-              className="flat-btn primary start-btn"
-              disabled={starting || startBlocked}
-              onClick={async () => {
-                setStarting(true);
-                setStartError('');
-                try { await socketRequest('host_start_game', { roomId, loadSaveId: selectedSaveId }); }
-                catch (error) { setStartError((error as Error).message); }
-                finally { setStarting(false); }
-              }}
-            >
-              开始游戏 (全员发车)
-            </button>
-          ) : (
-            <button 
-              className="flat-btn secondary start-btn" 
-              disabled 
-            >
-              等待房主发车...
-            </button>
-          )}
+
+            {roomId && <OfflineRollPreference roomId={roomId} enabled={roomPlayers.find(p => p.id === socket.id)?.offlineRoll} />}
+          </section>
+          <section className="party-roster" aria-labelledby="party-heading">
+            <h3 className="section-title" id="party-heading">开团准备 <span className="member-count">{roomPlayers.length} 人</span></h3>
+            {/* SECTION: 玩家列表 */}
+            {/* NOTE: key 混合角色名和 socket id，兼顾同名角色测试与连接刷新。 */}
+            <ul className="player-list">
+              {roomPlayers.map(player => (
+                <li key={`${player.characterName || player.name}-${player.id}`} className="player-item">
+                  <div className="player-info">
+                    <span className={`status-dot ${playerBlocker(player) ? 'unready' : 'ready'}`}></span>
+                    {player.avatarPath && <img className="player-portrait" src={apiUrl(player.avatarPath)} alt={player.name + '的头像'} />}
+                    <span className="player-name">
+                      {player.characterName || player.name || '未命名调查员'}
+                      {player.name === roomOwnerName ? ' 👑 (房主)' : ' 👥'}
+                    </span>
+                  </div>
+                  <div className="player-readiness">
+                    <span>{playerBlocker(player) || player.role || '已就绪'}</span>
+                    {player.id === socket.id && !player.characterId && (
+                      <button type="button" className="readiness-link" onClick={focusCharacterChoice}>
+                        {characterList.length ? '选择角色' : '建立角色'}
+                      </button>
+                    )}
+                    {player.id === socket.id && player.fitsRoomRules === false && activeCharacter && (
+                      <button type="button" className="readiness-link" onClick={() => navigate('/create-character', {
+                        state: { character: activeCharacter, roomId, roomRules, lockRoomLimits: true },
+                      })}>调整角色卡</button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <footer className="lobby-launch">
+            <div className="launch-status">
+              {isOwner && roomId && <span role="status">{!hostStatus ? '正在确认主持配置…' : missingApi ? '主持接口待配置'
+                : missingCredits ? '站点额度不足 1 点' : hostStatus.mode === 'custom' ? '自有主持接口已配置' : '站点主持接口已配置'}</span>}
+              {isOwner && (!chatReady || blockers > 0 || selectedSaveId || startError) && (
+                <p className="start-readiness" role="status">
+                  {!chatReady ? '正在同步房间…' : blockers ? `还有 ${blockers} 项开团准备待完成`
+                    : startError || '读档时需原班玩家选择各自的原角色卡。'}
+                </p>
+              )}
+            </div>
+            <div className="launch-actions">
+              {isOwner && roomId && <HostApiPanel roomId={roomId} onReadiness={setHostStatus} />}
+              {isOwner ? (
+                <button
+                  className="flat-btn primary start-btn"
+                  disabled={starting || startBlocked}
+                  onClick={async () => {
+                    setStarting(true);
+                    setStartError('');
+                    try { await socketRequest('host_start_game', { roomId, loadSaveId: selectedSaveId }); }
+                    catch (error) { setStartError((error as Error).message); }
+                    finally { setStarting(false); }
+                  }}
+                >
+                  开始游戏 (全员发车)
+                </button>
+              ) : (
+                <button
+                  className="flat-btn secondary start-btn"
+                  disabled
+                >
+                  等待房主发车...
+                </button>
+              )}
+            </div>
+          </footer>
         </div>
         <div className="lobby-right-panel flat-box">
           <h3 className="section-title">闲聊频道</h3>
