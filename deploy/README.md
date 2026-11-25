@@ -135,6 +135,10 @@ sudo systemctl enable --now hakugyokurou
 /opt/hakugyokurou/deploy/backup-data.sh /opt/hakugyokurou /var/backups/hakugyokurou
 ```
 
+如果服务指定了自定义数据目录，运行备份脚本时也应传入相同的 `TRPG_DATA_DIR`。续团依赖同一时间点的 `saves/`、`logs/`、`notebooks.json` 和 `scenario-revisions/`。最后一个目录按内容指纹归档开团时的剧本。发布新版剧本时请保留旧修订，换机器时从备份一并恢复这些目录。恢复后可在隔离实例用原班角色载入一个旧档，核对当前场景和个人笔记。
+
+离线代掷与断线重连共用 `RECONNECT_GRACE_MS`，默认 30000 毫秒。玩家需要在自己的房间设置中明确授权；超过宽限期后由服务器写入带标记的骰点。
+
 ## 8. 当前架构限制
 
 - 房间状态保存在单个 Node 进程内，当前只能运行一个后端实例。

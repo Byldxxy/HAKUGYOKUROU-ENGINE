@@ -8,7 +8,7 @@ const campaignService = require('../services/campaignService');
 const { isValidRoomId } = require('../domain/validation');
 const { normalizeRoomRules } = require('../domain/roomRules');
 const { parseRollRequests, stripDirectives, isRollResultMessage } = require('../domain/directives');
-const { skillValue, rollSkill } = require('../domain/dice');
+const { skillValue, rollSkill, makeRollRules } = require('../domain/dice');
 
 const credits = require('../services/creditService');
 const profiles = require('../services/accountProviderService');
@@ -25,7 +25,12 @@ const loadRoom = (id) => {
   if (liveRooms.has(id)) return liveRooms.get(id);
   const record = rooms.get(id);
   if (!record) return null;
-  const room = { ...record, players: [], campaign: logs.getLatestCampaignState(id), dmInFlight: false };
+  const room = { ...record, loadedAt: Date.now(), players: [], campaign: logs.getLatestCampaignState(id), dmInFlight: false };
+  if (room.campaign) {
+    const unversioned = room.campaign.scenarioRevision === undefined;
+    campaignService.migrateCampaign(room.campaign);
+    if (unversioned) logs.appendCampaignState({ roomId: id, campaign: room.campaign });
+  }
   liveRooms.set(id, room);
   return room;
 };
@@ -33,7 +38,7 @@ const persist = (room, removedAccount) => {
   const previous = rooms.get(room.id)?.members || [];
   const members = previous.filter(member => member.accountName !== removedAccount &&
     !room.players.some(player => player.accountName === member.accountName));
-  members.push(...room.players.map(({ accountName, characterId }) => ({ accountName, characterId })));
+  members.push(...room.players.map(({ accountName, characterId, offlineRoll }) => ({ accountName, characterId, offlineRoll })));
   room.members = members;
   rooms.save({ id: room.id, ownerAccount: room.ownerAccount, config: room.config,
     started: room.started, billing: room.billing, participants: room.participants, members });
@@ -50,30 +55,31 @@ const ensureCampaign = (room, persistImports = true) => {
   campaignService.applyPartyStatsToPlayers(room.campaign, room.players);
   return room.campaign;
 };
-const turnState = (room) => {
-  const lines = logs.readRoomLines(room.id);
+const turnState = (room, lines = logs.readRoomLines(room.id)) => {
   const lastDmIndex = lines.map((line) => line.type).lastIndexOf('dm_reply');
   const round = lines.slice(lastDmIndex + 1);
   // Pending checks belong to persisted party members even if another player reconnects first.
   const rollTargets = room.players.slice();
-  for (const member of room.members) {
-    const name = room.campaign?.partyStats?.[member.accountName]?.characterName;
-    if (name && !rollTargets.some(player => player.accountName === member.accountName)) {
-      rollTargets.push({ ...member, name });
+  for (const [accountName, stats] of Object.entries(room.campaign?.partyStats || {})) {
+    if (stats.characterName && !rollTargets.some(player => player.accountName === accountName)) {
+      rollTargets.push({ accountName, characterId: stats.characterId, name: stats.characterName });
     }
   }
   const rollRequests = parseRollRequests(lines[lastDmIndex]?.content || '').flatMap((request) => {
-    const player = rollTargets.find((item) => sameName(item.name, request.player));
+    const savedRules = lines[lastDmIndex]?.rollRules?.[request.index];
+    const player = rollTargets.find(item => savedRules?.characterId ? item.characterId === savedRules.characterId : sameName(item.name, request.player));
     if (!player) return [];
-    const id = `${lastDmIndex}-${request.index}-${player.name}-${request.skill}`;
+    const id = `${lastDmIndex}-${request.index}-${savedRules?.characterId ? request.player : player.name}-${request.skill}`;
     const result = round.find((line) => line.type === 'player_action' &&
-      (line.accountName ? line.accountName === player.accountName : sameName(line.playerName, player.name)) &&
-      (line.rollId === id || (!line.rollId && isRollResultMessage(line.content) && line.content.startsWith(`[对 ${request.skill} 进行检定]`))));
-    return [{ ...request, id, characterId: player.characterId, resolved: Boolean(result), result: result?.content || '' }];
+      (line.rollId === id || (!line.rollId && isRollResultMessage(line.content) &&
+       (line.accountName ? line.accountName === player.accountName : sameName(line.playerName, player.name)) &&
+       line.content.startsWith(`[对 ${request.skill} 进行检定]`))));
+    const rules = savedRules || (player.fullData && makeRollRules(skillValue(player, request.skill)));
+    return [{ ...request, rules, id, characterId: player.characterId, resolved: Boolean(result), result: result?.content || '' }];
   });
   const pendingRolls = rollRequests.filter((request) => !request.resolved);
   const actedAccounts = room.players.filter((player) => round.some((line) => line.type === 'player_action' &&
-    !isRollResultMessage(line.content) && (line.accountName ? line.accountName === player.accountName : sameName(line.playerName, player.name))))
+    !line.rollId && !isRollResultMessage(line.content) && (line.accountName ? line.accountName === player.accountName : sameName(line.playerName, player.name))))
     .map((player) => player.accountName);
   const pendingPlayers = room.players.filter((player) => !actedAccounts.includes(player.accountName)).map((player) => player.name);
   const completed = room.campaign?.phase !== 'active';
@@ -90,30 +96,81 @@ const emitState = (io, room) => {
   ensureCampaign(room);
   const owner = room.players.find((player) => player.accountName === room.ownerAccount);
   io.to(room.id).emit('lobby_update', {
-    ownerName: owner?.name || room.ownerAccount, ownerId: owner?.id, roomConfig: room.config, started: room.started,
-    players: room.players.map(({ id, name, characterId, characterName, avatarRevision, role, hp, san, mp, hpMax, sanMax, mpMax }) =>
-      ({ id, name, characterId, characterName, role, hp, san, mp,
+    roomId: room.id, ownerName: owner?.name || room.ownerAccount, ownerId: owner?.id, roomConfig: room.config, started: room.started,
+    players: room.players.map(({ id, name, characterId, characterName, avatarRevision, role, hp, san, mp, hpMax, sanMax, mpMax, offlineRoll }) =>
+      ({ id, name, characterId, characterName, role, hp, san, mp, offlineRoll: Boolean(offlineRoll),
         avatarPath: avatarRevision ? `/api/characters/${encodeURIComponent(characterId)}/avatar?roomId=${room.id}&v=${avatarRevision}` : undefined,
         hpMax: hpMax ?? hp, sanMax: sanMax ?? san, mpMax: mpMax ?? mp })),
   });
   if (room.campaign) {
+    const lines = logs.readRoomLines(room.id);
+    const sources = logs.recapSources(lines);
     for (const player of room.players) {
-      if (player.id) io.to(player.id).emit('campaign_state', campaignService.getPublicCampaign(room.campaign, player.accountName));
+      if (player.id) io.to(player.id).emit('campaign_state', campaignService.getPublicCampaign(room.campaign, player.accountName, sources));
     }
-    io.to(room.id).emit('turn_state', turnState(room));
+    io.to(room.id).emit('turn_state', turnState(room, lines));
   }
 };
 const snapshot = (socket, room) => {
-  socket.emit('room_snapshot', { roomId: room.id, messages: logs.listRoomMessages(room.id),
-    campaign: room.campaign ? campaignService.getPublicCampaign(room.campaign, socket.data.user.username) : null, turnState: turnState(room) });
+  const lines = logs.readRoomLines(room.id);
+  socket.emit('room_snapshot', { roomId: room.id, messages: logs.listRoomMessages(room.id, lines),
+    campaign: room.campaign ? campaignService.getPublicCampaign(room.campaign, socket.data.user.username, logs.recapSources(lines)) : null, turnState: turnState(room, lines) });
+};
+const absentPlayer = (room, characterId) => {
+  const member = room.members.find(p => p.characterId === characterId);
+  if (!member) return null;
+  const card = ownedCharacter(member.accountName, characterId);
+  if (!card) return null;
+  const player = playerFrom(member.accountName, card);
+  campaignService.applyPartyStatsToPlayers(room.campaign, [player]);
+  return player;
+};
+
+const settleAbsentRolls = (io, room, state) => {
+  let changed = false;
+  for (const request of state.pendingRolls) {
+    const member = room.members.find(m => m.characterId === request.characterId);
+    if (!member) {
+      const content = `[对 ${request.skill} 进行检定]：玩家已主动离房，本次检定取消。`;
+      logs.appendAction({ roomId: room.id, playerName: request.player, rollId: request.id, content });
+      io.to(room.id).emit('new_message', { role: 'roll', sender: request.player, rollId: request.id, content });
+      changed = true;
+      continue;
+    }
+    if (!member.offlineRoll || room.players.some(p => p.characterId === member.characterId)) continue;
+    // Live disconnects stay in room.players for their full reconnect window. After a
+    // process restart allow the same window for absent members to reattach.
+    const remaining = room.loadedAt + config.reconnectGraceMs - Date.now();
+    if (remaining > 0) {
+      if (!room.recoveryTimer) {
+        room.recoveryTimer = setTimeout(() => {
+          room.recoveryTimer = null;
+          if (liveRooms.get(room.id) === room && !room.dmError) void maybeRunDm(io, room);
+        }, remaining);
+        room.recoveryTimer.unref();
+      }
+      continue;
+    }
+    const player = absentPlayer(room, member.characterId);
+    if (!player) continue;
+    const rules = request.rules || makeRollRules(skillValue(player, request.skill));
+    if (!rules) continue;
+    const content = rollSkill(player, request.skill, rules) + '（服务器按本人授权离线代掷）';
+    logs.appendAction({ roomId: room.id, accountName: member.accountName, playerName: request.player, rollId: request.id, content });
+    io.to(room.id).emit('new_message', { role: 'roll', sender: request.player, rollId: request.id, content });
+    changed = true;
+  }
+  if (changed) emitState(io, room);
+  return changed ? turnState(room) : state;
 };
 const maybeRunDm = async (io, room) => {
-  if (!room.started || !room.players.length || room.dmInFlight || room.campaign?.phase !== 'active') return;
-  const state = turnState(room);
+  if (!room.started || !room.players.some(p => p.id) || room.dmInFlight || room.campaign?.phase !== 'active') return;
+  const state = settleAbsentRolls(io, room, turnState(room));
   if (state.pendingRolls.length || (!state.rollRequests.length && state.pendingPlayers.length)) return;
   room.dmInFlight = true;
   room.dmError = false;
   let settle;
+  let awaitingRolls = false;
   const payer = room.ownerAccount;
   emitState(io, room);
   try {
@@ -123,17 +180,28 @@ const maybeRunDm = async (io, room) => {
     if (byok && !provider) throw new Error('请房主保存自有 API 配置。');
     if (!byok) settle = credits.reserve(payer);
     const lines = logs.readRoomLines(room.id);
+    const targets = room.players.slice();
+    const cast = targets.slice();
+    for (const roll of state.rollRequests) {
+      if (!cast.some(p => p.characterId === roll.characterId)) {
+        const absent = absentPlayer(room, roll.characterId);
+        if (absent) cast.push(absent);
+      }
+    }
     const result = campaignService.normalizeDirectorResult(await ai.generateDirectorReply({
       provider,
       lines,
-      directorContext: campaignService.buildDirectorContext({ campaign: room.campaign, players: room.players, lines }),
+      directorContext: campaignService.buildDirectorContext({ campaign: room.campaign, players: targets, lines }),
     }));
     const requestedCount = result.requestedRolls.length;
     const seen = new Set();
     result.requestedRolls = result.requestedRolls.filter((request) => {
-      const player = room.players.find((item) => sameName(item.name, request?.player));
+      const player = targets.find((item) => sameName(item.name, request?.player));
       const skill = String(request?.skill || '').trim().replace(/:/g, '：').slice(0, 50);
       if (!player || seen.has(player.accountName) || /[<>:]/.test(skill) || skillValue(player, skill) === null) return false;
+      request.rules = makeRollRules(skillValue(player, skill), request.difficulty, request.modifier);
+      if (!request.rules) throw new Error('主持返回的检定难度或奖惩骰无效');
+      request.rules.characterId = player.characterId;
       request.skill = skill;
       request.player = player.name.trim();
       seen.add(player.accountName);
@@ -143,8 +211,8 @@ const maybeRunDm = async (io, room) => {
     const applied = campaignService.applyDirectorResult({ campaign: room.campaign, directorResult: result });
     const changes = [];
     // A pending roll may not apply its consequences early, including HP/SAN/MP.
-    for (const change of result.requestedRolls.length ? [] : result.statChanges.slice(0, room.players.length * 3)) {
-      const player = room.players.find((item) => sameName(item.name, change?.player));
+    for (const change of result.requestedRolls.length ? [] : result.statChanges.slice(0, cast.length * 3)) {
+      const player = cast.find((item) => sameName(item.name, change?.player));
       const type = String(change?.type || '').toUpperCase();
       const value = Math.round(Number(change?.value));
       if (player && ['HP', 'SAN', 'MP'].includes(type) && Number.isFinite(value) && value !== 0) {
@@ -157,10 +225,13 @@ const maybeRunDm = async (io, room) => {
       ...result.requestedRolls.map((request) => `<<ROLL:${request.skill}:${request.player}>>`),
       ...changes.map((change) => `<<STAT:${change.playerName}:${change.type}:${change.value}>>`),
       applied.transition?.entryNarration, applied.ending?.result?.publicNarration].filter(Boolean).join('\n\n');
-    logs.appendDmReply({ roomId: room.id, content });
+    const logIndex = logs.readRoomLines(room.id).length;
+    const rollRules = result.requestedRolls.map(request => request.rules);
+    logs.appendDmReply({ roomId: room.id, content, rollRules });
     logs.appendCampaignState({ roomId: room.id, campaign: room.campaign });
     settle?.(true);
-    io.to(room.id).emit('new_message', { role: 'dm', sender: '系统 DM', content });
+    io.to(room.id).emit('new_message', { role: 'dm', sender: '系统 DM', content, rollRules, logIndex });
+    awaitingRolls = rollRules.length > 0;
   } catch (error) {
     room.dmError = true;
     room.dmErrorText = /^(请房主|站点额度不足|自有 API 响应超时|自有 API 返回 HTTP \d{3}$|无法连接自有 API)/.test(error.message) ? error.message : '主持调用失败，请检查配置后重试。';
@@ -171,6 +242,7 @@ const maybeRunDm = async (io, room) => {
     room.dmInFlight = false;
     io.to(room.id).emit('billing_changed');
     emitState(io, room);
+    if (awaitingRolls) void maybeRunDm(io, room);
   }
 };
 const removePlayer = (io, socket, room, preserveMembership = false) => {
@@ -211,6 +283,7 @@ module.exports = (io) => {
         await fn(payload, reply);
       } catch (error) {
         console.error(`Socket ${event}:`, error.message);
+        if (error.code === 'scenario_incompatible') return reply({ success: false, reason: error.code, message: error.message });
         reply({ success: false, reason: 'invalid_request' });
         socket.emit('action_rejected', { reason: 'invalid_request' });
       }
@@ -234,6 +307,7 @@ module.exports = (io) => {
       }
       clearTimeout(player?.disconnectTimer);
       const replacement = playerFrom(username, card, socket.id);
+      replacement.offlineRoll = room.members.find(p => p.accountName === username)?.offlineRoll === true;
       if (player) Object.assign(player, replacement); else { player = replacement; room.players.push(player); }
       socket.join(room.id);
       socket.data.roomId = room.id;
@@ -264,10 +338,12 @@ module.exports = (io) => {
       }
       attach(room, card);
       emitState(io, room);
+      socket.data.notebookEditorRoom = null;
       if (!room.started) socket.emit('lobby_chat_snapshot', { roomId, ...lobbyChat.history(roomId) });
       ack({ success: true, started: room.started, characterId: card?.id || null });
     });
-    handle('join_room', (roomId, ack) => {
+    handle('join_room', (data, ack) => {
+      const roomId = typeof data === 'string' ? data : data?.roomId;
       if (!isValidRoomId(roomId) || !rooms.isMember(roomId, username)) return ack({ success: false, reason: 'forbidden' });
       const room = loadRoom(roomId);
       if (!room?.started) return ack({ success: false, reason: 'not_started' });
@@ -275,10 +351,19 @@ module.exports = (io) => {
       const card = ownedCharacter(username, selection.characterId);
       if (!card) return ack({ success: false, reason: 'invalid_character' });
       attach(room, card);
+      socket.data.notebookEditorRoom = data?.flushNotebook === true ? roomId : null;
       snapshot(socket, room);
       emitState(io, room);
       ack({ success: true, characterId: card.id });
       if (!room.dmError) void maybeRunDm(io, room);
+    });
+    handle('set_offline_roll', (data, ack) => {
+      const room = member(data?.roomId);
+      if (!room || typeof data.enabled !== 'boolean') return ack({ success: false, reason: 'invalid_request' });
+      room.players.find(p => p.accountName === username).offlineRoll = data.enabled;
+      persist(room);
+      emitState(io, room);
+      ack({ success: true });
     });
     handle('sync_character', (data, ack) => {
       const room = member(data?.roomId);
@@ -344,13 +429,16 @@ module.exports = (io) => {
         const savedLines = require('../storage/jsonFile').readJsonLines(saves.getSavePath(save.id));
         const campaign = [...savedLines].reverse().find((line) => line.type === 'campaign_state')?.campaign;
         if (!campaign) return ack({ success: false, reason: 'invalid_save' });
+        const unversioned = campaign.scenarioRevision === undefined;
+        campaignService.migrateCampaign(campaign);
         const savedParty = Object.entries(campaign.partyStats || {});
         if (savedParty.length !== room.players.length || savedParty.some(([account, stats]) =>
           !room.players.some((p) => p.accountName === account && p.characterId === stats.characterId && sameName(p.name, stats.characterName)))) {
           return ack({ success: false, reason: 'save_party_mismatch' });
         }
-        if (!logs.loadLogFrom(room.id, saves.getSavePath(save.id))) return ack({ success: false, reason: 'invalid_save' });
+        if (!saves.restoreIntoRoom(save, room.id, savedParty.map(([account]) => account))) return ack({ success: false, reason: 'invalid_save' });
         room.campaign = campaign;
+        if (unversioned) logs.appendCampaignState({ roomId: room.id, campaign });
         room.config.scriptId = campaign.scriptId;
       } else {
         room.campaign = campaignService.createCampaign(room.config.scriptId);
@@ -400,7 +488,7 @@ module.exports = (io) => {
       if (data.isRoll) {
         const request = state.pendingRolls.find((roll) => roll.id === data.rollId && roll.characterId === player.characterId);
         if (!request) return reject('invalid_roll');
-        message = rollSkill(player, request.skill);
+        message = rollSkill(player, request.skill, request.rules || undefined);
         rollId = request.id;
       } else {
         if (state.inputLocked || state.actedPlayers.includes(player.name)) return reject('turn_locked');

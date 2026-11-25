@@ -7,9 +7,9 @@ BACKUP_ROOT="${2:-/var/backups/hakugyokurou}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
 mkdir -p "$BACKUP_ROOT"
-SERVER_ROOT="$APP_ROOT/ai-trpg-server"
+SERVER_ROOT="${TRPG_DATA_DIR:-$APP_ROOT/ai-trpg-server}"
 ITEMS=()
-for item in users.json characters.json notebooks.json rooms.json credits.json provider-profiles logs saves; do
+for item in users.json characters.json notebooks.json rooms.json credits.json provider-profiles logs saves scenario-revisions; do
   if [ -e "$SERVER_ROOT/$item" ]; then
     ITEMS+=("$item")
   fi

@@ -1,103 +1,11 @@
-const assert = require('assert');
+const assert = require('node:assert/strict');
 const campaignService = require('../src/services/campaignService');
-
-const apply = (campaign, { facts = {}, clues = [], transition = null, rolls = [], clockDeltas = {} }) => {
-  return campaignService.applyDirectorResult({
-    campaign,
-    directorResult: {
-      narration: '测试叙述',
-      requestedRolls: rolls,
-      statChanges: [],
-      revealedClueIds: clues,
-      proposedStateChanges: { facts, clockDeltas },
-      proposedTransition: transition,
-      pacing: transition ? 'advance' : 'hold',
-    },
-  }).campaign;
-};
-
-let campaign = campaignService.createCampaign('peach');
-assert.equal(campaign.currentSceneId, 'forest-awakening');
-assert.equal(Object.hasOwn(campaign.clocks, 'injury'), false, '战役不得使用与角色 HP 重复的伤势时钟');
-
-campaign = apply(campaign, {
-  facts: { rootIdentified: true, yuwenTimeGapKnown: true },
-  clockDeltas: { healerSuspicion: 2 },
-  transition: 'dry-river-patrol',
-});
-assert.equal(campaign.facts.rootIdentified, false, '当前场景不得修改未授权事实');
-assert.equal(campaign.clocks.healerSuspicion.value, 0, '当前场景不得修改未授权时钟');
-assert.equal(campaign.currentSceneId, 'forest-awakening', '前置事实不完整时不得转场');
-assert.equal(Object.hasOwn(campaignService.getPublicCampaign(campaign), 'clocks'), false, '导演时钟不得广播给玩家');
-
-campaign = apply(campaign, {
-  facts: { yuwenTimeGapKnown: true, greylineChosen: true },
-  clues: ['clue-yuwen-time-gap'],
-  transition: 'dry-river-patrol',
-  rolls: [{ player: '测试角色', skill: '心理学' }],
-});
-assert.equal(campaign.currentSceneId, 'forest-awakening', '等待检定时不得提前转场');
-assert.equal(campaign.revealedClueIds.length, 0, '等待检定时不得提前公开线索');
-
-const steps = [
-  {
-    facts: { yuwenTimeGapKnown: true, greylineChosen: true },
-    clues: ['clue-yuwen-time-gap'],
-    transition: 'dry-river-patrol',
-  },
-  {
-    facts: { patrolPassed: true },
-    clues: ['clue-root-disrupts-scan'],
-    transition: 'greyline-arrival',
-  },
-  {
-    facts: { healerFound: true },
-    transition: 'healer-negotiation',
-  },
-  {
-    facts: { rootIdentified: true, treatmentCompleted: true },
-    clues: ['clue-root-identity'],
-    transition: 'cai-boshi-bargain',
-  },
-  {
-    facts: { deliveryAccepted: true, eastRouteSecured: true },
-    clues: ['clue-mask-material'],
-    transition: 'eastward-departure',
-  },
-];
-
-for (const step of steps) campaign = apply(campaign, step);
-
-assert.equal(campaign.currentSceneId, 'eastward-departure');
-assert.equal(campaign.phase, 'completed');
-assert.equal(campaign.endingId, 'chapter-success-delivery');
-assert.equal(campaign.revealedClueIds.length, 4);
-
-const publicState = campaignService.getPublicCampaign(campaign);
-assert.equal(publicState.ending.label, '带着交易前往东海岸');
-assert.equal(Object.hasOwn(publicState, 'facts'), false, '内部事实不得广播给玩家');
-assert.equal(Object.hasOwn(publicState, 'protectedSecrets'), false, '导演秘密不得广播给玩家');
-assert.equal(Object.hasOwn(publicState, 'scene'), false, '当前场景不得作为玩家 HUD 广播');
-assert.equal(Object.hasOwn(publicState, 'clocks'), false, '导演时钟不得广播给玩家');
-
-const players = [{
-  accountName: 'tester', characterId: 'character-1', name: '测试角色',
-  hp: 10, san: 50, mp: 10, fullData: { stats: { pow: 50 } },
-}];
-campaignService.syncPartyStats(campaign, players);
-campaignService.applyPartyStatChanges(campaign, [{ accountName: 'tester', type: 'HP', value: -3 }]);
-campaignService.applyPartyStatsToPlayers(campaign, players);
-assert.equal(players[0].hp, 7, '动态 HP 应写入战役状态并同步到玩家');
-assert.equal(campaign.partyStats.tester.hp.current, 7);
-
-// Replay each published ending from a fresh campaign through scene-authorized actions.
+const apply = (campaign, {facts = {}, transition = null, clockDeltas = {}}) => campaignService.applyDirectorResult({campaign, directorResult: {proposedStateChanges: {facts, clockDeltas}, proposedTransition: transition}}).campaign;
 const finish = (script, route, ending) => {
-  const final = route.reduce((state, action) => apply(state, action), campaignService.createCampaign(script));
-  assert.equal(final.endingId, ending);
-  assert.notEqual(final.phase, 'active');
+  const state = route.reduce((state, action) => apply(state, action), campaignService.createCampaign(script));
+  assert.equal(state.endingId, ending);
+  assert.notEqual(state.phase, 'active');
 };
-finish('peach', [...steps.slice(0, 4), { facts: { eastRouteSecured: true }, transition: 'eastward-departure' }], 'chapter-success-independent');
-finish('peach', Array(3).fill({ clockDeltas: { pursuit: 2 } }), 'chapter-costly-capture');
 const nightRoute = [
   { facts: { selfDiscovered: true }, transition: 'priest-procession' },
   { facts: { f1Explored: true }, transition: 'f2-investigation' },
@@ -109,4 +17,40 @@ finish('ontology', [...nightRoute, { facts: { signalJammerDestroyed: true, polic
 finish('ontology', [...nightRoute, { facts: { nightExplorationStarted: true }, transition: 'ritual-morning' },
   { facts: { ritualInterrupted: true }, transition: 'final-combat' }, { facts: { combatVictory: true } }], 'end-fortune-goddess');
 finish('ontology', [nightRoute[0], ...Array(3).fill({ clockDeltas: { suspicion: 2 } })], 'end-anti-intellectualism');
-console.log('Campaign state machine tests passed, including all seven endings.');
+
+const fresh = campaignService.createCampaign('peach');
+assert.equal(fresh.chapterId, 'peach-v16-complete');
+assert.equal(fresh.currentSceneId, 's00');
+assert.deepEqual(campaignService.getPublicCampaign(fresh).revealedClues, []);
+for (const key of ['facts', 'clocks', 'protectedSecrets', 'scene']) assert.equal(Object.hasOwn(campaignService.getPublicCampaign(fresh), key), false);
+const routes = require('../scenarios/peach-island-v16/chapter-complete.routes.json');
+const reached = new Set();
+for (const route of routes) {
+  let state = campaignService.createCampaign('peach');
+  for (const step of route.steps) {
+    assert.equal(state.phase, 'active');
+    state = campaignService.applyDirectorResult({ campaign: state, directorResult: step.reply }).campaign;
+    const expected = step.expect || {};
+    if (expected.scene) assert.equal(state.currentSceneId, expected.scene);
+    if (expected.phase) assert.equal(state.phase, expected.phase);
+    for (const [key, value] of Object.entries(expected.facts || {})) assert.equal(state.facts[key], value);
+    for (const [key, value] of Object.entries(expected.clocks || {})) assert.equal(state.clocks[key].value, value);
+    if (expected.clues) assert.deepEqual(campaignService.getPublicCampaign(state).revealedClues.map(c => c.id).sort(), [...expected.clues].sort());
+  }
+  if (route.ending) {
+    assert.equal(state.endingId, route.ending);
+    reached.add(state.endingId);
+  } else {
+    assert.equal(state.phase, 'active');
+  }
+}
+assert.deepEqual(reached, new Set(campaignService.getScenario(fresh).endings.map(e => e.id)));
+const openingContext = JSON.stringify(campaignService.buildDirectorContext({campaign:fresh,players:[]}));
+assert.ok(!/采样舱|母文明|格式化全人类|生态文明方舟|基因钥匙/.test(openingContext), '开场上下文不得携带后期秘密');
+const players = [{accountName: 'tester', characterId: 'character-1', name: '测试角色', hp: 10, san: 50, mp: 10, fullData: {stats: {pow: 50}}}];
+campaignService.syncPartyStats(fresh, players);
+campaignService.applyPartyStatChanges(fresh, [{accountName: 'tester', type: 'HP', value: -3}]);
+campaignService.applyPartyStatsToPlayers(fresh, players);
+assert.equal(players[0].hp, 7);
+assert.equal(fresh.partyStats.tester.hp.current, 7);
+console.log('PASS published scenarios: all peach endings and pacing routes, four ontology endings, opening knowledge boundary, public projection and party stats.');

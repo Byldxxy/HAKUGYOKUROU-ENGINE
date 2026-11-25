@@ -10,6 +10,7 @@ dotenv.config({ path: path.join(serverRoot, envFileName) });
 const nodeEnv = process.env.NODE_ENV || requestedNodeEnv;
 const isProduction = nodeEnv === 'production';
 const dataRoot = path.resolve(process.env.TRPG_DATA_DIR || serverRoot);
+const graceMs = Number(process.env.RECONNECT_GRACE_MS || 30_000);
 
 const parseBoolean = (value, fallback) => {
   if (value === undefined || value === '') return fallback;
@@ -50,7 +51,8 @@ const config = {
     customTimeout: Number(process.env.CUSTOM_AI_TIMEOUT_MS || 90000),
     debugRaw: parseBoolean(process.env.AI_DEBUG_RAW, !isProduction),
   },
-  reconnectGraceMs: Number(process.env.RECONNECT_GRACE_MS || 30000),
+  // Node timers outside this integer range can fire after only one millisecond.
+  reconnectGraceMs: Number.isInteger(graceMs) && graceMs >= 0 && graceMs <= 2_147_483_647 ? graceMs : 30_000,
   paths: {
     roomsFile: path.join(dataRoot, 'rooms.json'),
     // NOTE: 当前原型使用本地文件；上线迁数据库时，仓储层可以替换实现而不改路由。
@@ -58,6 +60,7 @@ const config = {
     charactersFile: path.join(dataRoot, 'characters.json'),
     logsDir: path.join(dataRoot, 'logs'),
     savesDir: path.join(dataRoot, 'saves'),
+    scenarioRevisionsDir: path.join(dataRoot, 'scenario-revisions'),
     savesMetaFile: path.join(dataRoot, 'saves', 'meta.json'),
     notebooksFile: path.join(dataRoot, 'notebooks.json'),
   },

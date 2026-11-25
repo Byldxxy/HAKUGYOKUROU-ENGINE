@@ -13,11 +13,12 @@ router.get('/', (req, res) => {
   if (!isValidRoomId(roomId)) return res.status(400).json({ success: false, messages: [] });
 
   if (!rooms.canRead(roomId, req.user.username)) return res.status(403).json({ success: false, error: '无权访问该房间。' });
-  const campaign = roomLogRepository.getLatestCampaignState(roomId);
+  const lines = roomLogRepository.readRoomLines(roomId);
+  const campaign = lines.findLast(line => line.type === 'campaign_state')?.campaign;
   res.json({
     success: true,
-    messages: roomLogRepository.listRoomMessages(roomId),
-    campaign: campaign ? campaignService.getPublicCampaign(campaign, req.user.username) : null,
+    messages: roomLogRepository.listRoomMessages(roomId, lines),
+    campaign: campaign ? campaignService.getPublicCampaign(campaign, req.user.username, roomLogRepository.recapSources(lines)) : null,
   });
 });
 

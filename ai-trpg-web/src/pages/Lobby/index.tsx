@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Lobby.css';
+import OfflineRollPreference from '../../components/OfflineRollPreference';
 import HostApiPanel from '../../components/HostApiPanel';
 import { apiFetch, apiUrl } from '../../config';
 import type { Character, PublicPlayer, Save, LobbyMessage } from '../../domain/types';
@@ -70,6 +71,7 @@ function RoomLobby({ roomId }: { roomId?: string }) {
   const scriptOptions = [
     { value: 'peach', label: '桃花岛历险记' },
     { value: 'ontology', label: '本质' },
+    { value: 'harbour', label: '闭馆前的十秒' },
     { value: 'ctms', label: 'CTMS货舱危机（待接入）', disabled: true },
     { value: 'custom', label: '自定义空白团（待接入）', disabled: true },
   ];
@@ -421,6 +423,7 @@ function RoomLobby({ roomId }: { roomId?: string }) {
             )}
           </div>
 
+          {roomId && <OfflineRollPreference roomId={roomId} enabled={roomPlayers.find(p => p.id === socket.id)?.offlineRoll} />}
           <h3 className="section-title lobby-section-spaced">玩家状态</h3>
           {/* SECTION: 玩家列表 */}
           {/* NOTE: key 混合角色名和 socket id，兼顾同名角色测试与连接刷新。 */}

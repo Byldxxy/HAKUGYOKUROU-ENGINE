@@ -434,3 +434,6 @@
   .notebook-modal { width: calc(100vw - 24px); }
   .notebook-tabs .tab-item { padding-inline: 8px; font-size: 14px; }
 }
+
+.roll-target { font-size: 0.875rem; font-weight: 600; color: var(--color-ink); }
+.message:focus-visible { outline: var(--border-strong); outline-offset: 2px; }

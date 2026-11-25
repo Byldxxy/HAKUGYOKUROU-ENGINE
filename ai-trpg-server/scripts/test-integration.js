@@ -9,7 +9,7 @@ const { io } = require('../../ai-trpg-web/node_modules/socket.io-client');
 const { once } = require('node:events');
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trpg-test-'));
 const sockets = [];
-let child, output = '', aiCalls = 0, failNext = false, port;
+let child, output = '', aiCalls = 0, failNext = false, nextCheck = null, port;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const empty = { narration: '主持继续叙述。KPC收好信封。调查员甲，你现在可以：\n- 追问\n- 观察', requestedRolls: [], statChanges: [], revealedClueIds: [], proposedStateChanges: {}, proposedTransition: null, pacing: 'hold' };
 const mock = http.createServer(async (req, res) => {
@@ -17,8 +17,13 @@ const mock = http.createServer(async (req, res) => {
   assert.ok(JSON.parse(body).messages.some(m => m.role === 'system' && m.content.includes('权威导演上下文')));
   if (failNext) { failNext = false; res.writeHead(400); res.end('{"error":{"message":"fixture failure"}}'); return; }
   aiCalls++;
-  const content = aiCalls === 1 ? { ...empty, requestedRolls: [{ player: '调查员甲', skill: '侦查' }, { player: '调查员乙', skill: '射击:手枪' }], statChanges: [{ player: '调查员甲', type: 'HP', value: -5 }] }
+  const content = aiCalls === 1 ? { ...empty, requestedRolls: [{ player: '调查员甲', skill: '侦查', difficulty: 'hard', modifier: 1 }, { player: '调查员乙', skill: '射击:手枪', difficulty: 'extreme', modifier: -2 }], statChanges: [{ player: '调查员甲', type: 'HP', value: -5 }] }
     : { ...empty, statChanges: [{ player: '调查员甲', type: 'HP', value: -2 }] };
+  if (nextCheck) {
+    content.requestedRolls = [nextCheck];
+    nextCheck = null;
+  }
+  if (JSON.parse(body).messages.at(-1).content.includes('已主动离房')) content.statChanges = [];
   if (aiCalls <= 2) content.memoryChanges = [{ kind: 'item', id: 'folded-letter', label: '信封',
     holder: 'npc-kpc', witnesses: ['调查员甲', 'npc-kpc'], evidence: 'KPC收好信封。' }];
   const ctx = JSON.parse(JSON.parse(body).messages[1].content.split('\n').slice(1).join('\n'));
@@ -52,7 +57,7 @@ const connect = async cookie => {
   sockets.push(socket);
   await Promise.race([once(socket, 'connect'), delay(3000).then(() => { throw new Error('socket timeout'); })]);
   socket.on('campaign_state', data => socket.items = data.inventory);
-  socket.on('room_snapshot', data => socket.snapshotItems = data.campaign?.inventory);
+  socket.on('room_snapshot', data => { socket.snapshotItems = data.campaign?.inventory; socket.messages = data.messages; });
   socket.on('turn_state', data => socket.turn = data); socket.on('lobby_update', data => socket.lobby = data); return socket;
 };
 const send = (socket, event, payload) => new Promise((resolve, reject) => socket.timeout(4000).emit(event, payload, (error, ack) => error ? reject(error) : resolve(ack)));
@@ -92,7 +97,8 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await api('/characters',b.cookie,{cardData:{...draft('冒名'),id:ca.id}})).status,404);
   assert.equal((await api(`/characters/${ca.id}`,b.cookie,null,'DELETE')).status,404);
   assert.equal((await api('/characters',a.cookie,{cardData:{...draft('无效'),stats:{str:-1}}})).status,400);
-  const sa=await connect(a.cookie), sb=await connect(b.cookie), sx=await connect(x.cookie);
+  let sa=await connect(a.cookie), sb=await connect(b.cookie);
+  const sx=await connect(x.cookie);
   const { execFileSync } = require('node:child_process');
   const cdk = execFileSync(process.execPath, [path.join(__dirname,'issue-cdk.js'),'12'], {env:{...process.env,NODE_ENV:'development'},encoding:'utf8'}).trim().split('\n').at(-1);
   const roomId=(await send(sa,'create_room',{})).roomId;
@@ -156,7 +162,28 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await send(sa,'player_action',{roomId,isRoll:true,rollId:rb})).reason,'invalid_roll');
   assert.equal((await send(sa,'player_action',{roomId,isRoll:true,rollId:ra,message:'D100 = 1 / 999'})).success,true);
   assert.equal((await send(sa,'player_action',{roomId,isRoll:true,rollId:ra})).reason,'invalid_roll');
-  assert.equal((await send(sb,'player_action',{roomId,isRoll:true,rollId:rb})).success,true);
+  assert.equal(sa.turn.rollRequests.find(r=>r.id===ra).rules.target,25);
+  assert.equal(sa.turn.rollRequests.find(r=>r.id===rb).rules.modifier,-2);
+  sb.disconnect();
+  await delay(340);
+  assert.equal(sa.turn.pendingRolls[0].id,rb,'default policy waits for the investigator');
+  sb=await connect(b.cookie);
+  await send(sb,'join_room',roomId);
+  assert.equal((await send(sb,'set_offline_roll',{roomId,enabled:true})).success,true);
+  sb.disconnect();
+  sb=await connect(b.cookie);
+  await send(sb,'join_room',roomId);
+  assert.equal(sb.turn.pendingRolls[0].id,rb,'quick reconnect keeps the same pending roll');
+  assert.equal(sb.lobby.players.find(p=>p.id===sb.id).offlineRoll,true);
+  await stop();
+  await start();
+  sa=await connect(a.cookie);
+  await send(sa,'join_room',roomId);
+  await wait(()=>sa.turn?.mode==='waiting_players' && sa.lobby.players.find(p=>p.characterId===ca.id).hp===8,'restart and authorized offline roll');
+  sb=await connect(b.cookie);
+  await send(sb,'join_room',roomId);
+  assert.equal((await send(sb,'player_action',{roomId,isRoll:true,rollId:rb})).reason,'invalid_roll');
+  assert.equal((await send(sb,'set_offline_roll',{roomId,enabled:false})).success,true);
   await wait(()=>sa.turn?.mode==='waiting_players' && sa.lobby.players.find(p=>p.characterId===ca.id).hp===8,'settlement');
   const history=(await api('/room_history?roomId='+roomId,a.cookie)).data;
   assert.deepEqual(history.campaign.inventory, [cardItem('怀表')]);
@@ -167,6 +194,9 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   const written = fs.readFileSync(path.join(dataDir, 'logs', 'room_' + roomId + '.jsonl'), 'utf8');
   assert.ok(!written.includes('你现在可以'), 'new replies must be cleaned before persistence');
   assert.equal(history.messages.filter(m=>m.role==='roll').length,2);
+  assert.equal(history.messages.filter(m=>m.rollId===rb && m.content.includes('授权离线代掷')).length,1);
+  assert.deepEqual(sb.messages.filter(m=>m.role==='roll'),history.messages.filter(m=>m.role==='roll'),'both observers recover the same roll cards');
+  assert.equal(history.messages.find(m=>m.role==='dm' && m.rollRules)?.rollRules[1].target,6);
   assert.ok(history.messages.filter(m=>m.role==='roll').every(m=>!m.content.includes('999')));
   assert.equal((await api('/notebooks',a.cookie,{roomId,notebook:{freeNotes:'线索记录',clues:['线索一'],graphNodes:[],graphEdges:[]}},'PUT')).status,200);
   assert.equal((await api('/notebooks?roomId='+roomId,a.cookie)).data.notebook.freeNotes,'线索记录');
@@ -178,6 +208,21 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   await wait(()=>sa.turn?.mode==='waiting_players'&&!sa.turn.canRetry,'AI retry');
   assert.equal((await api('/saves',a.cookie,{roomId,saveName:'回归存档'})).status,200);
   const save=(await api('/saves',a.cookie)).data.saves[0];
+  // A teammate is still typing when the checkpoint is requested. Wait for their write.
+  const laterNote = { freeNotes:'乙的推理，仅第二份存档可见', clues:['乙的摘录'],
+    graphNodes:[{id:'n',name:'见证人',x:1,y:2}], graphEdges:[{id:'e',source:'n',target:'n',label:'回忆'}] };
+  assert.equal((await send(sb,'join_room',{roomId,flushNotebook:true})).success,true);
+  sb.once('flush_notebook', (_, done) => done({success:false}));
+  assert.equal((await api('/saves',a.cookie,{roomId,saveName:'同步失败'})).status,409);
+  sb.once('flush_notebook', async (request, done) => {
+    const response = await api('/notebooks',b.cookie,{roomId:request.roomId,notebook:laterNote},'PUT');
+    done({success:response.status === 200});
+  });
+  assert.equal((await api('/saves',a.cookie,{roomId,saveName:'第二份'})).status,200);
+  const saveList = (await api('/saves',a.cookie)).data.saves;
+  assert.equal(saveList.length,2);
+  const laterSave = saveList[1];
+  assert.ok(!JSON.stringify(saveList).includes('乙的推理'));
   sa.disconnect(); await delay(350);
   assert.equal(sb.lobby.ownerId,sb.id,'owner handover');
   const sa2=await connect(a.cookie); assert.equal((await send(sa2,'join_room',roomId)).success,true);
@@ -191,9 +236,32 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await send(sa2,'host_start_game',{roomId:second,loadSaveId:save.id})).success,true);
   await wait(()=>sa2.lobby.players.find(p=>p.characterId===ca.id).hp===6,'save HP');
   assert.deepEqual(sa2.items, [cardItem('怀表')]);
+  assert.equal((await api('/notebooks?roomId='+second,a.cookie)).data.notebook.freeNotes,'线索记录');
+  assert.equal((await api('/notebooks?roomId='+second,b.cookie)).data.notebook.freeNotes,'');
   const restoredCampaign = fs.readFileSync(path.join(dataDir, 'logs', 'room_' + second + '.jsonl'), 'utf8')
     .trim().split('\n').map(line => JSON.parse(line)).filter(line => line.type === 'campaign_state').at(-1).campaign;
   assert.equal(restoredCampaign.memory.find(e => e.id === 'folded-letter').state.holder, 'npc-kpc');
+  nextCheck = {player:'调查员乙',skill:'理智',modifier:1};
+  await send(sa2,'player_action',{roomId:second,message:'我听一听。'});
+  await send(sb,'player_action',{roomId:second,message:'我抬头看。'});
+  await wait(()=>sb.turn?.mode==='waiting_rolls','check before live disconnect');
+  const liveOfflineId = sb.turn.pendingRolls[0].id;
+  await send(sb,'set_offline_roll',{roomId:second,enabled:true});
+  sb.disconnect();
+  await wait(()=>sa2.turn?.mode==='waiting_players','live disconnect settles after grace');
+  sb=await connect(b.cookie);
+  await send(sb,'join_room',second);
+  assert.equal(sb.messages.filter(m=>m.rollId===liveOfflineId && m.content.includes('授权离线代掷')).length,1);
+  nextCheck = {player:'调查员乙',skill:'侦查'};
+  await send(sa2,'player_action',{roomId:second,message:'我等他查看门口。'});
+  await send(sb,'player_action',{roomId:second,message:'我检查门口。'});
+  await wait(()=>sb.turn?.mode==='waiting_rolls','leave during a pending check');
+  const abandonedId = sb.turn.pendingRolls[0].id;
+  await send(sb,'leave_room',{roomId:second});
+  await wait(()=>sa2.turn?.mode==='waiting_players','remaining player can continue');
+  const afterExit = (await api('/room_history?roomId='+second,a.cookie)).data;
+  assert.deepEqual(afterExit.messages.filter(m=>m.rollId===abandonedId).map(m=>m.role), ['roll']);
+  assert.match(afterExit.messages.find(m=>m.rollId===abandonedId).content,/本次检定取消/);
   assert.ok(!JSON.stringify(history).includes('folded-letter'), 'private memory must stay out of room history');
   const fixture = { roomId: second, mode: 'custom', url: 'https://model.example/v1', model: 'sample', key: 'private-fixture-key' };
   const savedApi = await send(sa2, 'set_host_api', fixture);
@@ -207,7 +275,7 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   const restored=await connect(a.cookie);
   assert.equal((await send(restored,'join_room',second)).success,true);
   assert.deepEqual(restored.snapshotItems,[cardItem('怀表')]);
-  assert.equal(restored.lobby.players.find(p=>p.characterId===ca.id).hp,6,'restart HP');
+  assert.equal(restored.lobby.players.find(p=>p.characterId===ca.id).hp,4,'restart HP');
   assert.equal((await api('/room_history?roomId='+second,x.cookie)).status,403);
   assert.equal((await send(restored,'player_action',null)).success,false);
   const afterRestart = await send(restored, 'host_api_status', { roomId: second });
@@ -226,6 +294,16 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await send(restored, 'host_api_status', { roomId: fresh })).configured, false);
   // Synthetic persistence check independent of sockets and their per-client rate limit.
   process.env.TRPG_DATA_DIR = dataDir;
+  const savedGames = require('../src/repositories/saveRepository');
+  const notes = require('../src/repositories/notebookRepository');
+  assert.equal(savedGames.restoreIntoRoom(laterSave, '000098', ['tester_a','tester_b']), true);
+  const later = notes.getNotebook({roomId:'000098',username:'tester_b'});
+  for (const key of Object.keys(laterNote)) assert.deepEqual(later[key], laterNote[key]);
+  assert.equal(notes.getNotebook({roomId:'000098',username:'tester_a'}).freeNotes,'线索记录');
+  const oldFormatSave = { id: save.id }; // pre-notebook snapshots have no sidecar version
+  assert.equal(savedGames.restoreIntoRoom(oldFormatSave,'000098',['tester_a','tester_b']),true);
+  assert.equal(notes.getNotebook({roomId:'000098',username:'tester_b'}).freeNotes,'');
+  assert.ok(!fs.readFileSync(savedGames.getSavePath(laterSave.id),'utf8').includes('乙的推理'));
   const chatLog = require('../src/repositories/lobbyChatRepository');
   assert.deepEqual(chatLog.history(roomId).messages, [chat]);
   for (let i = 0; i < 105; i++) chatLog.append('000099', 'tester', String(i));

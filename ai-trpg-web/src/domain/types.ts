@@ -11,11 +11,13 @@ export type CharacterData = {
 };
 export type Character = { id: string; name: string; role: string; hp: number; san: number; mp: number; fullData: CharacterData };
 export type PublicPlayer = {
+  offlineRoll?: boolean;
   avatarPath?: string;
   id: string | null; name: string; characterId: string | null; characterName: string | null;
   role: string; hp: number; san: number; mp: number; hpMax: number; sanMax: number; mpMax: number;
 };
-export type Message = { role: string; sender: string; content: string; rollId?: string; logIndex?: number };
+export type RollRules = { difficulty: 'regular' | 'hard' | 'extreme'; modifier: number; baseValue: number; target: number };
+export type Message = { rollRules?: RollRules[]; role: string; sender: string; content: string; rollId?: string; logIndex?: number };
 export type LobbyMessage = { id: number; sender: string; text: string; isSystem: boolean };
 export type Save = { id: string; name: string; date: string };
 export type GameCharacter = {

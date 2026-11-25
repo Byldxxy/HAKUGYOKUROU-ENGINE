@@ -28,10 +28,11 @@ const appendAction = ({ roomId, playerName, content, rollId, accountName }) => {
 
 // SECTION: DM 回复写入
 // NOTE: DM 回复是回合切片的边界，turn_state 会从最后一条 dm_reply 开始计算当前轮。
-const appendDmReply = ({ roomId, content }) => {
+const appendDmReply = ({ roomId, content, rollRules }) => {
   const entry = {
     timestamp: new Date().toISOString(),
     type: 'dm_reply',
+    ...(rollRules?.length ? { rollRules } : {}),
     roomId,
     playerName: '系统 DM',
     content,
@@ -69,17 +70,33 @@ const readRoomLines = (roomId) => readJsonLines(getRoomLogPath(roomId));
 
 // SECTION: 前端消息列表
 // NOTE: 这里保留 rollId，刷新页面后前端才能把骰子结果放回对应 ROLL 卡片。
-const listRoomMessages = (roomId) => {
-  return readRoomLines(roomId)
+const listRoomMessages = (roomId, lines = readRoomLines(roomId)) => {
+  return lines
     .map((line, logIndex) => ({ line, logIndex }))
     .filter(({ line }) => line.type === 'dm_reply' || line.type === 'player_action')
     .map(({ line, logIndex }) => ({
-      role: line.type === 'dm_reply' ? 'dm' : ((line.content || '').includes('D100 =') ? 'roll' : 'player'),
+      role: line.type === 'dm_reply' ? 'dm' : (line.rollId || (line.content || '').includes('D100 =') ? 'roll' : 'player'),
       sender: line.playerName,
       content: line.type === 'dm_reply' ? cleanKpNarration(line.content) : line.content,
       rollId: line.rollId,
+      ...(line.rollRules ? { rollRules: line.rollRules } : {}),
       logIndex,
     }));
+};
+
+// Each settled reply is followed by the snapshot for the next round. Copies of the
+// log retain these indices even when the campaign is restored into another room.
+const recapSources = (lines) => {
+  const sources = new Map();
+  let reply = null;
+  for (const [logIndex, line] of lines.entries()) {
+    if (line.type === 'dm_reply') reply = { logIndex, content: line.content };
+    if (line.type !== 'campaign_state' || !reply) continue;
+    const round = line.campaign?.round - 1;
+    if (round > 0) sources.set(round, reply);
+    reply = null;
+  }
+  return sources;
 };
 
 // SECTION: 新游戏清场
@@ -117,6 +134,7 @@ module.exports = {
   getLatestCampaignState,
   readRoomLines,
   listRoomMessages,
+  recapSources,
   resetRoomLog,
   copyLogTo,
   loadLogFrom,

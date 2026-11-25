@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Game.css';
+import OfflineRollPreference from '../../components/OfflineRollPreference';
+import NotebookRecap from './NotebookRecap';
 import HostApiPanel from '../../components/HostApiPanel';
-import RelationGraph, { type GraphNode, type GraphEdge } from '../../components/RelationGraph';
+import RelationGraph from '../../components/RelationGraph';
+import { useCampaignNotebook } from './useCampaignNotebook';
 import { apiFetch, apiUrl } from '../../config';
-import type { Character, PublicPlayer, Message, GameCharacter } from '../../domain/types';
+import type { Character, PublicPlayer, Message, GameCharacter, RollRules } from '../../domain/types';
 import { socketRequest, socketErrorMessage, ensureSocketConnected, socket } from '../../socket';
 import {
   parseRollRequests,
@@ -17,6 +20,7 @@ type RollRequestWithState = RollRequest & {
   id?: string;
   characterId?: string;
   originalPlayer?: string;
+  rules?: RollRules;
   resolved?: boolean;
   result?: string;
 };
@@ -42,6 +46,7 @@ type TurnState = {
 };
 
 type CampaignState = {
+  recap?: Array<{round: number; logIndex: number; text: string; kind: string}>;
   scenarioId: string;
   chapterId: string;
   title: string;
@@ -59,10 +64,11 @@ const findRollResult = (messages: Message[], dmIndex: number, roll: RollRequestW
   for (let index = dmIndex + 1; index < messages.length; index += 1) {
     const message = messages[index];
     if (message.role === 'dm') break;
-    if (message.role !== 'roll' || message.sender.trim() !== roll.player.trim()) continue;
+    if (message.role !== 'roll') continue;
 
     const content = String(message.content || '');
-    if ((roll.id && message.rollId === roll.id) || content.startsWith(`[对 ${roll.skill} 进行检定]`)) {
+    if ((roll.id && message.rollId === roll.id) ||
+      (message.sender.trim() === roll.player.trim() && content.startsWith(`[对 ${roll.skill} 进行检定]`))) {
       return content;
     }
   }
@@ -82,11 +88,9 @@ export default function Game() {
   // SECTION: 战役笔记状态
   // NOTE: 关系图状态提升到 Game，避免切换笔记页签时节点和边丢失。
   const [isNotebookOpen, setIsNotebookOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'relation' | 'notes' | 'clues' | 'inventory'>('relation');
-  const [freeNotes, setFreeNotes] = useState('');
-  const [clues, setClues] = useState<string[]>([]);
-  const [isNotebookLoaded, setIsNotebookLoaded] = useState(false);
-  const saveNotebookTimerRef = useRef<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'relation' | 'notes' | 'clues' | 'inventory' | 'recap'>('relation');
+  const { freeNotes, setFreeNotes, clues, setClues, graphNodes, setGraphNodes, graphEdges, setGraphEdges,
+    ready: notebookReady, error: notebookError, flush: flushNotebook } = useCampaignNotebook(roomId);
 
   // SECTION: 聊天与回合状态
   // NOTE: turnState 来自后端，是输入锁和等待提示的权威来源。
@@ -104,6 +108,7 @@ export default function Game() {
     if (!saveName) return;
 
     try {
+      await flushNotebook();
       const res = await apiFetch('/api/saves', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -156,7 +161,7 @@ export default function Game() {
     };
     const join = async () => {
       try {
-        const { characterId } = await socketRequest('join_room', roomId);
+        const { characterId } = await socketRequest('join_room', { roomId, flushNotebook: true });
         if (characterId) { localStorage.setItem('trpg_current_char_id', characterId); setSelectedId(characterId); }
       }
       catch (error) { alert((error as Error).message); navigate('/hall', { replace: true }); }
@@ -198,73 +203,6 @@ export default function Game() {
     catch (error) { alert((error as Error).message); }
     finally { setRolledIndices(prev => prev.filter(id => id !== rollId)); }
   };
-
-  // SECTION: 关系图状态
-  const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
-  const [graphEdges, setGraphEdges] = useState<GraphEdge[]>([]);
-
-  // SECTION: 战役笔记加载
-  // NOTE: 笔记按 roomId + 登录会话读取，同一账号在不同房间有独立笔记。
-  useEffect(() => {
-    const fetchNotebook = async () => {
-      const username = localStorage.getItem('trpg_username');
-      if (!roomId || !username) return;
-
-      setIsNotebookLoaded(false);
-      try {
-        const res = await apiFetch(`/api/notebooks?roomId=${encodeURIComponent(roomId)}`);
-        const data = await res.json();
-        if (data.success && data.notebook) {
-          setFreeNotes(data.notebook.freeNotes || '');
-          setClues(Array.isArray(data.notebook.clues) ? data.notebook.clues : []);
-          setGraphNodes(Array.isArray(data.notebook.graphNodes) ? data.notebook.graphNodes : []);
-          setGraphEdges(Array.isArray(data.notebook.graphEdges) ? data.notebook.graphEdges : []);
-          setIsNotebookLoaded(true);
-        }
-      } catch (error) {
-        console.error('拉取战役笔记失败:', error);
-      }
-    };
-
-    fetchNotebook();
-  }, [roomId]);
-
-  // SECTION: 战役笔记保存
-  // NOTE: 防抖写入，避免每次输入都立刻落到后端 JSON 文件。
-  useEffect(() => {
-    const username = localStorage.getItem('trpg_username');
-    if (!roomId || !username || !isNotebookLoaded) return;
-
-    if (saveNotebookTimerRef.current) {
-      window.clearTimeout(saveNotebookTimerRef.current);
-    }
-
-    saveNotebookTimerRef.current = window.setTimeout(async () => {
-      try {
-        await apiFetch('/api/notebooks', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            roomId,
-            notebook: {
-              freeNotes,
-              clues,
-              graphNodes,
-              graphEdges,
-            },
-          }),
-        });
-      } catch (error) {
-        console.error('保存战役笔记失败:', error);
-      }
-    }, 500);
-
-    return () => {
-      if (saveNotebookTimerRef.current) {
-        window.clearTimeout(saveNotebookTimerRef.current);
-      }
-    };
-  }, [roomId, isNotebookLoaded, freeNotes, clues, graphNodes, graphEdges]);
 
   // SECTION: 当前出战角色加载
   // NOTE: 大厅只存当前角色 ID，游戏页必须重新拉完整角色卡用于技能和属性检定。
@@ -321,12 +259,14 @@ export default function Game() {
 
   // SECTION: 队友状态镜像
   // NOTE: lobby_update 是房间玩家列表的广播源，游戏页用它生成左侧队友卡片。
+  const [offlineRoll, setOfflineRoll] = useState<boolean>();
   const [isOwner, setIsOwner] = useState(false);
   const [teammates, setTeammates] = useState<GameCharacter[]>([]);
 
   useEffect(() => {
     const handleLobbyUpdate = (data: { players: PublicPlayer[]; ownerId?: string }) => {
       setIsOwner(data.ownerId === socket.id);
+      setOfflineRoll(data.players.find(player => player.id === socket.id)?.offlineRoll);
       const selfId = localStorage.getItem('trpg_current_char_id');
       setTeammates(data.players.filter(p => p.characterId !== selfId).map(p => ({
         id: p.characterId || p.name, avatar: p.avatarPath ? apiUrl(p.avatarPath) : undefined, name: p.name, role: p.role, appearance: '', skills: {},
@@ -347,7 +287,7 @@ export default function Game() {
   // NOTE: 右键选中文本会写入关键线索列表，随后由笔记防抖保存。
   const handleContextMenu = (e: React.MouseEvent) => {
     const selectedText = window.getSelection()?.toString().trim();
-    if (selectedText) {
+    if (selectedText && notebookReady) {
       e.preventDefault();
       setClues(prev => prev.includes(selectedText) ? prev : [...prev, selectedText]);
       alert(`已成功提取线索: "${selectedText.substring(0, 10)}..."`);
@@ -498,6 +438,7 @@ export default function Game() {
             >
               📓 打开战役笔记
             </button>
+            {roomId && <OfflineRollPreference roomId={roomId} enabled={connectionReady ? offlineRoll : undefined} />}
           </div>
           <div className="teammates-section">
             <h4 className="section-subtitle">小队成员</h4>
@@ -525,10 +466,11 @@ export default function Game() {
               const messageContent = String(msg.content || '');
               const parsedRolls = parseRollRequests(messageContent);
               // NOTE: 最新 DM 优先使用后端带 rollId 的 turn_state，历史 DM 用本地解析结果。
-              const rolls: RollRequestWithState[] = idx === lastDmIndex && turnState?.rollRequests?.length
+              const rolls: RollRequestWithState[] = idx === lastDmIndex && turnState
                 ? turnState.rollRequests
                 : parsedRolls.map((roll) => ({
                   ...roll,
+                  rules: msg.rollRules?.[roll.index],
                   id: `${msg.logIndex ?? idx}-${roll.index}-${roll.player}-${roll.skill}`,
                 }));
               const stats = parseStatDirectives(messageContent);
@@ -540,7 +482,7 @@ export default function Game() {
                 const pureText = stripDirectives(messageContent);
 
                 return (
-                  <div key={idx} className={`message dm`}>
+                  <div id={msg.logIndex === undefined ? undefined : `log-message-${msg.logIndex}`} tabIndex={-1} key={idx} className="message dm">
                     <span className="sender-name">系统 DM</span>
                     <div className="message-content">
                       {pureText}
@@ -567,6 +509,10 @@ export default function Game() {
                                [系统判定] 需要 {targetPlayer} 进行【{targetSkill}】检定
                              </span>
 
+                             {rollItem.rules && <div className="roll-target">
+                               {{regular:'常规', hard:'困难', extreme:'极难'}[rollItem.rules.difficulty]} · 目标 ≤ {rollItem.rules.target}
+                               {rollItem.rules.modifier !== 0 && ` · ${Math.abs(rollItem.rules.modifier)} 枚${rollItem.rules.modifier > 0 ? '奖励骰' : '惩罚骰'}`}
+                             </div>}
                              {rollResult ? (
                                <div className="roll-result">
                                  {rollResult}
@@ -592,7 +538,7 @@ export default function Game() {
               if (msg.role === 'roll') return null;
 
               return (
-                <div key={idx} className={`message ${msg.role}`}>
+                <div id={msg.logIndex === undefined ? undefined : `log-message-${msg.logIndex}`} tabIndex={-1} key={idx} className={`message ${msg.role}`}>
                   <span className="sender-name">{msg.sender}</span>
                   <div className="message-content">{msg.content}</div>
                 </div>
@@ -646,12 +592,20 @@ export default function Game() {
           <div className="notebook-modal flat-box" onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" aria-label="关闭战役笔记" onClick={() => setIsNotebookOpen(false)}>×</button>
             <div className="notebook-tabs">
-              {([['relation', '关系图谱'], ['notes', '自由笔记'], ['clues', '关键线索'], ['inventory', '物品栏']] as const).map(([tab, label]) => (
+              {([['relation', '关系图谱'], ['notes', '自由笔记'], ['clues', '关键线索'], ['inventory', '物品栏'], ['recap', '上次跑到哪了']] as const).map(([tab, label]) => (
                 <button type="button" key={tab} aria-pressed={activeTab === tab}
                   className={`tab-item ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>{label}</button>
               ))}
             </div>
             <div className="notebook-content">
+              {activeTab === 'recap' && <NotebookRecap entries={campaignState?.recap ?? []} onJump={index => {
+                setIsNotebookOpen(false);
+                window.requestAnimationFrame(() => {
+                  const message = document.getElementById(`log-message-${index}`);
+                  message?.focus({ preventScroll: true });
+                  message?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                });
+              }} />}
               {activeTab === 'inventory' && (
                 <div className="notebook-inventory">
                   {!connectionReady || !campaignState?.inventory ? <p role="status">正在同步物品…</p> :
@@ -664,7 +618,10 @@ export default function Game() {
                     })}
                 </div>
               )}
-              {activeTab === 'notes' && (
+              {['notes', 'clues', 'relation'].includes(activeTab) && (!notebookReady || notebookError) && (
+                <p role="status">{notebookError || '正在同步个人笔记…'}</p>
+              )}
+              {activeTab === 'notes' && notebookReady && (
                 <textarea
                   className="flat-textarea full-height"
                   value={freeNotes}
@@ -694,7 +651,7 @@ export default function Game() {
                 </div>
               )}
 
-              {activeTab === 'relation' && (
+              {activeTab === 'relation' && notebookReady && (
                 <RelationGraph
                   nodes={graphNodes} setNodes={setGraphNodes}
                   edges={graphEdges} setEdges={setGraphEdges}

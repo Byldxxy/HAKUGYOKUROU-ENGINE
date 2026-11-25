@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "broadcast-register",
+  "scenarioId": "harbour-voices",
+  "title": "闭馆前的十秒",
+  "type": "chapter",
+  "summary": "港口声音馆明早开幕，一盘旧录音的署名仍然空白。调查员是受托编目的志愿者。",
+  "chapterGoal": "核对旧台呼的日期，按捐赠者意愿完成一张展卡。",
+  "adaptationRules": ["按调查员实际移动提出 proposedTransition；走廊的门和门牌可见。调查员留在原地时继续当前场景。"],
+  "resolutionRules": [
+    "每次重访按现有物件去向、约定、已经问过的问题描述变化。事实中 dateChecked 是查过值班册，testimony 是听过捐赠者的讲述。两条记录都存在才可进入登记间。",
+    "余青是捐赠者，馆员负责收件。实物录音带使用 item-tape；余青把带子交到谁手里，就登记实际持有人。匿名约定 keep-name 由馆员向余青作出。"
+  ],
+  "actors": [{"id":"npc-yu","name":"余青"},{"id":"npc-clerk","name":"馆员"}],
+  "items": [{"id":"item-tape","name":"录音带"}],
+  "initialState": {
+    "phase":"active","currentSceneId":"counter","round":1,
+    "facts":{"dateChecked":false,"testimony":false,"signed":false,"anonymous":false},
+    "clocks":{"closing":{"label":"闭馆延迟","value":0,"max":4}},
+    "inventory":[]
+  },
+  "clues": [
+    {"id":"last-shift","title":"末班日期","content":"五月十二日晚九点，值班册记着停播前最后一次报时。","requires":{"fact":"dateChecked","equals":true}},
+    {"id":"recordist","title":"录音者","content":"余青说自己按下了录音键，报时的人是当班播音员。","requires":{"fact":"testimony","equals":true}}
+  ],
+  "scenes": [
+    {
+      "id":"counter","title":"编目台","location":"声音馆门厅",
+      "entryNarration":"灯箱里还少一张展卡，铅字只排好了“录制者”三个字。档案室的门虚掩着，走廊另一头挂着“会客室”的木牌。",
+      "revisitNarration":"门厅里的铅字盘仍压在灯箱下，窗外传来轮渡的汽笛。",
+      "objectives":["馆员知道值班册放在档案室，余青在会客室休息。依玩家实际去向提出转场。"],
+      "transitions":[{"to":"archive","label":"档案室"},{"to":"witness","label":"会客室"}]
+    },
+    {
+      "id":"archive","title":"档案室","location":"馆内旧办公室",
+      "entryNarration":"百叶窗投下细细的暗格。墙边有成排的值班册，靠窗的桌上放着一台耳机海绵已经老化的卡座机。",
+      "revisitNarration":"卡座机的计数窗泛着微光，走廊的灯从百叶间透了进来。",
+      "objectives":["查阅末班记录可读出五月十二日晚九点，置 dateChecked 并揭示 last-shift。若已听过余青证言，可由末班栏目核实播音者和录制者的区别；此前只给出文书上可见的信息。",
+        "带子不在这里时不能凭空播放。辨听失败可延误一格 closing，值班册仍然可以查阅。两项证据具备且调查员实际去登记时，才转至 register。"],
+      "allowedFactChanges":["dateChecked"],"allowedClockChanges":["closing"],"availableClues":["last-shift"],
+      "transitions":[{"to":"witness","label":"会客室"},{"to":"counter","label":"门厅"},{"to":"register","label":"登记间","when":{"all":[{"fact":"dateChecked","equals":true},{"fact":"testimony","equals":true}]}}]
+    },
+    {
+      "id":"witness","title":"会客室","location":"声音馆走廊尽头",
+      "entryNarration":"一盏矮灯照亮了沙发旁的圆桌。余青摘下眼镜，抬头看向来客。",
+      "revisitNarration":"会客室门口铺着一小块深蓝色地毯，灯光落在磨白的边沿。",
+      "objectives":["录音带起初归余青持有。若已发生转交，沿用当前持有人。她愿意说明停播当晚是自己按下录音键，却不能仅凭印象说准日期。调查员问到时置 testimony 并揭示 recordist。",
+        "已经查到日期时，她能针对五月十二日解释值班册中为何只有播音员签名。还未查册时，她说自己做的是幕后工作。若被要求交付实物，她同意将录音带交给明确的接收者，登记物件与目击者。"],
+      "allowedFactChanges":["testimony"],"availableClues":["recordist"],
+      "transitions":[{"to":"archive","label":"档案室"},{"to":"counter","label":"门厅"},{"to":"register","label":"登记间","when":{"all":[{"fact":"dateChecked","equals":true},{"fact":"testimony","equals":true}]}}]
+    },
+    {
+      "id":"register","title":"登记间","location":"馆员办公室",
+      "entryNarration":"成叠的空白展卡靠在打字机旁。馆员揭开防尘布，把色带拨到黑色。",
+      "revisitNarration":"登记间的高窗投下一线天光，铅字上沾着油墨。",
+      "objectives":["余青在此前提及同意以录制者署名时，或在此亲口同意并实际登记后，才置 signed。她愿意到场确认，不能代她发表未说过的话。若玩家要匿名，由馆员向余青承诺隐去姓名，建立 keep-name (open)；实际完成匿名卡才置 anonymous 并记为 kept。馆员必须收到 item-tape 才能将其列展。带子在哪里、谁亲历承诺，以记忆为准。"],
+      "allowedFactChanges":["signed","anonymous"],
+      "transitions":[{"to":"witness","label":"会客室"},{"to":"archive","label":"档案室"}]
+    }
+  ],
+  "endings":[
+    {"id":"named-credit","label":"录制者一栏","conditions":{"all":[{"fact":"signed","equals":true},{"itemHeldBy":{"id":"item-tape","holder":"npc-clerk"}}]},"result":{"phase":"completed","publicNarration":"次日开馆，展柜里多了一张写着“录制：余青”的卡片。第一位听众戴上耳机。"}},
+    {"id":"anonymous-credit","label":"匿名捐赠","conditions":{"all":[{"fact":"anonymous","equals":true},{"promiseStatus":{"id":"keep-name","status":"kept"}},{"itemHeldBy":{"id":"item-tape","holder":"npc-clerk"}}]},"result":{"phase":"completed","publicNarration":"次日开馆，展卡写着“匿名捐赠”。十秒钟的报时声从耳机里响起。"}}
+  ],
+  "directorOutputContract":{"format":"json","requiredFields":["narration","requestedRolls","statChanges","revealedClueIds","proposedStateChanges","proposedTransition","memoryChanges","pacing"]}
+}

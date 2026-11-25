@@ -11,7 +11,8 @@
 | `scenes[]` | `id`、`title`、`location`、`entryNarration` 构成场景。开局和转场时直接展示入口文字。整条当前场景对象进入导演上下文，可在 `objectives`、`suggestedChecks` 或场景专用说明里写动机、证据、提问反应、失败代价及哪些行为对应哪些事实。 |
 | 场景白名单 | `allowedFactChanges`、`allowedClockChanges`、`availableClues` 只列本场能够改变或揭示的已声明 ID。建议检定写技能、目的、失败后果；实际每名玩家每次至多一项检定。HP/SAN/MP 走导演回复的 `statChanges`，避免用名为 `injury` 的时钟。 |
 | `clues[]` | 每条有 `id`、玩家可读的 `title` 和 `content`；可写 `sources`、`critical` 和机器可判定的 `requires`。模型只收到已揭示的全局线索定义，所以在当前场景中也写清候选 ID 的含义和触发依据。 |
-| `transition` | 每场至多一个 `to` 目标和一个 `when` 条件。导演须提交相同的 `proposedTransition`。多路线可在同一大场景中用调查顺序、事实和代价表现，再汇合到后继场景；多结局用不同事实或时钟区分。 |
+| `transition`、`transitions` | 线性场景沿用单出口对象。多出口场景用 `transitions` 数组，每项含 `to`，可加地点名称 `label` 和条件 `when`。一个目标在同场只出现一次，多个开放条件可用 `any` 表达。导演按已声明的移动提交一个目标 ID。服务端在已结算这一轮且出口条件满足时转场。 |
+| `revisitNarration` | 调查员再次抵达时会展示的短句；省略时重访只显示当轮叙述。把首次出场、桌面道具或尚未知晓的身份留在首次入口与具体发现条件中。 |
 | `endings[]` | 每个结局有 `id`、`label`、`priority`、`conditions`、`result`。条件每轮全局比较，高优先级先命中；漏写条件会过早结束。`result.phase` 沿用 completed 或 redirected，`publicNarration` 写可见后果。若结果依赖地点，要用只在对应场景可置真的事实表示。 |
 | `directorOutputContract` | 沿用 JSON 输出约定：narration、requestedRolls、statChanges、revealedClueIds、proposedStateChanges、proposedTransition、pacing。剧本提供语义，服务端验证模型提议并执行。 |
 
@@ -19,7 +20,11 @@
 
 **资料送达范围。** 顶层 `actors`、`items` 的 ID 和名称会进入目录，详细设定仍要写在相关场景中。上下文另含召回的记忆、章节摘要与目标、两组规则、导演秘密、当前场景、战役状态、已揭示线索、玩家及输出契约。模型也看不到全局结局条件表。在相应场景写出事实名与触发行为的对应关系。仅靠 `nextChapterId`、`carryFacts`、`carryItems` 不会自动开下一章。
 
-**加入选单。** 服务端在 `SCENARIO_FILES` 中把一个新 `scriptId` 映射到一个章节 JSON；前端在 `ai-trpg-web/src/pages/Lobby/index.tsx` 的 `scriptOptions` 中使用同一个值和玩家可见标题。服务端会缓存已载入的 JSON。接入验证可从实际注册键调用 `createCampaign(scriptId)`，并核对大厅选择、新建房间开场和前端构建。
+**加入选单。** 服务端在 `scenarioRepository.js` 的 `files` 注册表中把新 `scriptId` 映射到章节文件。大厅 `scriptOptions` 使用同一注册键及玩家可见标题。可从实际注册键调用 `createCampaign(scriptId)` 验证初始化。服务端重启后加载新的已安装版本。
+
+**更新章节。** 战役按内容指纹 `scenarioRevision` 锁定剧本。新开局取得当前版，老房间与存档从 `scenario-revisions` 读取原版。备份数据时包含该目录，搬迁时连同存档一起恢复。对修订标识启用前已发行的剧本，保留原文件并维护历史版映射，以便从旧章节和事实字段定位。修改前已有的线索 ID 与场景 ID 时，用一次新开局和一次旧版续团分别验证。
+
+**编制可回访的调查。** `scenarios/harbour/last-broadcast.json` 让玩家先查档案或先问证人，两处可往返。把“翻过值班册”和“听过证词”分别记成事实，进入登记间需要两项都成立。实物交接和保密承诺使用记忆条件。编写两种访问顺序与一次条件不满足的回放，使用 `expect.entryNarration` 校验回访展示的文字。
 
 ## 从一段原文到一个可玩的分歧
 

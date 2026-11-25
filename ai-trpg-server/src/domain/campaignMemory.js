@@ -71,6 +71,48 @@ function notebookItems(campaign, scenario, characterId) {
     });
 }
 
+// Use the investigator's observation, even when someone else later moves the item
+// or disproves a rumor. Only echo details also present in that reply's public text.
+function notebookRecap(campaign, scenario, characterId, sources) {
+  if (!characterId || !sources?.size) return [];
+  const self = 'pc:' + characterId;
+  const names = new Map(actorDirectory(scenario, campaign).map(a => [a.id, a.name]));
+  const rows = [];
+  for (const entry of campaign.memory || []) {
+    const seen = entry.observers.find(observer => observer.who === self);
+    const source = seen && sources.get(seen.round);
+    if (!source || !seen.evidence || !source.content.includes(seen.evidence)) continue;
+    const { state, evidence } = seen;
+    const attested = value => typeof value === 'string' && value && evidence.includes(value) ? value : '';
+    let kind = 'event', text;
+    if (entry.kind === 'item') {
+      const label = attested(entry.label) || '这件物品';
+      const name = names.get(state.holder) || state.holder?.replace(/^npc:/, '');
+      const holder = state.holder === self ? '你' : attested(name);
+      const location = attested(state.location);
+      text = holder ? `你上次见到的${label}由${holder}保管。`
+        : location ? `你上次在${location}见到了${label}。` : `你见证了${label}的变化。`;
+    } else if (entry.kind === 'promise') {
+      const status = { open: '待履行', kept: '已履行', broken: '已违约', released: '已解除' }[state.status];
+      if (!status) continue;
+      kind = state.status === 'open' ? 'promise' : 'event';
+      const terms = attested(state.terms) || attested(entry.label) || attested(names.get(state.from)) || '这项约定';
+      text = `${terms}（${status}）`;
+    } else if (entry.kind === 'information') {
+      kind = state.basis === 'heard' ? 'rumor' : 'event';
+      text = attested(state.statement) || attested(entry.label);
+    } else continue;
+    // A one-sentence quotation preserves natural wording when the model paraphrased
+    // the observation. Never copy a whole multi-event paragraph into a private recap.
+    const sentences = evidence.match(/[^。！？!?\n]+[。！？!?]?/gu) || [];
+    if (sentences.length === 1 && sentences[0].length <= 180) {
+      text = entry.kind === 'promise' ? text + ' · ' + sentences[0].trim() : sentences[0].trim();
+    }
+    rows.push({ round: seen.round, logIndex: source.logIndex, kind, text: text || '你听到或见证了一条消息。' });
+  }
+  return rows.sort((a,b) => b.round - a.round);
+}
+
 function readState(change, actors) {
   if (change.kind === 'item') {
     const holder = change.holder === 'party' ? 'party' : actor(change.holder, actors);
@@ -163,4 +205,4 @@ function recall(entries, sceneId, lines, actors) {
     .slice(0, 12).map(({ entry }) => entry);
 }
 
-module.exports = { actorDirectory, apply, importCardItems, notebookItems, recall, seed };
+module.exports = { actorDirectory, apply, importCardItems, notebookItems, notebookRecap, recall, seed };

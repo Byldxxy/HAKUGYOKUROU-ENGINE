@@ -57,7 +57,24 @@ const saveNotebook = ({ roomId, username, notebook }) => {
   return savedNotebook;
 };
 
+// A save contains only the accounts that played in this room.
+const snapshotForRoom = (roomId, accounts) => {
+  const bucket = getRoomBucket(readNotebooks(), roomId);
+  return Object.fromEntries(accounts.filter(account => Object.hasOwn(bucket, account))
+    .map(account => [account, bucket[account]]));
+};
+
+const restoreForRoom = (roomId, snapshot) => {
+  const db = readNotebooks();
+  const previous = db[roomId] || {};
+  db[roomId] = snapshot;
+  writeNotebooks(db);
+  return previous;
+};
+
 module.exports = {
+  snapshotForRoom,
+  restoreForRoom,
   getNotebook,
   saveNotebook,
 };

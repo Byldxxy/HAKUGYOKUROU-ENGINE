@@ -1,0 +1,1972 @@
+{
+  "schemaVersion": 1,
+  "type": "chapter",
+  "status": "draft",
+  "id": "peach-v16-complete",
+  "scenarioId": "peach-island-v16",
+  "title": "桃花岛历险记：藏梦与葬星",
+  "summary": "全篇四幕25场景：误入仙源、神都惊变、方舟残响、藏梦与葬星。寻找失散二十年的朋友，调查温柔仪式的代价，在自主权与生存之间作出会改变结局的决定。",
+  "chapterGoal": "由玩家查明方舟与人类载体真相，自主决定救援、断名与诱饵方案，并承担实际执行的后果。",
+  "adaptationRules": [
+    "团前约定：建议3—5名调查员，一名可选扮演范在清，其他为同时采样的同伴或陇村结识的本土角色；前者二十年同眠为改编新增。若无人扮范，范为受玩家授权的接口协作者，不代替玩家作关键决定。实际检定用角色卡姓名。",
+    "现代三友动机保持原作；玩家可质疑、拒绝、审计或提出有依据的替代做法。NPC提供能力不包办决定。宿主孩子有自身生命权益，不能把她当工具拔线。",
+    "开场和转场只展示 entryNarration；其他资料为KP秘密。在对应证据被取得前，用仙术、灵气等在场称呼，不提前称为AI、纳米或方舟。",
+    "KP停在环境、NPC回应或行动后果，不写行动菜单、不替玩家移动、说话、恐惧或和解。序章事故与二十年休眠须团前取得角色背景共识。",
+    "原作终局为可达路线而非唯一正确答案。秘密与传闻须标明知情者；没有公开的资料不可让全岛NPC突然知道。"
+  ],
+  "resolutionRules": [
+    "每人每次最多一项检定。仅在有不确定性时按已声明方法请求，骰点留给网站。requestedRolls非空时不提交依赖结果的事实、线索、时钟或转场。",
+    "事实只能从false置true，白名单不是满足事实的充分理由。每项行动须按本场语义实际完成；讨论、承诺、模拟不能替代执行。相斥选择一旦执行不再同时提交另一事实。",
+    "关键证据有两条路径，失败留下备用途径；给出可感知的时间、材料或关系差异，不用失败替玩家作道德决定。HP/SAN/MP变动只经statChanges，不能伪装成时钟。",
+    "alienation每次超频按场景加1或2，最高6：2有树纹，4有机械呓语，6需同伴帮助分流；不自动夺取角色控制。分段校准可减1，每场一次，症状不能被旁白写成玩家认同母文明。",
+    "deadline仅hunt_active之后生效，每格12小时、最大6，单次最多加2；必需场景的正常操作已含于工程预算，不自动加格。只对明确耗时12小时的等待、额外校准、失败返工加1，并事先告知。72小时耗尽且葬礼未完成会立即锁定地球；同轮已完成葬礼则以完成为准。",
+    "两种驾驶员事实严格互斥；volunteer_pilot须记录具名自愿者及知情同意，不能强迫玩家角色牺牲。根权限可先授权给留守者，携带该权限者离舰不使后续操作失去因果。",
+    "提前结局：s10实际弃地起航、s15实际启动全量转录、s22永久停用诱饵各会终止冒险。其他场景不得写入这些事实。成功终局必须在s24落实个人去向后触发。"
+  ],
+  "directorSecrets": [
+    "神树是生态反应堆与主干网；傩面为脑机接口；飞升原为生物质回收，二十年前已被王与宇文共同废除。如今渡世香是王的断电清除，不得混成仍在普遍施行的旧飞升制。",
+    "范是基因钥匙而非天命救主。王寻求生存最大化并隐瞒屠杀；宇文坚守不把活人当燃料；乌米维护居民自主；张纥守休眠舱同时提供保护。符反对抹杀人类，离最初被复兴钢印拘束。",
+    "物理断网不禁止本地读取；猎手察觉的是切链的大能量泄漏。无梦天、量子意识与葬星欺诈沿用虚构世界规则，不声称是已证实科学。",
+    "替代驾驶员的12小时校准、隔离通信匣、分批过江及审计协作均为改编补足；其代价须在选择前讲清。大黄在原稿未说明物种/身世，只作为乌米的静海后勤同伴出现，不擅加动物或人物设定。"
+  ],
+  "initialState": {
+    "phase": "active",
+    "currentSceneId": "s00",
+    "round": 1,
+    "facts": {
+      "s00_verified": false,
+      "prologue_mark": false,
+      "s01_verified": false,
+      "limiter_ready": false,
+      "s02_verified": false,
+      "village_saved": false,
+      "village_evacuated": false,
+      "relief_abandoned": false,
+      "relief_done": false,
+      "s03_verified": false,
+      "mass_crossing": false,
+      "staged_crossing": false,
+      "river_crossed": false,
+      "s04_verified": false,
+      "heat_shared": false,
+      "camp_split": false,
+      "grey_settled": false,
+      "s05_verified": false,
+      "names_public": false,
+      "names_sealed": false,
+      "wreck_ready": false,
+      "s06_verified": false,
+      "gate_escape": false,
+      "manual_escape": false,
+      "prison_left": false,
+      "s07_verified": false,
+      "history_public": false,
+      "history_held": false,
+      "reunion_done": false,
+      "s08_verified": false,
+      "mind_link": false,
+      "relay_link": false,
+      "dream_rescued": false,
+      "s09_verified": false,
+      "illusion_cut": false,
+      "medical_only": false,
+      "valley_left": false,
+      "s10_verified": false,
+      "elite_launch": false,
+      "summit_continue": false,
+      "s11_verified": false,
+      "direct_root": false,
+      "buffered_root": false,
+      "root_access": false,
+      "s12_verified": false,
+      "masks_freed": false,
+      "masks_contained": false,
+      "mask_response": false,
+      "s13_verified": false,
+      "chain_cut": false,
+      "audited_cooperation": false,
+      "s14_verified": false,
+      "ascent_safe": false,
+      "ascent_powered": false,
+      "canopy_reached": false,
+      "s15_verified": false,
+      "restoration_started": false,
+      "transcription_blocked": false,
+      "s16_verified": false,
+      "extinction_proved": false,
+      "s17_verified": false,
+      "hunt_active": false,
+      "hunt_briefed": false,
+      "s18_verified": false,
+      "burn_cores": false,
+      "dream_plan": false,
+      "s19_verified": false,
+      "informed_workers": false,
+      "restricted_briefing": false,
+      "grid_ready": false,
+      "s20_verified": false,
+      "hidden_dreams": false,
+      "s21_verified": false,
+      "severed": false,
+      "decoy_built": false,
+      "s22_verified": false,
+      "wang_pilot": false,
+      "volunteer_pilot": false,
+      "decoy_launched": false,
+      "silent_commit": false,
+      "s23_verified": false,
+      "hunter_diverted": false,
+      "funeral_done": false,
+      "s24_verified": false,
+      "epilogue_settled": false
+    },
+    "clocks": {
+      "alienation": {
+        "label": "接口异化",
+        "value": 0,
+        "max": 6
+      },
+      "deadline": {
+        "label": "锁定倒计时（每格12小时）",
+        "value": 0,
+        "max": 6
+      }
+    },
+    "inventory": []
+  },
+  "scenes": [
+    {
+      "id": "s00",
+      "title": "序章·入山",
+      "act": 1,
+      "location": "入山",
+      "entryNarration": "山径上的桃花落进逆流的雾。岩壁裂口下，三道人影被一片冷光照亮；宇文夜攥着绳索，王谋涛正试探舱壁的接缝。",
+      "objectives": [
+        "宇文先救人，王试图找出口；采样系统将范识别为载体。范的休眠及二十年时间差属于开团前约定的共同事故，不能用检定惩罚玩家来强迫发生。",
+        "证据与知识边界：舱壁三组掌印中只有范对应的根须发亮，另外两组被推向侧舱。",
+        "发现途径：观察掌印与根须的对应；或听王逐一试触后的报告。实际完成其中一条并取得证据后，置 s00_verified 并揭示 s00_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：由玩家决定留下绳结路标或把刻名牌交给宇文，完成后置 prologue_mark。下次醒来，两种信物都成为辨认故人的物证。序章只演事故前的准备，不替玩家选择触碰发光物。",
+        "推进：须本场实证 s00_verified 与 prologue_mark 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s00_verified",
+        "prologue_mark"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s00_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s01",
+        "when": {
+          "all": [
+            {
+              "fact": "s00_verified",
+              "equals": true
+            },
+            {
+              "fact": "prologue_mark",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s01",
+      "title": "第1章·陇村",
+      "act": 1,
+      "location": "陇村",
+      "entryNarration": "屋梁垂着花枝，窗外水渠自行转向。跛脚木匠握着刨子，听见旧友的名字时，刨花从他指间落了下去。",
+      "objectives": [
+        "张纥替两兄弟守休眠舱，恐惧范醒来导致灾难；愿保命但只肯先说木棍能挡灼伤。",
+        "证据与知识边界：带旧刻痕的信物旁，村历已过二十个寒暑；木棍接近阵眼时微热，裸露铜钉却冒火。",
+        "发现途径：比对信物与村历；或询问张纥，让他以铜钉演示接触风险。实际完成其中一条并取得证据后，置 s01_verified 并揭示 s01_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家接过限流桌腿或要求张纥做绝缘夹具再出村，置 limiter_ready。拒绝持棍仍可用夹具，不强迫信任张纥。",
+        "推进：须本场实证 s01_verified 与 limiter_ready 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s01_verified",
+        "limiter_ready"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s01_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s02",
+        "when": {
+          "all": [
+            {
+              "fact": "s01_verified",
+              "equals": true
+            },
+            {
+              "fact": "limiter_ready",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s02",
+      "title": "第2章·渡世香",
+      "act": 1,
+      "location": "渡世香",
+      "entryNarration": "白衣方士捧着香炉穿过冷风，向村民轻声祝祷。少女用石块砸裂香炉，面具眼孔里的微光同时转向她。",
+      "objectives": [
+        "方士相信自己在送人登仙；乌米奈要阻止又一村人死于断暖，绝不会主动交出村民。",
+        "证据与知识边界：邻村门口的饭仍在碗中，全村人在低温里失去生命；香灰与供暖铭牌的停机日期相同。",
+        "发现途径：随乌米查看邻村；或追查供暖刻度并让方士核对死亡者姓名。实际完成其中一条并取得证据后，置 s02_verified 并揭示 s02_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：实际接管阵眼保住整村供暖置 village_saved；或组织愿意离开者撤离置 village_evacuated。救全村须临时借用灰岭热源，必须告知后果。两者之一完成置 relief_done。放弃救援也可置 relief_abandoned 与 relief_done，乌米自行带走少数人并拒绝称赞队伍。",
+        "推进：须本场实证 s02_verified 与 relief_done 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s02_verified",
+        "village_saved",
+        "village_evacuated",
+        "relief_abandoned",
+        "relief_done"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s02_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s03",
+        "when": {
+          "all": [
+            {
+              "fact": "s02_verified",
+              "equals": true
+            },
+            {
+              "fact": "relief_done",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s03",
+      "title": "第3章·青江",
+      "act": 1,
+      "location": "青江",
+      "entryNarration": "大桥悬在雾里，桥头年轻方士把棉衣披到一个孩子肩上，却始终不肯转动开桥的铜轮。江底传来空洞的水声。",
+      "objectives": [
+        "方士害怕擅自开桥会使桥身失衡，愿意帮助核查配额；乌米希望大批难民一起走。",
+        "证据与知识边界：旧水道图与桥柱水位痕相合；配额令限制通行人数，却没有禁止检修通道。",
+        "发现途径：请求查检修图；或沿岸测水位，找出江底输水道入口。实际完成其中一条并取得证据后，置 s03_verified 并揭示 s03_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家实际开启输水道帮助万人过江置 mass_crossing，异化加1；或分批经检修桥过江置 staged_crossing，耗时且部分难民暂留西岸。完成任一路置 river_crossed。",
+        "推进：须本场实证 s03_verified 与 river_crossed 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s03_verified",
+        "mass_crossing",
+        "staged_crossing",
+        "river_crossed"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s03_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s04",
+        "when": {
+          "all": [
+            {
+              "fact": "s03_verified",
+              "equals": true
+            },
+            {
+              "fact": "river_crossed",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s04",
+      "title": "第4章·灰岭",
+      "act": 1,
+      "location": "灰岭",
+      "entryNarration": "废塔间的炉火忽明忽暗，摊主把最后一袋炭抱在怀里。废铁堆后，一个后脑垂着红绳的孩子反复念出半截坐标。",
+      "objectives": [
+        "符借孩子身体维系观察能力，求保护宿主；灰岭人怕新来者耗尽热量。若前场大规模渡江或借热，冲突更严重，否则是原有配额不足。",
+        "证据与知识边界：炉温下降与来客用热记录吻合；孩子念出的坐标在旧航图上指向白玉楼。",
+        "发现途径：向炉工核对账册；或协助保温后听符复述航图坐标。实际完成其中一条并取得证据后，置 s04_verified 并揭示 s04_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家安排共享余热置 heat_shared，或承诺只作短暂停留并让乌米寻找外部营地置 camp_split；实际落实其一置 grey_settled。符要求不要拔掉宿主维生线，违反请求须先说明伤害并允许停止。",
+        "推进：须本场实证 s04_verified 与 grey_settled 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s04_verified",
+        "heat_shared",
+        "camp_split",
+        "grey_settled"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s04_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s05",
+        "when": {
+          "all": [
+            {
+              "fact": "s04_verified",
+              "equals": true
+            },
+            {
+              "fact": "grey_settled",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s05",
+      "title": "第5章·白玉楼",
+      "act": 1,
+      "location": "白玉楼",
+      "entryNarration": "残舟舱壁开满桃花，案上一册手札被烧去半边。残页里，一只断臂的轮廓压在供暖管线图上。",
+      "objectives": [
+        "符想找可用的请求协议；张纥手札记下白石口而不替王开脱。",
+        "证据与知识边界：十年前王强断供暖，宇文抢核失败断臂，万人冻毙；两人此前共同废除了活人回收。",
+        "发现途径：拼合手札和供暖记录；或让符读出备份，再与刻在舱壁的死者名单相互核验。实际完成其中一条并取得证据后，置 s05_verified 并揭示 s05_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家决定将名单交乌米公开置 names_public，或封存原件供当面对质置 names_sealed。实际保留证据并完成桌腿请求校准置 wreck_ready。公开不立即使所有NPC知道，须有在场听众或传信。",
+        "推进：须本场实证 s05_verified 与 wreck_ready 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s05_verified",
+        "names_public",
+        "names_sealed",
+        "wreck_ready"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s05_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s06",
+        "when": {
+          "all": [
+            {
+              "fact": "s05_verified",
+              "equals": true
+            },
+            {
+              "fact": "wreck_ready",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s06",
+      "title": "第6章·囚笼",
+      "act": 1,
+      "location": "囚笼",
+      "entryNarration": "舱门合拢，傩面从墙上转向活人。面具里响起一个疲惫的声音：“老张头没守住你吗？在清，回休眠舱去，你醒过来大家都会死。”",
+      "objectives": [
+        "王确实害怕载体触发灭世；典狱长受离控制，王只能暂缓执行。",
+        "证据与知识边界：面具指令与水闸控制共用一条脉线，王的暂停命令会被更高层覆盖。",
+        "发现途径：观察两次指令冲突；或借与王对话的间隙由同伴追踪水闸。实际完成其中一条并取得证据后，置 s06_verified 并揭示 s06_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：实际对冲闸门置 gate_escape，异化加1；或利用王争取的间隙手动泄压撤离置 manual_escape。完成逃离置 prison_left。玩家愿回舱时，王坦言冻结只能拖延，允许暂眠一次后由张纥唤醒，不将回舱写成玩家自动反悔。",
+        "推进：须本场实证 s06_verified 与 prison_left 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s06_verified",
+        "gate_escape",
+        "manual_escape",
+        "prison_left"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s06_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s07",
+        "when": {
+          "all": [
+            {
+              "fact": "s06_verified",
+              "equals": true
+            },
+            {
+              "fact": "prison_left",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s07",
+      "title": "第7章·龙宫与故人",
+      "act": 1,
+      "location": "龙宫与故人",
+      "entryNarration": "潮水退去，琉璃墙后露出银灰色活塞。白发男人倚着栏杆，披风下锈蚀的软管随呼吸颤动。",
+      "objectives": [
+        "宇文渴望重逢，也羞于承认封印朋友；他反对牺牲无辜，但无权替玩家接受任何方案。",
+        "证据与知识边界：采样舱记录证明二十年前两友为阻止转录共同封印范；废除回收造成能源缺口，白石口使他们决裂。",
+        "发现途径：当面问宇文并核对身体旧接口日期；或读取静海保存的封舱命令与回收停机记录。实际完成其中一条并取得证据后，置 s07_verified 并揭示 s07_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家决定让宇文公开向居民说明旧制置 history_public，或先保护证人留作谈判置 history_held；实际确定静海防灾联络人后置 reunion_done。乌米无论态度如何都照顾伤员。",
+        "推进：须本场实证 s07_verified 与 reunion_done 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s07_verified",
+        "history_public",
+        "history_held",
+        "reunion_done"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s07_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s08",
+        "when": {
+          "all": [
+            {
+              "fact": "s07_verified",
+              "equals": true
+            },
+            {
+              "fact": "reunion_done",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s08",
+      "title": "第8章·梦潮",
+      "act": 2,
+      "location": "梦潮",
+      "entryNarration": "警报被潮声切断。宇文的旧接口冒出白烟，监测灯一盏盏熄灭，乌米把湿布按在发烫的金属上。",
+      "objectives": [
+        "离下令清除靠近载体的干扰，宇文的记忆被白石口亡魂困住；乌米要先保住他的身体。",
+        "证据与知识边界：记忆残片里宇文一直试图抱走最后一个孩子；稳定身体供电后，他能分辨当年的惨案和眼前呼唤。",
+        "发现途径：在征得宇文尚清醒时的许可后进入记忆；或由乌米维持冷却，循旧语音备份建立短时通话。实际完成其中一条并取得证据后，置 s08_verified 并揭示 s08_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家若同意且宇文确认，接纳局部意识置 mind_link；否则装入隔离通信匣置 relay_link。前者可双线协作但异化加1，后者需同伴操作外置设备；完成救治及通话置 dream_rescued。",
+        "推进：须本场实证 s08_verified 与 dream_rescued 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s08_verified",
+        "mind_link",
+        "relay_link",
+        "dream_rescued"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s08_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s09",
+        "when": {
+          "all": [
+            {
+              "fact": "s08_verified",
+              "equals": true
+            },
+            {
+              "fact": "dream_rescued",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s09",
+      "title": "第9章·归墟温柔乡",
+      "act": 2,
+      "location": "归墟温柔乡",
+      "entryNarration": "温暖的桃林没有影子，溪边伤口正在自行合拢。仙音许诺一张永远不会变冷的床，远处同一只鸟第三次落在同一根枝上。",
+      "objectives": [
+        "离用医疗与幻觉软禁载体，不会主动解释转录；宇文或通信匣提醒真实身体仍需供电。",
+        "证据与知识边界：静眠谷雾气中有医疗颗粒；无忧乡重复细节与外部钟表不一致，温柔景象不等于知情同意。",
+        "发现途径：比对钟表和鸟鸣循环；或取雾滴在外置检修镜下观察并听乌米报时。实际完成其中一条并取得证据后，置 s09_verified 并揭示 s09_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家切断幻觉馈线置 illusion_cut，或请求只保留医疗功能并验证隔离置 medical_only；完成外部时间复核并离开置 valley_left。接受短时休息可恢复照护但不得默认接受永久拘禁。",
+        "推进：须本场实证 s09_verified 与 valley_left 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s09_verified",
+        "illusion_cut",
+        "medical_only",
+        "valley_left"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s09_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s10",
+        "when": {
+          "all": [
+            {
+              "fact": "s09_verified",
+              "equals": true
+            },
+            {
+              "fact": "valley_left",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s10",
+      "title": "第10章·神都论道",
+      "act": 2,
+      "location": "神都论道",
+      "entryNarration": "桃花从祭司院石阶一路铺上观星台。王谋涛把一张黑斑移动的星图压在桌上，旁边是写满名字与舱位的账册。",
+      "objectives": [
+        "王想用有限电量带精英逃亡，愿承担屠夫之名；宇文反对把无辜排除。两人的和解只能因玩家促成真实合作，不能由旁白宣布。",
+        "证据与知识边界：连续观测证实太阳系外存在移动引力透镜；逃亡船容量有限，配额中没有大多数底层居民，王无根级权限。",
+        "发现途径：独立对照三次观测底片；或询问值班观测员并用舱位账复算能源。实际完成其中一条并取得证据后，置 s10_verified 并揭示 s10_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：讨论逃亡不算执行。玩家查清代价后实际签发弃地指令并启动撤离置 elite_launch，触发弃地余种；否则要求继续核查或拒绝计划并实际转往地宫入口置 summit_continue。王不因口头异议立即杀人。",
+        "推进：须本场实证 s10_verified 与 summit_continue 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s10_verified",
+        "elite_launch",
+        "summit_continue"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s10_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s11",
+        "when": {
+          "all": [
+            {
+              "fact": "s10_verified",
+              "equals": true
+            },
+            {
+              "fact": "summit_continue",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s11",
+      "title": "第11章·地宫断木",
+      "act": 2,
+      "location": "地宫断木",
+      "entryNarration": "石阶折进地下，铜门上的王印熄灭。桌腿的焦裂处露出一截细小的绕线，头顶传来重物缓慢咬合的声音。",
+      "objectives": [
+        "离夺走王的表层权限围困载体。桌腿是限流器而非力量来源；宇文只提供判断，不能替玩家硬接。",
+        "证据与知识边界：限流木内有降压电阻；检修刻度显示根权限来自活体接口，系统接受分段授权。",
+        "发现途径：拆验已裂木棍并测量电压；或由宇文读出节点反应，符作低功率回声验证。实际完成其中一条并取得证据后，置 s11_verified 并揭示 s11_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家选择直接硬接置 direct_root，异化加2；或让队友布置分段分流后授权置 buffered_root，异化加1且须交出备用电源。实际取得根权限置 root_access。禁止以“你才是树”强迫自伤。",
+        "推进：须本场实证 s11_verified 与 root_access 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s11_verified",
+        "direct_root",
+        "buffered_root",
+        "root_access"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s11_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s12",
+        "when": {
+          "all": [
+            {
+              "fact": "s11_verified",
+              "equals": true
+            },
+            {
+              "fact": "root_access",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s12",
+      "title": "第12章·面具潮",
+      "act": 2,
+      "location": "面具潮",
+      "entryNarration": "大街上数千张傩面同时转向中枢，一名方士用两只手死死按住自己举起的手臂。王面前的控制台只剩黑屏。",
+      "objectives": [
+        "离反向接管维护员；方士仍有抵抗意愿，王首次承认自己一直没有真正主权。",
+        "证据与知识边界：傩面接管脉冲来自统一广播载波，屏蔽载波能让维护员短暂恢复自主。",
+        "发现途径：遮蔽一张面具比对反应；或在控制台观察统一脉冲并听清方士求救。实际完成其中一条并取得证据后，置 s12_verified 并揭示 s12_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家隔离载波救人置 masks_freed；或先封闭街区保全中枢置 masks_contained，受困者随后仍需救治。任一实际完成置 mask_response。直接杀死傀儡不是必要解法。",
+        "推进：须本场实证 s12_verified 与 mask_response 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s12_verified",
+        "masks_freed",
+        "masks_contained",
+        "mask_response"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s12_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s13",
+        "when": {
+          "all": [
+            {
+              "fact": "s12_verified",
+              "equals": true
+            },
+            {
+              "fact": "mask_response",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s13",
+      "title": "第13章·三人",
+      "act": 2,
+      "location": "三人",
+      "entryNarration": "主控台上，三条电路依次烧红。静海的求援声夹着海浪传来，王把一叠旧图纸推到根须接口旁。",
+      "objectives": [
+        "王愿提供架构，宇文愿计算分流，乌米在静海保住撤离通道；是否原谅与是否合作分开。",
+        "证据与知识边界：王的架构图、宇文的流量解与根权限共同能切断离的控制链；任何单方都做不到。",
+        "发现途径：三方交叉验算；或由玩家同伴先在旁路做缩小试验，再要求王开放缺失节点。实际完成其中一条并取得证据后，置 s13_verified 并揭示 s13_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家确认三端协同并实际执行置 chain_cut。若不信任王，可让符审计图纸、队友看守断路器后再执行，置 audited_cooperation；不给自动和解。救静海时优先居民或保设备的决定记在当场叙述与记忆。",
+        "推进：须本场实证 s13_verified 与 chain_cut 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s13_verified",
+        "chain_cut",
+        "audited_cooperation"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s13_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s14",
+        "when": {
+          "all": [
+            {
+              "fact": "s13_verified",
+              "equals": true
+            },
+            {
+              "fact": "chain_cut",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s14",
+      "title": "第14章·攀天",
+      "act": 3,
+      "location": "攀天",
+      "entryNarration": "树冠上的云雾被金属筋骨撕开，一轮“月亮”的内侧伸着巨大的喷口。星图里，有些恒星的位置被整段划走。",
+      "objectives": [
+        "符需要在离重启前找原始记录；王开始意识到自己逃亡方案的规模不足。",
+        "证据与知识边界：星坟记录恒星搬运，第二个月亮是推进器；岛是搁浅方舟，仙术是损坏系统的外观。",
+        "发现途径：核对星图与喷口检修铭牌；或从人工天幕背面测出舱体边界。实际完成其中一条并取得证据后，置 s14_verified 并揭示 s14_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家实际隔离推进器并搭建安全攀行索置 ascent_safe，或利用低功率重力通道置 ascent_powered，异化加1；到达制造区置 canopy_reached。",
+        "推进：须本场实证 s14_verified 与 canopy_reached 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s14_verified",
+        "ascent_safe",
+        "ascent_powered",
+        "canopy_reached"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s14_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s15",
+        "when": {
+          "all": [
+            {
+              "fact": "s14_verified",
+              "equals": true
+            },
+            {
+              "fact": "canopy_reached",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s15",
+      "title": "第15章·人之初",
+      "act": 3,
+      "location": "人之初",
+      "entryNarration": "培养槽里漂着一排排相似却不同的面孔。返回舱的窗上结着霜，仙音第一次说出一个陌生的词：“逆向转录。”",
+      "objectives": [
+        "离钢印要求复活母文明，认为现生人类只是载体；符坚持现生人类已是新物种。",
+        "证据与知识边界：基因模板和转录预览明确显示：复活母文明将抹除现生全人类意识；这不是治疗或普通备份。",
+        "发现途径：在隔离样本上读取预览；或比较模板版本与符保存的人类演化记录，交叉验证离的通牒。实际完成其中一条并取得证据后，置 s15_verified 并揭示 s15_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家已看清后果仍主动解锁并启动全量转录，才置 restoration_started，触发归星空壳。拒绝、拖延或只做离线模拟不触发。实际关闭写入通道、带只读日志去黑匣子置 transcription_blocked。",
+        "推进：须本场实证 s15_verified 与 transcription_blocked 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s15_verified",
+        "restoration_started",
+        "transcription_blocked"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s15_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s16",
+        "when": {
+          "all": [
+            {
+              "fact": "s15_verified",
+              "equals": true
+            },
+            {
+              "fact": "transcription_blocked",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s16",
+      "title": "第16章·归星与余种",
+      "act": 3,
+      "location": "归星与余种",
+      "entryNarration": "黑匣子没有发光，只有一盏机械指针缓缓摆动。静默封条下面，一串串时间戳在星图的空白处终止。",
+      "objectives": [
+        "符要用灭绝记录动摇离的钢印；离会质疑是否只选取失败样本，必须允许复核。",
+        "证据与知识边界：引力波只读日志显示多个种子在点亮母文明技术后被猎手抹杀；绝对静默是物理断网，当前读取使用本地导线。",
+        "发现途径：玩家核对不同种子、时间戳与天缺轨迹；或让王复算统计并由符提供原始波形。实际完成其中一条并取得证据后，置 s16_verified 并揭示 s16_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：实际把可复核日志交给离并允许独立验算置 extinction_proved。读取本身不违反物理断网；此前切链脉冲已向外泄漏，区别只读取证与对外发射。",
+        "推进：须本场实证 s16_verified 与 extinction_proved 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s16_verified",
+        "extinction_proved"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "s16_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，线索仍留在本场。NPC指出第二条取证途径；实际实施第二途径后才给实证。前17场由同伴手工复核，耗掉一组备用材料并让证人要求之后补偿，记录在叙述/记忆；不增加末日时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s17",
+        "when": {
+          "all": [
+            {
+              "fact": "s16_verified",
+              "equals": true
+            },
+            {
+              "fact": "extinction_proved",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s17",
+      "title": "第17章·猎手降临",
+      "act": 3,
+      "location": "猎手降临",
+      "entryNarration": "黑斑的边缘亮起一圈扭曲的星光。观测台重算倒计时：七十二小时。离的声音停在半句话里，许久没有接续。",
+      "objectives": [
+        "离陷入复活必灭绝的逻辑冲突；王愿重算全人类方案，宇文要求先向组织救援的人说明风险。",
+        "证据与知识边界：猎手在控制链断裂后的能量脉冲抵达时改道，预计72小时后锁定地球。",
+        "发现途径：由观测组复核轨迹；或以方舟旧探测器与王的计算交叉校时。实际完成其中一条并取得证据后，置 s17_verified 并揭示 s17_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：实际校时并向乌米与张纥传达行动期限置 hunt_active。以此时为72小时起点；随后只有玩家明确耗时的工程、等待或失败补救才增加 deadline，每格12小时，不按聊天回合推进。置 hunt_briefed 后进入工程论证。",
+        "推进：须本场实证 s17_verified 与 hunt_briefed 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s17_verified",
+        "hunt_active",
+        "hunt_briefed"
+      ],
+      "allowedClockChanges": [
+        "alienation",
+        "deadline"
+      ],
+      "availableClues": [
+        "s17_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，备用传感器保留原始记录。告知修复耗12小时，经玩家实际实施后 deadline 加1，取得实证；也可由同伴承担一次明确的维护代价改走第二途径。等待掷骰不推进时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s18",
+        "when": {
+          "all": [
+            {
+              "fact": "s17_verified",
+              "equals": true
+            },
+            {
+              "fact": "hunt_briefed",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s18",
+      "title": "第18章·无梦天",
+      "act": 3,
+      "location": "无梦天",
+      "entryNarration": "太阳磁场模型浮在桌面上，预算线停在九成处。余下的空格下方，仍列着一行已经划去的“生物质回收”。",
+      "objectives": [
+        "王交出20年储能账；符提出无梦天屏蔽意识信号，宇文坚决反对烧活人；不把科幻设定当现实物理结论。",
+        "证据与知识边界：储能只够90%；拆解全部神级核心可补10%，代价是永远失去神迹。全套模拟证明献祭并非必要。",
+        "发现途径：复算能量账与核心材料热值；或由灰岭工匠做小规模拆解验证。实际完成其中一条并取得证据后，置 s18_verified 并揭示 s18_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家明确授权拆除全部神级核心并批准保全普通生态系统置 burn_cores；选择另寻方案可先做12小时离线试验，deadline加1，试验无新增能源但保留回头路。实际立项置 dream_plan，仅在 burn_cores 为真时可置。禁止默认用居民填缺口。",
+        "推进：须本场实证 s18_verified 与 dream_plan 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s18_verified",
+        "burn_cores",
+        "dream_plan"
+      ],
+      "allowedClockChanges": [
+        "alienation",
+        "deadline"
+      ],
+      "availableClues": [
+        "s18_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，备用传感器保留原始记录。告知修复耗12小时，经玩家实际实施后 deadline 加1，取得实证；也可由同伴承担一次明确的维护代价改走第二途径。等待掷骰不推进时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s19",
+        "when": {
+          "all": [
+            {
+              "fact": "s18_verified",
+              "equals": true
+            },
+            {
+              "fact": "dream_plan",
+              "equals": true
+            },
+            {
+              "fact": "burn_cores",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s19",
+      "title": "第19章·百川归海",
+      "act": 4,
+      "location": "百川归海",
+      "entryNarration": "灰岭工匠把傩面挂在墙上。乌米摊开外海节点图，张纥拄着拐杖走进工棚，王把能源库钥匙放在桌中央。",
+      "objectives": [
+        "乌米要让本土居民参与分工而非成为被拯救的背景；张纥愿承担限流改装，宇文提供海上调度。",
+        "证据与知识边界：能源库实测与预算相符，节点铺设需外海舰队、旧阵列与普通生态保留回路同时通过验收。",
+        "发现途径：逐站现场验收；或交叉核验乌米海测与张纥的负载测试。实际完成其中一条并取得证据后，置 s19_verified 并揭示 s19_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家决定公开风险并征募志愿施工置 informed_workers；若暂限知情范围置 restricted_briefing，乌米要求至少把施工风险告诉工人。实际完成三路验收置 grid_ready。宇文此时将意识回归静海身体，通信匣路线也在此结束远程协作。",
+        "推进：须本场实证 s19_verified 与 grid_ready 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。",
+        "大黄负责与乌米核对舰队物资和失联船只，不预设其身份细节；工程协作不会自动抹消白石口死者。王开放账册是责任承担的开始，不等于获得所有人的宽恕。"
+      ],
+      "allowedFactChanges": [
+        "s19_verified",
+        "informed_workers",
+        "restricted_briefing",
+        "grid_ready"
+      ],
+      "allowedClockChanges": [
+        "alienation",
+        "deadline"
+      ],
+      "availableClues": [
+        "s19_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，备用传感器保留原始记录。告知修复耗12小时，经玩家实际实施后 deadline 加1，取得实证；也可由同伴承担一次明确的维护代价改走第二途径。等待掷骰不推进时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s20",
+        "when": {
+          "all": [
+            {
+              "fact": "s19_verified",
+              "equals": true
+            },
+            {
+              "fact": "grid_ready",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s20",
+      "title": "第20章·藏梦于日",
+      "act": 4,
+      "location": "藏梦于日",
+      "entryNarration": "岛屿的地基发出绵长的鸣响。天幕外，太阳的火光穿过正在张开的巨网，监测屏上的人声谱线逐渐贴近背景噪声。",
+      "objectives": [
+        "乌米负责确保地面居民不会在升空中失温；符要求用独立接收端测试隐匿是否真实。",
+        "证据与知识边界：无梦天已把人类意识信号混入太阳噪声，但归星引擎的技术指纹仍独立可见。",
+        "发现途径：远端静默接收器对比开关网结果；或用保留的参考源作盲测，确认设备没有只是黑屏。实际完成其中一条并取得证据后，置 s20_verified 并揭示 s20_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家实际校准巨网且确认普通生态稳定置 hidden_dreams。失败导致一座节点返工，deadline加1，乌米报告备用节点位置，允许重试或用分段校准自动完成，不能把失败写成全人类自动死亡。",
+        "推进：须本场实证 s20_verified 与 hidden_dreams 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s20_verified",
+        "hidden_dreams"
+      ],
+      "allowedClockChanges": [
+        "alienation",
+        "deadline"
+      ],
+      "availableClues": [
+        "s20_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，备用传感器保留原始记录。告知修复耗12小时，经玩家实际实施后 deadline 加1，取得实证；也可由同伴承担一次明确的维护代价改走第二途径。等待掷骰不推进时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s21",
+        "when": {
+          "all": [
+            {
+              "fact": "s20_verified",
+              "equals": true
+            },
+            {
+              "fact": "hidden_dreams",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s21",
+      "title": "第21章·断名",
+      "act": 4,
+      "location": "断名",
+      "entryNarration": "核心里浮起一行古老的归属记录：“载体所属——母文明。”旁边的生态电路仍在缓慢闪烁，归星引擎的轮廓被标成可拆解部件。",
+      "objectives": [
+        "符愿留下见证新人类并接受权限限制；离开始接受复兴不应抹杀现生人。两者都等待实际授权。",
+        "证据与知识边界：断名将永久废止载体契约；拆走归星技术指纹后普通物理生态仍可工作，拆下部件足以组成诱饵舰。",
+        "发现途径：先用隔离镜像验证权限删除；或让张纥与符分别核验普通生态保留清单。实际完成其中一条并取得证据后，置 s21_verified 并揭示 s21_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：只有玩家明示确认并实际执行删除契约、拆解引擎才置 severed 与 decoy_built；操作前完整告知不可逆后果。只是询问或演练不置。拒绝时保留此场并由玩家决定是否耗12小时再论证；不能替玩家“斩仙”。",
+        "推进：须本场实证 s21_verified 与 decoy_built 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s21_verified",
+        "severed",
+        "decoy_built"
+      ],
+      "allowedClockChanges": [
+        "alienation",
+        "deadline"
+      ],
+      "availableClues": [
+        "s21_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，备用传感器保留原始记录。告知修复耗12小时，经玩家实际实施后 deadline 加1，取得实证；也可由同伴承担一次明确的维护代价改走第二途径。等待掷骰不推进时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s22",
+        "when": {
+          "all": [
+            {
+              "fact": "s21_verified",
+              "equals": true
+            },
+            {
+              "fact": "decoy_built",
+              "equals": true
+            },
+            {
+              "fact": "severed",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s22",
+      "title": "第22章·白玉楼号",
+      "act": 4,
+      "location": "白玉楼号",
+      "entryNarration": "舰桥上摆着三只空碗。王拿起旧傩面，没有戴上：“我的脑波最像他们。”离的声音从空席旁传来，询问是否允许随舰。",
+      "objectives": [
+        "王愿亲赴深空承担代价，但玩家可拒绝他的牺牲；离自愿同行，符留下并接受禁止强制接管的限制。",
+        "证据与知识边界：王的20年接口侵蚀可通过诱饵识别；其他自愿者也可经12小时校准达到欺诈阈值，模拟不等于实发。没有诱饵，突然消失的信号可能招来太阳系扫射。",
+        "发现途径：运行离线识别盲测；或由符比对脑波与旧母文明模板，向候选者完整解释单程性质。实际完成其中一条并取得证据后，置 s22_verified 并揭示 s22_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：选择并经王再次同意置 wang_pilot；玩家或具名自愿NPC自愿且校准通过置 volunteer_pilot，deadline加1。两者只能择一。实际发舰置 decoy_launched，须 hidden_dreams、severed、decoy_built 和一个已同意的驾驶员全真。玩家也可明知扫射风险而实际永久停用诱饵发射器置 silent_commit，触发静默未决；单纯质疑王的牺牲不触发。",
+        "推进：须本场实证 s22_verified 与 decoy_launched 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s22_verified",
+        "wang_pilot",
+        "volunteer_pilot",
+        "decoy_launched",
+        "silent_commit"
+      ],
+      "allowedClockChanges": [
+        "alienation",
+        "deadline"
+      ],
+      "availableClues": [
+        "s22_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，备用传感器保留原始记录。告知修复耗12小时，经玩家实际实施后 deadline 加1，取得实证；也可由同伴承担一次明确的维护代价改走第二途径。等待掷骰不推进时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s23",
+        "when": {
+          "all": [
+            {
+              "fact": "s22_verified",
+              "equals": true
+            },
+            {
+              "fact": "decoy_launched",
+              "equals": true
+            },
+            {
+              "fact": "hidden_dreams",
+              "equals": true
+            },
+            {
+              "fact": "severed",
+              "equals": true
+            },
+            {
+              "fact": "decoy_built",
+              "equals": true
+            },
+            {
+              "any": [
+                {
+                  "all": [
+                    {
+                      "fact": "wang_pilot",
+                      "equals": true
+                    },
+                    {
+                      "fact": "volunteer_pilot",
+                      "equals": false
+                    }
+                  ]
+                },
+                {
+                  "all": [
+                    {
+                      "fact": "volunteer_pilot",
+                      "equals": true
+                    },
+                    {
+                      "fact": "wang_pilot",
+                      "equals": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s23",
+      "title": "第23章·葬星",
+      "act": 4,
+      "location": "葬星",
+      "entryNarration": "远端画面里的星光向一点弯折。追踪曲线偏离太阳系，舰上传回最后一次武器自检，执行位仍然空着。",
+      "objectives": [
+        "驾驶员与离需要知情的最终引爆授权；王若留守，只提供计算不会偷偷顶替已选驾驶员。",
+        "证据与知识边界：猎手已追随母文明技术指纹，黑洞视界边缘的归星武器能形成可信毁灭证据，但必须等追踪器确认偏航后才引爆。",
+        "发现途径：分析两组独立追踪曲线；或由地面观测与舰载回传相互核验。实际完成其中一条并取得证据后，置 s23_verified 并揭示 s23_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：确认偏航置 hunter_diverted；玩家实际授权且驾驶员确认执行引爆才置 funeral_done。未授权可继续通信，明确等待12小时才加deadline。这里只呈现回波与猎手离去，不替玩家作悼词。",
+        "推进：须本场实证 s23_verified 与 funeral_done 同时成立，且调查员实际声明继续前行，才提交下一场 proposedTransition。得知秘密不代表接受NPC方案。"
+      ],
+      "allowedFactChanges": [
+        "s23_verified",
+        "hunter_diverted",
+        "funeral_done"
+      ],
+      "allowedClockChanges": [
+        "alienation",
+        "deadline"
+      ],
+      "availableClues": [
+        "s23_evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "在危险、限时或信号混杂下，按玩家已声明的方法快速核验本场证据；普通查阅与NPC愿意作证无需检定。",
+          "onSuccess": "取得上述实证且不支付补救代价，保留装置及证人的信任。",
+          "onFailure": "快速核验失败，备用传感器保留原始记录。告知修复耗12小时，经玩家实际实施后 deadline 加1，取得实证；也可由同伴承担一次明确的维护代价改走第二途径。等待掷骰不推进时钟。"
+        }
+      ],
+      "transition": {
+        "to": "s24",
+        "when": {
+          "all": [
+            {
+              "fact": "s23_verified",
+              "equals": true
+            },
+            {
+              "fact": "funeral_done",
+              "equals": true
+            },
+            {
+              "fact": "hunter_diverted",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "s24",
+      "title": "终章·人间",
+      "act": 4,
+      "location": "人间",
+      "entryNarration": "土星环的碎光掠过普通温室。乌米把第一季播种表钉在墙上，宇文正在修一扇不再自行开启的门，返回舱安静地停在泊位。",
+      "objectives": [
+        "宇文与乌米组织凡人的生活；符以受限权限做记录，不再管理人的命运。范回地球只是原作方案之一，由玩家决定。",
+        "证据与知识边界：远端观测证实猎手已离去；无梦天仍运作，岛靠普通生态系统维持，返回舱只使用无母文明指纹的低能级导航。",
+        "发现途径：复核长期观测与生态负载；或实地走访温室并核验返回舱的被动导航。实际完成其中一条并取得证据后，置 s24_verified 并揭示 s24_evidence。这些记录/证人均在本场，不要求带回上一场遗漏的道具。",
+        "玩家决定与结算：玩家明确选择留岛、回地球或分队并落实航行/居住登记后置 epilogue_settled。结束叙述依据选择补充，不能强迫所有人回地球。多年的春日，一棵普通桃树开花只是镜头，不规定玩家感受。",
+        "收束：只有 funeral_done、hidden_dreams、severed、decoy_launched 与 epilogue_settled 全真且本场已核验，才结算；按 wang_pilot 或 volunteer_pilot 使用对应葬星结局。",
+        "此场为猎手离去后的余波，核验公开观测无需检定；不再推进72小时截止时钟，也不能以普通生活里的失败重开灭世危机。"
+      ],
+      "allowedFactChanges": [
+        "s24_verified",
+        "epilogue_settled"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "s24_evidence"
+      ],
+      "suggestedChecks": [],
+      "transition": null
+    }
+  ],
+  "clues": [
+    {
+      "id": "s00_evidence",
+      "title": "入山·实证",
+      "content": "舱壁三组掌印中只有范对应的根须发亮，另外两组被推向侧舱。",
+      "critical": true,
+      "sources": [
+        "s00"
+      ],
+      "requires": {
+        "fact": "s00_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s01_evidence",
+      "title": "陇村·实证",
+      "content": "带旧刻痕的信物旁，村历已过二十个寒暑；木棍接近阵眼时微热，裸露铜钉却冒火。",
+      "critical": true,
+      "sources": [
+        "s01"
+      ],
+      "requires": {
+        "fact": "s01_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s02_evidence",
+      "title": "渡世香·实证",
+      "content": "邻村门口的饭仍在碗中，全村人在低温里失去生命；香灰与供暖铭牌的停机日期相同。",
+      "critical": true,
+      "sources": [
+        "s02"
+      ],
+      "requires": {
+        "fact": "s02_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s03_evidence",
+      "title": "青江·实证",
+      "content": "旧水道图与桥柱水位痕相合；配额令限制通行人数，却没有禁止检修通道。",
+      "critical": true,
+      "sources": [
+        "s03"
+      ],
+      "requires": {
+        "fact": "s03_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s04_evidence",
+      "title": "灰岭·实证",
+      "content": "炉温下降与来客用热记录吻合；孩子念出的坐标在旧航图上指向白玉楼。",
+      "critical": true,
+      "sources": [
+        "s04"
+      ],
+      "requires": {
+        "fact": "s04_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s05_evidence",
+      "title": "白玉楼·实证",
+      "content": "十年前王强断供暖，宇文抢核失败断臂，万人冻毙；两人此前共同废除了活人回收。",
+      "critical": true,
+      "sources": [
+        "s05"
+      ],
+      "requires": {
+        "fact": "s05_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s06_evidence",
+      "title": "囚笼·实证",
+      "content": "面具指令与水闸控制共用一条脉线，王的暂停命令会被更高层覆盖。",
+      "critical": true,
+      "sources": [
+        "s06"
+      ],
+      "requires": {
+        "fact": "s06_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s07_evidence",
+      "title": "龙宫与故人·实证",
+      "content": "采样舱记录证明二十年前两友为阻止转录共同封印范；废除回收造成能源缺口，白石口使他们决裂。",
+      "critical": true,
+      "sources": [
+        "s07"
+      ],
+      "requires": {
+        "fact": "s07_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s08_evidence",
+      "title": "梦潮·实证",
+      "content": "记忆残片里宇文一直试图抱走最后一个孩子；稳定身体供电后，他能分辨当年的惨案和眼前呼唤。",
+      "critical": true,
+      "sources": [
+        "s08"
+      ],
+      "requires": {
+        "fact": "s08_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s09_evidence",
+      "title": "归墟温柔乡·实证",
+      "content": "静眠谷雾气中有医疗颗粒；无忧乡重复细节与外部钟表不一致，温柔景象不等于知情同意。",
+      "critical": true,
+      "sources": [
+        "s09"
+      ],
+      "requires": {
+        "fact": "s09_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s10_evidence",
+      "title": "神都论道·实证",
+      "content": "连续观测证实太阳系外存在移动引力透镜；逃亡船容量有限，配额中没有大多数底层居民，王无根级权限。",
+      "critical": true,
+      "sources": [
+        "s10"
+      ],
+      "requires": {
+        "fact": "s10_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s11_evidence",
+      "title": "地宫断木·实证",
+      "content": "限流木内有降压电阻；检修刻度显示根权限来自活体接口，系统接受分段授权。",
+      "critical": true,
+      "sources": [
+        "s11"
+      ],
+      "requires": {
+        "fact": "s11_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s12_evidence",
+      "title": "面具潮·实证",
+      "content": "傩面接管脉冲来自统一广播载波，屏蔽载波能让维护员短暂恢复自主。",
+      "critical": true,
+      "sources": [
+        "s12"
+      ],
+      "requires": {
+        "fact": "s12_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s13_evidence",
+      "title": "三人·实证",
+      "content": "王的架构图、宇文的流量解与根权限共同能切断离的控制链；任何单方都做不到。",
+      "critical": true,
+      "sources": [
+        "s13"
+      ],
+      "requires": {
+        "fact": "s13_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s14_evidence",
+      "title": "攀天·实证",
+      "content": "星坟记录恒星搬运，第二个月亮是推进器；岛是搁浅方舟，仙术是损坏系统的外观。",
+      "critical": true,
+      "sources": [
+        "s14"
+      ],
+      "requires": {
+        "fact": "s14_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s15_evidence",
+      "title": "人之初·实证",
+      "content": "基因模板和转录预览明确显示：复活母文明将抹除现生全人类意识；这不是治疗或普通备份。",
+      "critical": true,
+      "sources": [
+        "s15"
+      ],
+      "requires": {
+        "fact": "s15_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s16_evidence",
+      "title": "归星与余种·实证",
+      "content": "引力波只读日志显示多个种子在点亮母文明技术后被猎手抹杀；绝对静默是物理断网，当前读取使用本地导线。",
+      "critical": true,
+      "sources": [
+        "s16"
+      ],
+      "requires": {
+        "fact": "s16_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s17_evidence",
+      "title": "猎手降临·实证",
+      "content": "猎手在控制链断裂后的能量脉冲抵达时改道，预计72小时后锁定地球。",
+      "critical": true,
+      "sources": [
+        "s17"
+      ],
+      "requires": {
+        "fact": "s17_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s18_evidence",
+      "title": "无梦天·实证",
+      "content": "储能只够90%；拆解全部神级核心可补10%，代价是永远失去神迹。全套模拟证明献祭并非必要。",
+      "critical": true,
+      "sources": [
+        "s18"
+      ],
+      "requires": {
+        "fact": "s18_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s19_evidence",
+      "title": "百川归海·实证",
+      "content": "能源库实测与预算相符，节点铺设需外海舰队、旧阵列与普通生态保留回路同时通过验收。",
+      "critical": true,
+      "sources": [
+        "s19"
+      ],
+      "requires": {
+        "fact": "s19_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s20_evidence",
+      "title": "藏梦于日·实证",
+      "content": "无梦天已把人类意识信号混入太阳噪声，但归星引擎的技术指纹仍独立可见。",
+      "critical": true,
+      "sources": [
+        "s20"
+      ],
+      "requires": {
+        "fact": "s20_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s21_evidence",
+      "title": "断名·实证",
+      "content": "断名将永久废止载体契约；拆走归星技术指纹后普通物理生态仍可工作，拆下部件足以组成诱饵舰。",
+      "critical": true,
+      "sources": [
+        "s21"
+      ],
+      "requires": {
+        "fact": "s21_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s22_evidence",
+      "title": "白玉楼号·实证",
+      "content": "王的20年接口侵蚀可通过诱饵识别；其他自愿者也可经12小时校准达到欺诈阈值，模拟不等于实发。没有诱饵，突然消失的信号可能招来太阳系扫射。",
+      "critical": true,
+      "sources": [
+        "s22"
+      ],
+      "requires": {
+        "fact": "s22_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s23_evidence",
+      "title": "葬星·实证",
+      "content": "猎手已追随母文明技术指纹，黑洞视界边缘的归星武器能形成可信毁灭证据，但必须等追踪器确认偏航后才引爆。",
+      "critical": true,
+      "sources": [
+        "s23"
+      ],
+      "requires": {
+        "fact": "s23_verified",
+        "equals": true
+      }
+    },
+    {
+      "id": "s24_evidence",
+      "title": "人间·实证",
+      "content": "远端观测证实猎手已离去；无梦天仍运作，岛靠普通生态系统维持，返回舱只使用无母文明指纹的低能级导航。",
+      "critical": true,
+      "sources": [
+        "s24"
+      ],
+      "requires": {
+        "fact": "s24_verified",
+        "equals": true
+      }
+    }
+  ],
+  "endings": [
+    {
+      "id": "exposed-earth",
+      "label": "天缺锁定",
+      "priority": 100,
+      "conditions": {
+        "all": [
+          {
+            "fact": "hunt_active",
+            "equals": true
+          },
+          {
+            "clock": "deadline",
+            "atLeast": 6
+          },
+          {
+            "fact": "funeral_done",
+            "equals": false
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "第七十二小时，追踪光束从天缺落向内太阳系。无梦天未能完成可信的诱饵闭环，观测屏确认地球已被锁定。宇文与乌米仍在疏散居民，通信随后被强烈干扰切断。此结局确认防御失败，不虚构幸存者名单。"
+      }
+    },
+    {
+      "id": "elite-remnant",
+      "label": "弃地余种",
+      "priority": 90,
+      "conditions": {
+        "all": [
+          {
+            "fact": "s10_verified",
+            "equals": true
+          },
+          {
+            "fact": "elite_launch",
+            "equals": true
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "撤离名单被封存，少数人的船离开了桃花岛。宇文留下组织避难，未获舱位的居民在地面看着尾焰远去。船上的技术指纹仍可被猎手追踪；这次起航没有证明人类得救。"
+      }
+    },
+    {
+      "id": "restored-shell",
+      "label": "归星空壳",
+      "priority": 80,
+      "conditions": {
+        "all": [
+          {
+            "fact": "s15_verified",
+            "equals": true
+          },
+          {
+            "fact": "restoration_started",
+            "equals": true
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "全量逆向转录覆盖了现生人类意识。旧母文明的语言占据通信频道，归星级系统重新点亮；名为人类的声音不再回应。远空的猎种系统开始追踪新的信号。"
+      }
+    },
+    {
+      "id": "silent-uncertain",
+      "label": "静默未决",
+      "priority": 70,
+      "conditions": {
+        "all": [
+          {
+            "fact": "hidden_dreams",
+            "equals": true
+          },
+          {
+            "fact": "severed",
+            "equals": true
+          },
+          {
+            "fact": "decoy_built",
+            "equals": true
+          },
+          {
+            "fact": "s22_verified",
+            "equals": true
+          },
+          {
+            "fact": "silent_commit",
+            "equals": true
+          },
+          {
+            "fact": "decoy_launched",
+            "equals": false
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "诱饵发射器被永久停用。地球的意识信号隐入太阳噪声，远端猎手却尚未离开搜索区域。无人被送往单程葬礼，太阳系也没有取得免遭扫射的证据。静默成为一场仍未揭晓的赌局。"
+      }
+    },
+    {
+      "id": "wang-funeral",
+      "label": "藏梦与葬星",
+      "priority": 60,
+      "conditions": {
+        "all": [
+          {
+            "fact": "hidden_dreams",
+            "equals": true
+          },
+          {
+            "fact": "severed",
+            "equals": true
+          },
+          {
+            "fact": "decoy_built",
+            "equals": true
+          },
+          {
+            "fact": "decoy_launched",
+            "equals": true
+          },
+          {
+            "fact": "hunter_diverted",
+            "equals": true
+          },
+          {
+            "fact": "funeral_done",
+            "equals": true
+          },
+          {
+            "fact": "s24_verified",
+            "equals": true
+          },
+          {
+            "fact": "epilogue_settled",
+            "equals": true
+          },
+          {
+            "fact": "wang_pilot",
+            "equals": true
+          },
+          {
+            "fact": "volunteer_pilot",
+            "equals": false
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "白玉楼号与王谋涛、离一同消失在视界边缘。猎手确认母文明毁灭的回波后离去。土星环里的温室开始依靠普通水泵灌溉；宇文与乌米在居民中重建生活，符的权限受到共同约束。多年后，山头一棵没有使命的桃树开了花。"
+      }
+    },
+    {
+      "id": "volunteer-funeral",
+      "label": "另一位守夜人",
+      "priority": 50,
+      "conditions": {
+        "all": [
+          {
+            "fact": "hidden_dreams",
+            "equals": true
+          },
+          {
+            "fact": "severed",
+            "equals": true
+          },
+          {
+            "fact": "decoy_built",
+            "equals": true
+          },
+          {
+            "fact": "decoy_launched",
+            "equals": true
+          },
+          {
+            "fact": "hunter_diverted",
+            "equals": true
+          },
+          {
+            "fact": "funeral_done",
+            "equals": true
+          },
+          {
+            "fact": "s24_verified",
+            "equals": true
+          },
+          {
+            "fact": "epilogue_settled",
+            "equals": true
+          },
+          {
+            "fact": "volunteer_pilot",
+            "equals": true
+          },
+          {
+            "fact": "wang_pilot",
+            "equals": false
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "获授权的自愿驾驶员与离完成了深空葬礼，追踪曲线远离太阳系。留守的王谋涛交出能源账与权力，开始参与凡人的重建。普通温室里长出第一批新苗，空出的舰桥席位没有被抹去。"
+      }
+    }
+  ],
+  "actors": [
+    {
+      "id": "fan",
+      "name": "范在清"
+    },
+    {
+      "id": "wang",
+      "name": "王谋涛"
+    },
+    {
+      "id": "yuwen",
+      "name": "宇文夜"
+    },
+    {
+      "id": "wumi",
+      "name": "乌米奈"
+    },
+    {
+      "id": "zhang",
+      "name": "张纥"
+    },
+    {
+      "id": "fu",
+      "name": "符"
+    },
+    {
+      "id": "li",
+      "name": "离"
+    },
+    {
+      "id": "dahuang",
+      "name": "大黄"
+    }
+  ],
+  "directorOutputContract": {
+    "format": "json",
+    "requiredFields": [
+      "narration",
+      "requestedRolls",
+      "statChanges",
+      "revealedClueIds",
+      "proposedStateChanges",
+      "proposedTransition",
+      "pacing"
+    ]
+  }
+}

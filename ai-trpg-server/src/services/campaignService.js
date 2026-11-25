@@ -5,11 +5,12 @@ const memory = require('../domain/campaignMemory');
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 const createCampaign = (scriptId = 'peach') => {
-  const scenario = scenarioRepository.loadByScriptId(scriptId);
+  const { scenario, revision } = scenarioRepository.currentEdition(scriptId);
   const campaign = {
     scriptId,
     scenarioId: scenario.scenarioId,
     chapterId: scenario.id,
+    scenarioRevision: revision,
     chapterTitle: scenario.title,
     phase: scenario.initialState.phase || 'active',
     currentSceneId: scenario.initialState.currentSceneId,
@@ -29,8 +30,10 @@ const createCampaign = (scriptId = 'peach') => {
 
 const migrateCampaign = (campaign) => {
   if (!campaign || typeof campaign !== 'object') return campaign;
+  const scenario = getScenario(campaign);
+  if (!Array.isArray(campaign.transitionHistory)) campaign.transitionHistory = [];
   if (!Array.isArray(campaign.inventory)) campaign.inventory = [];
-  if (!Array.isArray(campaign.memory)) campaign.memory = memory.seed(campaign, getScenario(campaign));
+  if (!Array.isArray(campaign.memory)) campaign.memory = memory.seed(campaign, scenario);
   if (campaign.clocks?.injury) delete campaign.clocks.injury;
   if (
     campaign.endingId === 'chapter-costly-capture' &&
@@ -44,11 +47,18 @@ const migrateCampaign = (campaign) => {
   return campaign;
 };
 
-const getScenario = (campaign) => scenarioRepository.loadByScriptId(campaign?.scriptId || 'peach');
+const getScenario = scenarioRepository.resolveCampaign;
 
 const getCurrentScene = (scenario, campaign) => {
-  return scenario.scenes.find((scene) => scene.id === campaign.currentSceneId) || scenario.scenes[0];
+  const scene = scenario.scenes.find(item => item.id === campaign.currentSceneId);
+  if (!scene) throw scenarioRepository.incompatible('存档中的场景不属于此剧本修订。');
+  return scene;
 };
+
+function visitsTo(campaign, scenario, id) {
+  const initial = scenario.initialState.currentSceneId === id ? 1 : 0;
+  return initial + campaign.transitionHistory.filter(visit => visit.to === id).length;
+}
 
 const getPlayerStatDefaults = (player) => {
   const characterData = player.fullData?.fullData || player.fullData || {};
@@ -121,7 +131,7 @@ const evaluateCondition = (condition, campaign) => {
   return false;
 };
 
-const getPublicCampaign = (campaign, username) => {
+const getPublicCampaign = (campaign, username, recapSources) => {
   migrateCampaign(campaign);
   const scenario = getScenario(campaign);
   const revealed = new Set(campaign.revealedClueIds || []);
@@ -131,7 +141,10 @@ const getPublicCampaign = (campaign, username) => {
     chapterId: campaign.chapterId,
     title: campaign.chapterTitle,
     phase: campaign.phase,
-    ...(username && { inventory: memory.notebookItems(campaign, scenario, campaign.partyStats?.[username]?.characterId) }),
+    ...(username && {
+      inventory: memory.notebookItems(campaign, scenario, campaign.partyStats?.[username]?.characterId),
+      recap: memory.notebookRecap(campaign, scenario, campaign.partyStats?.[username]?.characterId, recapSources),
+    }),
     revealedClues: (scenario.clues || [])
       .filter((clue) => revealed.has(clue.id))
       .map(({ id, title, content }) => ({ id, title, content })),
@@ -193,15 +206,12 @@ const applyDirectorResult = ({ campaign, directorResult }) => {
   }
 
   let transition = null;
-  const targetSceneId = scene.transition?.to;
-  if (
-    targetSceneId &&
-    !waitingForRolls &&
-    result.proposedTransition === targetSceneId &&
-    evaluateCondition(scene.transition.when, next)
-  ) {
-    transition = scenario.scenes.find((item) => item.id === targetSceneId) || null;
-    if (transition) {
+  const exit = scenarioRepository.exits(scene).find(edge => edge.to === result.proposedTransition);
+  if (exit && !waitingForRolls && evaluateCondition(exit.when, next)) {
+    const destination = scenario.scenes.find(item => item.id === exit.to);
+    if (destination) {
+      const returning = visitsTo(next, scenario, destination.id) > 0;
+      transition = returning ? { ...destination, entryNarration: destination.revisitNarration || '' } : destination;
       next.transitionHistory.push({
         from: scene.id,
         to: transition.id,
@@ -242,7 +252,9 @@ const buildDirectorContext = ({ campaign, players, lines = [] }) => {
     adaptationRules: scenario.adaptationRules || [],
     resolutionRules: scenario.resolutionRules || [],
     protectedSecrets: scenario.directorSecrets,
-    currentScene: scene,
+    currentScene: visitsTo(campaign, scenario, scene.id) > 1
+      ? { ...scene, entryNarration: scene.revisitNarration || '', revisiting: true }
+      : scene,
     campaignState,
     actorDirectory: actors,
     itemDirectory: [

@@ -57,10 +57,16 @@ function check(s) {
     for (const key of scene.allowedFactChanges || []) assert.ok(Object.hasOwn(facts,key), scene.id + ' 未定义事实: ' + key);
     for (const key of scene.allowedClockChanges || []) assert.ok(Object.hasOwn(clocks,key), scene.id + ' 未定义时钟: ' + key);
     for (const key of scene.availableClues || []) assert.ok(clues.has(key), scene.id + ' 未定义线索: ' + key);
-    if (scene.transition != null) {
-      assert.ok(!Array.isArray(scene.transition) && Object.hasOwn(scene.transition, 'to'), scene.id + ' 转场须为单目标');
-      if (scene.transition.to != null) assert.ok(scenes.has(scene.transition.to), scene.id + ' 目标场景不存在');
-      if (scene.transition.when != null) condition(scene.transition.when, scene.id);
+    const multi = scene.transitions !== undefined;
+    if (multi) assert.ok(Array.isArray(scene.transitions) && !scene.transition, scene.id + ' 转场格式冲突');
+    const seen = new Set();
+    for (const edge of multi ? scene.transitions : (scene.transition ? [scene.transition] : [])) {
+      assert.ok(edge && Object.hasOwn(edge, 'to'), scene.id + ' 出口缺少目标');
+      if (multi || edge.to != null) {
+        assert.ok(scenes.has(edge.to) && !seen.has(edge.to), scene.id + ' 出口目标无效或重复');
+        seen.add(edge.to);
+      }
+      if (edge.when != null) condition(edge.when, scene.id);
     }
   }
   for (const clue of s.clues || []) {
@@ -83,8 +89,10 @@ function replay(engine, scenario, routes) {
     for (const [i,step] of route.steps.entries()) {
       const loc = (route.ending || route.name) + ' 第 ' + (i + 1) + ' 步';
       assert.equal(state.phase, 'active', loc + ' 已提前结算');
-      state = engine.applyDirectorResult({campaign:state,directorResult:step.reply}).campaign;
+      const applied = engine.applyDirectorResult({campaign:state,directorResult:step.reply});
+      state = applied.campaign;
       const e = step.expect || {};
+      if (Object.hasOwn(e, 'entryNarration')) assert.equal(applied.transition?.entryNarration ?? null, e.entryNarration, loc);
       for (const check of e.memory || []) {
         const record = state.memory.find(m => m.kind === check.kind && m.id === check.id);
         if (check.who) assert.ok(record, loc + ' 未建立见闻所属记录');
@@ -120,12 +128,12 @@ function run() {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(),'trpg-scenario-'));
   try {
     // Use unchanged production loader and state machine. Bind only the data root in this fixture.
-    for (const rel of ['src/domain/campaignMemory.js','src/repositories/scenarioRepository.js','src/services/campaignService.js']) {
+    for (const rel of ['src/domain/campaignMemory.js','src/repositories/scenarioRepository.js','src/repositories/legacyScenarioEditions.json','src/services/campaignService.js']) {
       const dst = path.join(temp,rel);
       fs.mkdirSync(path.dirname(dst),{recursive:true});
       fs.copyFileSync(path.join(repo,'ai-trpg-server',rel),dst);
     }
-    fs.writeFileSync(path.join(temp,'src/config.js'),"module.exports = {serverRoot: require('node:path').join(__dirname,'..')};");
+    fs.writeFileSync(path.join(temp,'src/config.js'),"const path = require('node:path'); module.exports = { serverRoot: path.join(__dirname,'..'), paths: {scenarioRevisionsDir:path.join(__dirname,'../scenario-revisions')} };");
     const slot = path.join(temp,'scenarios/peach-island/chapter-03.json');
     fs.mkdirSync(path.dirname(slot),{recursive:true});
     fs.copyFileSync(file,slot);

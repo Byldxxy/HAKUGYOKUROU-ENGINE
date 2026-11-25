@@ -19,10 +19,27 @@ const describeRoll = (roll, value) => {
   if (roll <= value) return '常规成功 (Regular Success)';
   return '失败 (Failure)';
 };
-const rollSkill = (player, skill) => {
-  const value = skillValue(player, skill);
-  if (value === null) throw new Error('未知技能');
-  const roll = randomInt(1, 101);
-  return `[对 ${skill} 进行检定]：掷出了 D100 = ${roll} / ${value}，结果：【${describeRoll(roll, value)}】`;
+const levels = { regular: ['常规', 1], hard: ['困难', 2], extreme: ['极难', 5] };
+const makeRollRules = (value, difficulty = 'regular', modifier = 0) => {
+  if (!Number.isInteger(value) || value < 0 || typeof difficulty !== 'string' || !Object.hasOwn(levels, difficulty) ||
+      !Number.isInteger(modifier) || Math.abs(modifier) > 2) return null;
+  return { difficulty, modifier, baseValue: value, target: Math.floor(value / levels[difficulty][1]) };
 };
-module.exports = { skillValue, describeRoll, rollSkill };
+
+// All candidates share their units die. A pair of zeroes represents 100.
+const rollPercentile = (modifier, digit = () => randomInt(10)) => {
+  const units = digit();
+  const candidates = Array.from({ length: 1 + Math.abs(modifier) }, () => (digit() * 10 + units) || 100);
+  return { candidates, roll: modifier < 0 ? Math.max(...candidates) : Math.min(...candidates) };
+};
+
+const rollSkill = (player, skill, rules = makeRollRules(skillValue(player, skill)), digit) => {
+  if (!rules) throw new Error('未知检定规则');
+  const { difficulty, modifier, target, baseValue } = rules;
+  const { roll, candidates } = rollPercentile(modifier, digit);
+  const fumble = roll === 100 || (baseValue < 50 && roll >= 96);
+  const met = !fumble && (roll === 1 || roll <= target);
+  const pool = modifier ? `，${modifier > 0 ? '奖励' : '惩罚'}骰候选：${candidates.join('、')}` : '';
+  return `[对 ${skill} 进行检定]：掷出了 D100 = ${roll} / ${baseValue}${pool}，结果：【${describeRoll(roll, baseValue)}】，${levels[difficulty][0]}目标 ${target}，${met ? '已达成' : '未达成'}`;
+};
+module.exports = { skillValue, describeRoll, rollSkill, rollPercentile, makeRollRules };

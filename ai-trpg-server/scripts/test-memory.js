@@ -51,6 +51,7 @@ assert.equal(entry.round, 5);
 assert.equal(ctx.recalledMemory.find(e => e.id === pledge.id).state.status, 'open');
 assert.ok(!JSON.stringify(engine.getPublicCampaign(state)).includes('旧柜夹层'));
 const old = engine.createCampaign('peach');
+old.inventory = ['migration-fixture'];
 delete old.memory;
 assert.equal(engine.migrateCampaign(old).memory[0].state.holder, 'party');
 console.log('PASS memory: custody, secret transfer, promise, hearsay, failed and pending rolls, legacy inventory, recall after 22 turns.');

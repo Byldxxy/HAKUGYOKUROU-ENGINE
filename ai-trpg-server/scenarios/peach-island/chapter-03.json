@@ -1,225 +1,256 @@
 {
   "schemaVersion": 1,
-  "id": "peach-island-chapter-03",
-  "scenarioId": "peach-island-adventure",
-  "title": "桃花岛历险记：第三章 灰线与代价",
   "type": "chapter",
   "status": "draft",
-  "summary": "调查员队伍带伤逃离黑井监狱，与乌米、金霄坤躲避祭司院追捕，前往灰线求医，并以护送面具原材料为代价取得前往东海岸的通行条件。",
-  "playerPremise": "你们刚从黑井监狱逃出，队伍中有人身受重伤，祭司院正在封锁道路。唯一可能提供治疗和庇护的地方，是东面的三不管地带灰线。",
+  "id": "peach-v16-complete",
+  "scenarioId": "peach-island-v16",
+  "title": "桃花岛历险记",
+  "summary": "三个现代好友在秦岭徒步时遭遇异常桃花雾。失散后的寻人线索从陇村指向遥远东海；旅途中的见闻逐渐改变人们对这片土地的认识。",
+  "chapterGoal": "从当场可核验的线索寻找失散朋友，理解他们为何走上不同道路，由玩家决定如何回应不断扩大的危机。",
   "adaptationRules": [
-    "原稿中范在清承担的玩家主角功能由当前调查员队伍共同承担。",
-    "只能使用 players 中列出的角色卡姓名称呼玩家，不得擅自把任何玩家称为范在清。",
-    "不得替玩家声明与宇文夜的私人关系；只有玩家主动提及相关背景时才能确认。",
-    "需要指定重伤者、原生根须持有者或关键对话者时，优先依据玩家已经描述的行动；无法判断时先向队伍确认。"
+    "开团先确定角色与三友的关系：单人可自愿扮演范在清；多人可作为同行者参与，也可在陇村加入。不擅改角色卡姓名，不把陌生玩家直接叫作范。未被玩家扮演的范是协作者，关键接触和授权须等玩家决定。序章原作三友身份保持，额外调查员为多人改编补足。",
+    "先呈现普通徒步与朋友关系，再响应玩家行动逐层出现异常。入口只读当前场景 entryNarration，不使用全篇梗概开场。每场先回应玩家眼前的问题，再让新线索给出去下一地的理由；不设置必须行动菜单。",
+    "知识以当前场景和已公开记录为限。后续场景资料不会发给KP，禁止凭全篇常识补讲原因、倒叙解释开场或使用全知旁白。玩家猜想只作为猜想，既不为了藏谜否定合理推断，也不提前替其认证。",
+    "每次回复停在环境、NPC回应或行动后果，不替调查员移动、发言、选择情绪、接受委托或原谅他人。NPC动机给出压力，不替玩家作最终决定。",
+    "安静段落不可全跳：陇村日常、长路见闻、前哨口碑、静海生活、故人重逢都是可互动场景。无意义等待不拉长，但一条回复不能包办整段旅程。",
+    "角色和物件目录只是稳定ID索引，不代表人物已经出场或物件已在队伍手里。仅当前场景中明确在场者可发言；不能因目录里有符、离、王或旧木棍就让其提前出现。"
   ],
-  "chapterGoal": "在祭司院追兵找到队伍前稳定伤员，并取得前往东海岸反抗军营地的路线。",
   "resolutionRules": [
-    "一次导演回复中，每名玩家最多只能收到一项检定。",
-    "同一行动存在多种可用技能时，只选择最符合玩家行动描述的一项，不得把备选技能拆成多项检定。",
-    "检定失败只产生对应后果或推进隐藏压力，不得仅因一次普通失败直接结束章节。"
+    "使用真实角色卡姓名，每人每次最多一项检定，骰点留给网站。请求检定时不提交依赖结果的事实、线索、时钟和转场。",
+    "只有实际发生的事件才将对应事实置true；听到、相信、讨论、模拟、承诺和实施分开。两种相斥选择不得同时设置。普通可见证据不强制检定，失败按本场具体备用办法继续。",
+    "物品不因过场自动回到队伍。取得、交付和放置用memoryChanges记录稳定ID、持有人/地点、见证者和原句；NPC没有目睹的交接不能自动知道。item-root-staff是同一根旧木棍，不因断裂生成第二根。",
+    "异化alienation只在实际超频后按场景加1或2，2有树纹、4有机械样低语、6需同伴分流；不能据此接管玩家意识。伤害走HP/SAN/MP statChanges。",
+    "deadline仅明确校时后使用，每格12小时，最大6。常规工程在预算内，不按聊天回合扣时；额外等待、返工和校准必须事先说出时间，实际执行后加1。完成最终工程的同轮结果优先，其他时刻到6即失败。",
+    "章节标题与序号供作者组织，不作为玩家已知事实。场景转换必须是玩家实际离场，完成gate事实只是必要条件；不能把成功检定当作同意走向下个地点。"
   ],
   "directorSecrets": [
-    "宇文夜在桃花岛已经活动约二十年，但调查员对这段时间差尚不知情。",
-    "调查员队伍携带的木棍是神树核心的原生根须，可以压制祭司院的叶脉之力，也会产生容易被追踪的能量异常。",
-    "老妇人曾是祭司院候补成员，因拒绝佩戴面具而逃亡。",
-    "蔡薄世交付的金属方块是制作祭司面具的原材料，他希望反抗军首席技师邓哥破解它。",
-    "本章不得揭示桃花岛是生态母舰，也不得完整解释符、离或王谋涛的最终计划。"
+    "只使用当前场景载明的NPC知识、因果和可观察证据。尚未出现的人物身份及事件解释保持未知。若玩家做出原作外的行动，先据现场回应，保留其他证据与后续行动机会。"
   ],
   "initialState": {
     "phase": "active",
-    "currentSceneId": "forest-awakening",
+    "currentSceneId": "s00",
     "round": 1,
     "facts": {
-      "yuwenTimeGapKnown": false,
-      "greylineChosen": false,
-      "patrolPassed": false,
-      "healerFound": false,
-      "rootIdentified": false,
-      "treatmentCompleted": false,
-      "deliveryAccepted": false,
-      "eastRouteSecured": false
+      "s00_observed": false,
+      "hike_started": false,
+      "mountain_return": false,
+      "prologue_fog_observed": false,
+      "fog_entered": false,
+      "fog_checked": false,
+      "prologue_cave_observed": false,
+      "cave_passed": false,
+      "root_contact": false,
+      "c01_arrival_observed": false,
+      "village_oriented": false,
+      "c01_days_observed": false,
+      "east_departed": false,
+      "staff_received": false,
+      "staff_with_caravan": false,
+      "c02_observed": false,
+      "road_contact": false,
+      "wumi_helped": false,
+      "c03_observed": false,
+      "east_route_known": false,
+      "time_gap_known": false,
+      "name_sent": false,
+      "anonymous_inquiry": false,
+      "c04_observed": false,
+      "east_convoy_ready": false,
+      "road_escort": false,
+      "road_scout": false,
+      "c05_observed": false,
+      "river_crossed": false,
+      "mass_crossing": false,
+      "staged_crossing": false,
+      "c06_observed": false,
+      "grey_settled": false,
+      "medicine_shared": false,
+      "medicine_split": false,
+      "c07_observed": false,
+      "wreck_ready": false,
+      "listening_learned": false,
+      "names_public": false,
+      "names_sealed": false,
+      "c08_observed": false,
+      "prison_left": false,
+      "gate_escape": false,
+      "manual_escape": false,
+      "c09_observed": false,
+      "harbour_linked": false,
+      "c10_observed": false,
+      "tide_passage": false,
+      "c11_observed": false,
+      "reunion_done": false,
+      "wang_identity_known": false,
+      "c12_observed": false,
+      "dream_rescued": false,
+      "mind_link": false,
+      "relay_link": false,
+      "c13_observed": false,
+      "valley_left": false,
+      "care_delegated": false,
+      "c14_observed": false,
+      "recycle_avoided": false,
+      "c15_observed": false,
+      "illusion_left": false,
+      "illusion_cut": false,
+      "medical_only": false,
+      "c16_observed": false,
+      "city_entered": false,
+      "c17_observed": false,
+      "root_access": false,
+      "direct_root": false,
+      "buffered_root": false,
+      "c18_observed": false,
+      "mask_response": false,
+      "masks_freed": false,
+      "masks_contained": false,
+      "c19_observed": false,
+      "chain_cut": false,
+      "audited_cooperation": false,
+      "c20_observed": false,
+      "wang_traced": false,
+      "stores_public": false,
+      "stores_held": false,
+      "c21_observed": false,
+      "star_archive_read": false,
+      "c22_observed": false,
+      "sky_boundary_found": false,
+      "c23_observed": false,
+      "summit_continue": false,
+      "ark_confirmed": false,
+      "elite_launch": false,
+      "c24_observed": false,
+      "origin_read": false,
+      "c25_observed": false,
+      "fu_trusted": false,
+      "c26_observed": false,
+      "transcription_blocked": false,
+      "restoration_started": false,
+      "c27_observed": false,
+      "extinction_proved": false,
+      "c28_observed": false,
+      "hunt_scan_ready": false,
+      "launch_stopped": false,
+      "launch_tested": false,
+      "c30_observed": false,
+      "hunt_briefed": false,
+      "hunt_active": false,
+      "c31_observed": false,
+      "dream_plan": false,
+      "burn_cores": false,
+      "grid_ready": false,
+      "c32_observed": false,
+      "hidden_dreams": false,
+      "c33_observed": false,
+      "decoy_built": false,
+      "severed": false,
+      "decoy_bridge_observed": false,
+      "decoy_launched": false,
+      "wang_pilot": false,
+      "volunteer_pilot": false,
+      "silent_commit": false,
+      "c34_observed": false,
+      "funeral_done": false,
+      "hunter_diverted": false,
+      "c_final_observed": false,
+      "epilogue_settled": false,
+      "sea_departed": false
     },
     "clocks": {
-      "pursuit": {
-        "label": "追捕",
-        "visibleFromScene": "forest-awakening",
-        "value": 1,
+      "alienation": {
+        "label": "身体变化",
+        "value": 0,
         "max": 6
       },
-      "healerSuspicion": {
-        "label": "怀疑",
-        "visibleFromScene": "healer-negotiation",
+      "deadline": {
+        "label": "剩余窗口（每格12小时）",
         "value": 0,
-        "max": 4
+        "max": 6
       }
     },
-    "inventory": [
-      "item-primordial-root"
-    ]
+    "inventory": []
   },
-  "pacingRules": {
-    "targetRounds": {
-      "min": 10,
-      "max": 18
-    },
-    "maxStagnantRounds": 2,
-    "stagnationResponse": "按已经发生的事呈现环境变化或NPC自身的反应，停在可观察的后果处，等待玩家行动。",
-    "failForward": true,
-    "criticalCluesCannotBeLost": true,
-    "pursuitAdvanceTriggers": [
-      "队伍长时间停留",
-      "公开使用原生根须",
-      "战斗或制造显著噪音",
-      "向祭司院控制的村落求助"
-    ]
-  },
-  "actors": [
-    {
-      "id": "npc-wumi",
-      "name": "乌米",
-      "role": "逃亡向导",
-      "publicGoal": "带调查员队伍活着抵达反抗军控制区。",
-      "privateGoal": "证明自己能够承担反抗军成员的责任。",
-      "voice": "警觉、直接，面对危险时迅速作出判断。",
-      "knowledge": [
-        "灰线的大致方向",
-        "祭司院巡逻方式",
-        "宇文提督近年来的外貌"
-      ]
-    },
-    {
-      "id": "npc-jin-xiaokun",
-      "name": "金霄坤",
-      "role": "逃亡同伴",
-      "publicGoal": "活着离开祭司院控制区。",
-      "privateGoal": "不再做任人摆布的囚犯。",
-      "voice": "朴实、紧张，但在同伴真正需要时不会退缩。"
-    },
-    {
-      "id": "npc-healer",
-      "name": "灰线老妇人",
-      "role": "医者与前祭司院候补",
-      "publicGoal": "维持医馆中立，不让祭司院注意到自己。",
-      "privateGoal": "确认原生根须是否真实，并阻止面具技术继续扩散。",
-      "voice": "尖刻、多疑、经验老到，不接受明显的谎言。"
-    },
-    {
-      "id": "npc-cai-boshi",
-      "name": "蔡薄世",
-      "role": "灰线情报商",
-      "publicGoal": "完成一笔等价交换。",
-      "privateGoal": "把面具原材料送到邓哥手中并获得破解结果。",
-      "voice": "冷静、精明、少说废话，从不免费提供关键帮助。"
-    }
-  ],
-  "items": [
-    {
-      "id": "item-primordial-root",
-      "name": "原生根须",
-      "publicDescription": "一根由调查员队伍携带、质地异常的粗糙木棍。",
-      "secretDescription": "神树核心根部直接切下的原始组织，可干扰叶脉之力与祭司院探测装置。",
-      "tags": [
-        "key-item",
-        "energy-source",
-        "dangerous"
-      ]
-    },
-    {
-      "id": "item-mask-material",
-      "name": "面具原材料",
-      "publicDescription": "被特殊油布包裹的无标识金属方块。",
-      "secretDescription": "祭司院制作能量面具的核心材料之一。",
-      "tags": [
-        "quest-item",
-        "contraband"
-      ]
-    }
-  ],
-  "clues": [
-    {
-      "id": "clue-yuwen-time-gap",
-      "title": "宇文夜的时间差",
-      "critical": true,
-      "content": "宇文提督已经领导反抗军至少十五年，与调查员掌握的时间信息存在明显矛盾。",
-      "sources": [
-        "乌米的亲眼见闻",
-        "金霄坤对反抗军历史的了解"
-      ]
-    },
-    {
-      "id": "clue-root-disrupts-scan",
-      "title": "木棍会干扰祭司院探测",
-      "critical": true,
-      "content": "原生根须暴露时会令祭司院罗盘过载，使巡逻兵误判为旧战场能量陷阱。",
-      "sources": [
-        "河床巡逻遭遇",
-        "老妇人的鉴定"
-      ]
-    },
-    {
-      "id": "clue-root-identity",
-      "title": "原生根须的身份",
-      "critical": true,
-      "content": "祭司的力量来自二次分发的叶脉之力，而这根木棍来自神树核心，层级更高。",
-      "sources": [
-        "老妇人的鉴定"
-      ]
-    },
-    {
-      "id": "clue-mask-material",
-      "title": "祭司力量的物质基础",
-      "critical": true,
-      "content": "祭司并非天生拥有力量，面具及其材料是赋予力量的关键。",
-      "sources": [
-        "蔡薄世的交易说明",
-        "老妇人的旧制服与经历"
-      ]
-    }
-  ],
   "scenes": [
     {
-      "id": "forest-awakening",
-      "title": "黎明前的苏醒",
-      "location": "陇谷东北部森林",
-      "entryNarration": "队伍中伤势最重的人从剧痛与颠簸中短暂苏醒，乌米和金霄坤正协助调查员穿越寒冷密林。",
+      "id": "s00",
+      "title": "序章·山路",
+      "location": "山路",
+      "entryNarration": "四月的秦岭，山路刚被昨夜的雨洗过。原定的行程只有一天：沿旧步道上山，在山脊吃午饭，天黑前回到山下。宇文夜在路牌旁停下，把背包往上提了提：“午饭带够了没有？”王谋涛摊开离线地图，指着一处拐弯核对路线。山风带来几片桃花，路牌背面的旧刻痕里还积着水。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
       "objectives": [
-        "确认宇文提督就是宇文夜",
-        "意识到桃花岛存在巨大的时间差",
-        "决定向东前往灰线求医"
+        "先让同伴有一段普通徒步对话：宇文惦记午饭，王核对返程时间，范在清习惯听两人商量。回应玩家的准备、玩笑或观察，不立即制造事故。只有实际走到山脊，才出现手机定位偏移和谷底反季节浓花；不把普通看花当踏进异界。",
+        "本场能确认：路牌与离线地图指向同一条山脊步道；谷里的桃花比山腰开得密，尚不能说明发生了什么。",
+        "取证：查看地图与路牌；或向王询问今日路线、向宇文确认回程安排。取得实际观察或证词才置 s00_observed，揭示 s00-evidence。",
+        "玩家行动与后果：玩家实际决定沿既定步道走到山脊，置 hike_started；要求休息或检查装备就留在这里。明示取消徒步并实际沿安全路下山才置 mountain_return。",
+        "离场：完成 hike_started 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
       ],
       "allowedFactChanges": [
-        "yuwenTimeGapKnown",
-        "greylineChosen"
+        "s00_observed",
+        "hike_started",
+        "mountain_return"
       ],
-      "allowedClockChanges": [
-        "pursuit"
-      ],
+      "allowedClockChanges": [],
       "availableClues": [
-        "clue-yuwen-time-gap"
+        "s00-evidence"
       ],
       "suggestedChecks": [
         {
-          "skill": "心理学",
-          "purpose": "判断乌米关于宇文提督外貌的描述是否可信。",
-          "onFailure": "仍获得时间差线索；如情绪冲击造成实际精神损耗，使用 SAN 变化表示。"
-        },
-        {
           "skill": "导航",
-          "purpose": "协助乌米确认向东路线。",
-          "onFailure": "仍能前往灰线，但追捕时钟增加 1。"
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "认路失败只让王拿出纸图复核，花费一刻钟；不以失败使人掉进洞穴。 检定未返回前不提交依赖它的事实。"
         }
       ],
       "transition": {
-        "to": "dry-river-patrol",
+        "to": "prologue-fog",
+        "when": {
+          "fact": "hike_started",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "prologue-fog",
+      "title": "序章·雾里",
+      "location": "雾里",
+      "entryNarration": "山脊另一侧没有地图上标出的瞭望亭。淡红的花雾沿石阶涌来，手机上的定位点停在身后；宇文刚喊过一声，谷里却迟了许久才传回同样的话。王握着指南针，指针越过北方，又慢慢转了回来。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "逐层呈现定位不准、指南针转动、回声迟到；只有玩家实测后才确认异常。王先怀疑设备，宇文主张彼此靠近。留下绳索、路标和约定口令能使稍后的寻找更容易，不把谨慎处理宣判为无效。",
+        "本场能确认：在原地等候时定位点仍沿地图移动；同一句呼喊从两个方向先后传回，最近的一处红布路标还在。",
+        "取证：比较两台设备及机械表；或用绳索测定距离、重复呼喊核对回声。取得实际观察或证词才置 prologue_fog_observed，揭示 prologue-fog-evidence。",
+        "玩家行动与后果：异常确认置 fog_checked。玩家同意循近处同伴呼声靠近岩壁避风，或明确继续查探才置 fog_entered。留在路标处等待就保持本场；沿绳索实际退出雾区下山可置 mountain_return。",
+        "离场：完成 fog_entered 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "prologue_fog_observed",
+        "fog_entered",
+        "fog_checked",
+        "mountain_return"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "prologue-fog-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "聆听",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "回声辨位失败，宇文改用敲石的约定节拍；绳索尽头的近处节拍仍可定位，不能据此直接写失散。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "prologue-cave",
         "when": {
           "all": [
             {
-              "fact": "yuwenTimeGapKnown",
+              "fact": "fog_entered",
               "equals": true
             },
             {
-              "fact": "greylineChosen",
+              "fact": "fog_checked",
               "equals": true
             }
           ]
@@ -227,284 +258,2377 @@
       }
     },
     {
-      "id": "dry-river-patrol",
-      "title": "干涸河床的巡逻队",
-      "location": "旧战场边缘河床",
-      "entryNarration": "祭司院三人巡逻队携带探测罗盘逼近藏身岩石，重伤员令队伍几乎无法撤离。",
+      "id": "prologue-cave",
+      "title": "序章·古木",
+      "location": "古木",
+      "entryNarration": "雾里的石径裂成了几段，窄缝旁一截树根垂入黑暗。裂缝另一边传来宇文的喊声，随后被水声盖住。洞里有一株古木，花瓣泛着微弱的光，湿石上没有第二条明显的出路。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
       "objectives": [
-        "避开或摆脱巡逻队",
-        "首次发现原生根须会干扰探测"
+        "进入条件是玩家已经实际靠近岩壁。先让其处理裂径、呼救与绳索，坍塌切断返路但不指定玩家摔伤或昏迷。沿绳安全下降与意外滑落都能到古木旁，按真实过程描述。古木只作为不可解释的植物出现；不出现金属墙、掌印识别、采样说明或20年跳时旁白。",
+        "本场能确认：树下有风从细隙吹来；发光花瓣靠近皮肤时会轻轻收拢，树根似乎随远处呼喊颤动。",
+        "取证：用落叶查看风向；或隔着衣物试探花瓣，只描述温度和运动。取得实际观察或证词才置 prologue_cave_observed，揭示 prologue-cave-evidence。",
+        "玩家行动与后果：先呈现接触后花瓣收拢、根丝划过皮肤的可感知变化，再等待回应。玩家继续接触或请求同伴协助接触才置 root_contact、cave_passed；也可主动探索树后暖光裂隙，先说明需挤过长满细根的狭道，经其决定实际穿过后置 cave_passed，记录衣物擦伤而不声称其主动触花。光变强、呼喊变远是此次行动引发的异常，转到有人照护的陇村。拒触且不探索可原地呼救、找出口与休整，不自动写成“濒死触花”。",
+        "离场：完成 cave_passed 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
       ],
       "allowedFactChanges": [
-        "patrolPassed"
+        "prologue_cave_observed",
+        "cave_passed",
+        "root_contact"
       ],
-      "allowedClockChanges": [
-        "pursuit"
-      ],
+      "allowedClockChanges": [],
       "availableClues": [
-        "clue-root-disrupts-scan"
+        "prologue-cave-evidence"
       ],
-      "allowedApproaches": [
+      "suggestedChecks": [
         {
-          "id": "hide",
-          "checks": [
-            "潜行",
-            "聆听"
-          ],
-          "risk": "失败时巡逻队发现队伍，进入短暂追逐。"
-        },
-        {
-          "id": "use-root",
-          "checks": [
-            "神秘学",
-            "幸运"
-          ],
-          "risk": "根须会解除眼前危机，但追捕时钟增加 1。"
-        },
-        {
-          "id": "diversion",
-          "checks": [
-            "投掷",
-            "机械维修"
-          ],
-          "risk": "失败会制造更大噪音，但不会立即结束章节。"
+          "skill": "攀爬",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "下降失败使绳结滑出半臂，背包被石棱挂住；同伴能重新固定。需实质伤害时按骰点结算HP，不强制失去意识。 检定未返回前不提交依赖它的事实。"
         }
       ],
-      "failForward": "即使队伍暴露，也应以受伤、丢失物资或追捕升级为代价脱身，不在此处团灭。",
       "transition": {
-        "to": "greyline-arrival",
+        "to": "c01-arrival",
         "when": {
-          "fact": "patrolPassed",
+          "fact": "cave_passed",
           "equals": true
         }
       }
     },
     {
-      "id": "greyline-arrival",
-      "title": "焦土上的灰线",
-      "location": "灰线棚户区",
-      "entryNarration": "队伍在黄昏抵达旧战场废墟。棚屋、黑市和危险目光挤在焦土边缘，伤员的情况已经不能继续拖延。",
+      "id": "c01-arrival",
+      "title": "第一章·借宿陇村",
+      "location": "借宿陇村",
+      "entryNarration": "窗纸透着晨光，灶间传来粥煮开的声音。门外，一个白衣人俯身替孩子包扎擦伤，田埂上的木闸无人碰触却缓缓转开。床边坐着一位跛脚老人：“醒了？先喝口水。你叫什么名字？”",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
       "objectives": [
-        "在不暴露逃犯身份的前提下找到可靠医者",
-        "避免被黑市势力或祭司院线人盯上"
+        "张纥以老农兼木匠身份照看陌生来客；村民并不敌视外人。先给玩家确认身体、物品与所在的时间，不替他答名字。问两位同伴时，村民只说附近没见过；提到宇文夜，张纥手中的碗会停一下，他转问在哪里听见这个名字。",
+        "本场能确认：村人称这里陇村；井、田和木闸连成一套灌溉水路，白衣人受村民敬重，却仍会弯腰替人搬粮。",
+        "取证：与送粥村民交谈；或请白衣人介绍村里道路与水渠。取得实际观察或证词才置 c01_arrival_observed，揭示 c01-arrival-evidence。",
+        "玩家行动与后果：玩家实际安顿伤处、确认行李，并决定暂住打听或在村内找人，置 village_oriented。只是醒来不等于答应长期居留。",
+        "离场：完成 village_oriented 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
       ],
       "allowedFactChanges": [
-        "healerFound"
+        "c01_arrival_observed",
+        "village_oriented"
       ],
-      "allowedClockChanges": [
-        "pursuit"
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c01-arrival-evidence"
       ],
       "suggestedChecks": [
         {
           "skill": "侦查",
-          "purpose": "发现挂有草药与兽骨风铃的医馆。",
-          "onFailure": "乌米最终找到医馆，但隐藏的追捕进度增加 1；若伤员继续恶化，使用 HP 变化表示。"
-        },
-        {
-          "skill": "乔装",
-          "purpose": "掩盖队伍来自黑井监狱的痕迹。",
-          "onFailure": "有灰线居民记住队伍外貌，作为后续麻烦。"
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "漏看闸门先后次序，次日送饭的人主动带来轮值表；仍能观察，无身体惩罚。 检定未返回前不提交依赖它的事实。"
         }
       ],
       "transition": {
-        "to": "healer-negotiation",
+        "to": "c01-days",
         "when": {
-          "fact": "healerFound",
+          "fact": "village_oriented",
           "equals": true
         }
       }
     },
     {
-      "id": "healer-negotiation",
-      "title": "老妇人的诊室",
-      "location": "灰线医馆",
-      "entryNarration": "老妇人一眼看出伤口来自高级祭司。她拒绝为明显说谎的人承担风险。",
+      "id": "c01-days",
+      "title": "第一章·数日人间",
+      "location": "数日人间",
+      "entryNarration": "晒谷场上有人把一把木耙靠在墙边。张纥的八仙桌少了一条腿，用青砖垫着；桌边放着一根磨得发亮的旧木棍。村外运粮车的铃声刚响过一遍。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
       "objectives": [
-        "取得老妇人的最低信任",
-        "完成紧急治疗",
-        "确认原生根须的身份"
+        "根据上一场决定叙述日常，劳动者看水渠与田间，养伤者从送饭、换药与门口交谈获得相同生活机会；不要宣布玩家劳动了几天。几次日常互动后才让张纥松口：东边有人称提督，可能认得宇文。他不解释木棍本质，交棍前演示它能压住水闸的颤动。",
+        "本场能确认：张纥听到宇文名字明显失态；东行车夫听过提督的名号；木棍靠近旧闸时，水流会短暂平稳。村历还不能换算现代年份。",
+        "取证：问张纥反应并向车夫核对东路；或修闸时看见旧刻名，再请张纥说明认识的人。取得实际观察或证词才置 c01_days_observed，揭示 c01-days-evidence。",
+        "玩家行动与后果：接下木棍则写 item-root-staff 持有人，置 staff_received；拒绝则让张纥包好交车夫代管，置 staff_with_caravan。两者都不强制玩家拿道具。决定随运粮队或循其沿线驿站向东找人并实际出发，置 east_departed。",
+        "离场：完成 east_departed 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。",
+        "道具交付须写memoryChanges：item-root-staff、kind=item、label=旧木棍；交大黄时holder=npc:dahuang，张纥与大黄亲见则witnesses含npc:zhang和npc:dahuang，在场玩家使用actorDirectory中的pc ID；evidenceParagraph指向实际交付的叙述段落。staff_with_caravan只表示曾作安排，不能替代持有人记录。"
       ],
       "allowedFactChanges": [
-        "rootIdentified",
-        "treatmentCompleted"
+        "c01_days_observed",
+        "east_departed",
+        "staff_received",
+        "staff_with_caravan"
       ],
-      "allowedClockChanges": [
-        "healerSuspicion"
-      ],
-      "availableClues": [
-        "clue-root-identity"
-      ],
-      "socialRules": {
-        "truthLowersSuspicionBy": 1,
-        "crediblePartialTruthLeavesSuspicion": true,
-        "exposedLieRaisesSuspicionBy": 1,
-        "maxSuspicionConsequence": "老妇人仍会稳定伤员，但要求更高代价并限时驱逐队伍。"
-      },
-      "failForward": "治疗不得因一次社交检定失败而永久中断；失败改变代价、信任和后续资源。",
-      "transition": {
-        "to": "cai-boshi-bargain",
-        "when": {
-          "fact": "treatmentCompleted",
-          "equals": true
-        }
-      }
-    },
-    {
-      "id": "cai-boshi-bargain",
-      "title": "等价交换",
-      "location": "灰线医馆",
-      "entryNarration": "情报商蔡薄世提出交易：队伍替他把一块危险金属送给反抗军技师邓哥，他负责路线、伪装和向导。",
-      "objectives": [
-        "了解祭司面具并非单纯神迹",
-        "决定是否接受护送任务",
-        "取得前往东海岸的可靠路线"
-      ],
-      "allowedFactChanges": [
-        "deliveryAccepted",
-        "eastRouteSecured"
-      ],
-      "allowedClockChanges": [
-        "pursuit",
-        "healerSuspicion"
-      ],
-      "availableClues": [
-        "clue-mask-material"
-      ],
-      "branches": [
-        {
-          "id": "accept-delivery",
-          "result": "获得面具原材料、灰线向导和安全路线。",
-          "stateChanges": {
-            "deliveryAccepted": true,
-            "eastRouteSecured": true
-          }
-        },
-        {
-          "id": "refuse-and-pay",
-          "result": "玩家必须用稀缺物资、情报或额外任务偿还治疗费，仍可取得风险更高的路线。",
-          "stateChanges": {
-            "deliveryAccepted": false,
-            "eastRouteSecured": true
-          }
-        },
-        {
-          "id": "steal-or-threaten",
-          "result": "可以强行取得路线，但灰线关系恶化，追捕时钟增加 2，并失去蔡薄世后续帮助。",
-          "stateChanges": {
-            "deliveryAccepted": false,
-            "eastRouteSecured": true
-          }
-        }
-      ],
-      "transition": {
-        "to": "eastward-departure",
-        "when": {
-          "fact": "eastRouteSecured",
-          "equals": true
-        }
-      }
-    },
-    {
-      "id": "eastward-departure",
-      "title": "向东",
-      "location": "灰线东侧三岔路",
-      "entryNarration": "灰袍向导在三岔路口停下，指向通往海岸的荒草小径。灰线已经被甩在身后，前方是反抗军控制区。",
-      "objectives": [
-        "确认队伍状态和携带物",
-        "结束本章并写入章节结果"
-      ],
-      "allowedFactChanges": [],
       "allowedClockChanges": [],
+      "availableClues": [
+        "c01-days-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "机械维修",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "修闸失手溅湿衣袖；张纥扶住闸杆让水稳定，木棍异动仍可看见，他要求之后帮忙把泥清走。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
       "transition": {
-        "to": null,
+        "to": "c02",
         "when": {
-          "fact": "eastRouteSecured",
+          "fact": "east_departed",
           "equals": true
         }
+      }
+    },
+    {
+      "id": "c02",
+      "title": "第二章·长路",
+      "location": "长路",
+      "entryNarration": "粮车沿高架石道缓缓前行，轮下却没有牲口牵引。悬在云雾里的驿站下，一个少女翻过路栏，手中的纸张散了一地。“提督还活着，白玉楼还在！”远处白衣追兵停下脚步。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "先描写一段沿途见闻，让玩家有询问运输员大黄的机会；他只是跑车运粮、崇拜提督的普通人。乌米奈要把东部消息送出去，追兵相信她煽动灾民。方士温和劝返，有机会对话；少女喊出提督名号才把追逐与寻友动机接上。",
+        "本场能确认：散页盖着东海联络印，写着提督宇文夜；乌米说见过他，但纸上年份尚待验证。",
+        "取证：拾取散页询问粮队；或与乌米交谈并核对车夫听过的联络口令。取得实际观察或证词才置 c02_observed，揭示 c02-evidence。",
+        "玩家行动与后果：救乌米可调解、藏匿或试用木棍扰乱追兵的面具；只有实际如此才置 wumi_helped。拒绝援助不替玩家出手，乌米自行藏入桥洞，车夫仍能指向下一处联络点。实际获得可追索的东部联络线索并继续到驿站置 road_contact。",
+        "离场：完成 road_contact 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c02_observed",
+        "road_contact",
+        "wumi_helped"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c02-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "说服",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "追兵不信辩解，要求清点货物；拖延给乌米找到桥洞，车夫承担一次盘查，联络纸仍在现场。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c03",
+        "when": {
+          "fact": "road_contact",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c03",
+      "title": "第三章·二十年",
+      "location": "二十年",
+      "entryNarration": "驿站柜台后挂着一幅褪色画像，题字是“提督”。守站人把旧册子翻到卷边的一页：“这个名字，我当学徒的时候就听过了。”",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "乌米若同行可作证，未同行由守站人和商队记录提供消息。前两章只留下疑惑，本场才将年份换算。守站人不轻信年轻来客与提督是旧友，但愿把玩家自愿提供的姓名和往事发往东海；没有同意不擅自报身份。",
+        "本场能确认：二十年前的到港名册已有宇文夜签名；今年商旅纪年可用历次季节与旧历对照，时间差约二十年。",
+        "取证：对照旧册和历年货单；或让两位不同年代的老船工分别叙述其初见宇文的经历。取得实际观察或证词才置 c03_observed，揭示 c03-evidence。",
+        "玩家行动与后果：核验时间差置 time_gap_known。玩家同意发送联络信置 name_sent；匿名只问提督所在置 anonymous_inquiry。实际取得东行前哨地址置 east_route_known。宇文失态的远方镜头不播给在场玩家，后续通过回信得知。",
+        "离场：完成 east_route_known 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c03_observed",
+        "east_route_known",
+        "time_gap_known",
+        "name_sent",
+        "anonymous_inquiry"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c03-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "历史",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "纪年换算混淆，掌柜找来每年封存的渡口税票逐年对照，多等一班车仍能确认。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c04",
+        "when": {
+          "all": [
+            {
+              "fact": "east_route_known",
+              "equals": true
+            },
+            {
+              "fact": "time_gap_known",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c04",
+      "title": "第四章·向东",
+      "location": "向东",
+      "entryNarration": "路边一间祠堂供着提督的木牌。隔着半条街，一位丢了儿子的老妇把同样的名字骂得很低。前方山道的桥索断在风里。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "大黄盼见真正的提督，乌米关心下一站有没有食物。前哨回应寻人询问：提督仍在东海，但战事与断桥让他无法离开。给玩家与褒贬双方交谈的时间，不能用NPC英雄履历代替旅途。",
+        "本场能确认：不同村民谈的是同一位提督：有人被救，有人失去亲人；前哨信使的回执确认他活着且无法赶来。",
+        "取证：核对回执与沿途救济印；或分别询问伤员与遗属，再向前哨复核战线。取得实际观察或证词才置 c04_observed，揭示 c04-evidence。",
+        "玩家行动与后果：玩家选择护送沿路伤员置 road_escort，或轻装探路再留下路线记号置 road_scout。实际落实渡江会合点置 east_convoy_ready。两种做法都留下可见效果，不强判善恶。",
+        "离场：完成 east_convoy_ready 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c04_observed",
+        "east_convoy_ready",
+        "road_escort",
+        "road_scout"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c04-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "导航",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "旧地图的桥已断，大黄认出车辙引向绕行山路；多走半日，伤员需要途中歇脚。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c05",
+        "when": {
+          "fact": "east_convoy_ready",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c05",
+      "title": "第五章·青江",
+      "location": "青江",
+      "entryNarration": "青江卷着断木撞向桥墩。河岸边，双方阵营的伤员挤在同一块高地上；年轻方士把干衣裳递给一位老人，又回头看了一眼紧锁的桥闸。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "方士愿救人但害怕擅开桥闸冲毁下游；大黄知道旧水道口。先让玩家看水情与难民需求，木棍响应只能出现在被实际尝试之后。此刻只知道古代水利能响应特定节奏，不叫根权限。",
+        "本场能确认：旧水道刻图与河岸水痕吻合，闸杆在木棍或手掌靠近时微颤；方士的令牌只能打开很窄一段桥面。",
+        "取证：查旧泵站石刻；或向方士说明下游风险，共同用浮木测水流。取得实际观察或证词才置 c05_observed，揭示 c05-evidence。",
+        "玩家行动与后果：实际打通旧水道救大批难民置 mass_crossing，alienation加1；分批经检修桥置 staged_crossing，部分人须等待下一班船。落实已救者的接应后置 river_crossed。",
+        "离场：完成 river_crossed 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。",
+        "先查 item-root-staff 的当前持有人：留在粮队则由车夫按约送至联络点，必须演出实际交接；已交别人则不能凭旁白取回。没有木棍也可用绝缘杆、低功率试触与同伴帮忙推进，不凭空复制道具。"
+      ],
+      "allowedFactChanges": [
+        "c05_observed",
+        "river_crossed",
+        "mass_crossing",
+        "staged_crossing"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "c05-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "机械维修",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "试闸失败水位骤涨，大黄抛下系绳标记泄水口；改用侧闸可继续，损失一捆货物绑绳。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c06",
+        "when": {
+          "fact": "river_crossed",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c06",
+      "title": "第六章·灰岭",
+      "location": "灰岭",
+      "entryNarration": "废塔下排着领药的长队。石肥把仓门抵住，蔡薄世隔着账本与一位老妇争执。垃圾山顶坐着一个白衣少女，她身边的衣角干净得与四周格格不入。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "蔡薄世要维持运输与库存，石肥担心自家人排不上药，老妇替没人作保的病人求情；这些动机不能被压成坏人挡路。新难民多时队伍更长，少时仍有旧伤员缺药。白衣少女只观察，不自报身份，也不解释天下。",
+        "本场能确认：药品只够一部分人，账上还保留一批可用旧药的存放地；领取顺序会决定谁先脱离危险。",
+        "取证：跟老妇看实际病情；或与蔡薄世逐项核对库存和旧药位置。取得实际观察或证词才置 c06_observed，揭示 c06-evidence。",
+        "玩家行动与后果：按急重排序并组织找旧药置 medicine_shared；保障原有配给但另筹新来者药源置 medicine_split。落实一种可执行分配并给受影响者回应机会才置 grey_settled。偏爱一方亦可推进，但记录另一方代价。",
+        "离场：完成 grey_settled 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c06_observed",
+        "grey_settled",
+        "medicine_shared",
+        "medicine_split"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c06-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "医学",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "误判一份旧药标签，老妇请药工重辨；复核能找出可用药，代价是先到的人不愿再相信口头保证。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c07",
+        "when": {
+          "fact": "grey_settled",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c07",
+      "title": "第七章·白玉楼",
+      "location": "白玉楼",
+      "entryNarration": "山坳里横着一艘搁浅的巨舟，旧旗帜缠在断桅上。守着残骸的老人认出张纥的刻字，指向一排被烟熏黑的名字。白衣少女站在舷边，没有开口。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "老成员起初不愿重提白石口，若玩家照料遗物或直接倾听便愿作证。王断供暖、宇文救援失败并选择撤走仍可撤走的人，万人冻毙；宇文背负被留下者之死，不能篡改成他主动杀害全部难民。少女以放松手掌、等待回应的手势教感知，不讲术语。",
+        "本场能确认：死者名册、断暖令与撤离单时间相接；幸存者记得王停暖、宇文断臂而归，张纥从此离队。",
+        "取证：读三份不同立场的记录；或分别询问撤离船工与留下的遗属相互核对。取得实际观察或证词才置 c07_observed，揭示 c07-evidence。",
+        "玩家行动与后果：玩家实际试过先等待回应再触动旧闸置 listening_learned；不试可由同行者示范且玩家观察。选择公开名单或保全原件分别置 names_public 或 names_sealed，带着可核对的证据离开置 wreck_ready。",
+        "离场：完成 wreck_ready 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。",
+        "先查 item-root-staff 的当前持有人：留在粮队则由车夫按约送至联络点，必须演出实际交接；已交别人则不能凭旁白取回。没有木棍也可用绝缘杆、低功率试触与同伴帮忙推进，不凭空复制道具。"
+      ],
+      "allowedFactChanges": [
+        "c07_observed",
+        "wreck_ready",
+        "listening_learned",
+        "names_public",
+        "names_sealed"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c07-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "图书馆使用",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "烧损页无法拼全，守舟人指向纪念木牌背面的抄录，须认真听完他的亲历才能核验。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c08",
+        "when": {
+          "all": [
+            {
+              "fact": "wreck_ready",
+              "equals": true
+            },
+            {
+              "fact": "listening_learned",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c08",
+      "title": "第八章·囚笼",
+      "location": "囚笼",
+      "entryNarration": "舟内的廊道传来石门相碰的闷响。戴着傩面的男人站在高处，自称陶剑方：“请诸位留在原地，等候问询。”身后的来路正在缩窄。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "陶剑方要收容引发异动的人，不必被击败。先呈现三次门开合的可观察节奏，再依据玩家的方法让水闸、货道或旧通风口形成逃路。王不在本场隔空揭示封印、休眠或灭世。",
+        "本场能确认：石门会避开维护铃响的时刻，傩面在根须触及门缝时短暂失去亮光。",
+        "取证：观察门闩与铃声；或询问被困旧工人，验证他记得的泄水次序。取得实际观察或证词才置 c08_observed，揭示 c08-evidence。",
+        "玩家行动与后果：对冲旧闸置 gate_escape，alienation加1；利用维护间隙手动泄压置 manual_escape。实际带同伴离开收容区才置 prison_left；等待问询仍可与陶周旋，不直接判抓捕终局。",
+        "离场：完成 prison_left 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。",
+        "先查 item-root-staff 的当前持有人：留在粮队则由车夫按约送至联络点，必须演出实际交接；已交别人则不能凭旁白取回。没有木棍也可用绝缘杆、低功率试触与同伴帮忙推进，不凭空复制道具。"
+      ],
+      "allowedFactChanges": [
+        "c08_observed",
+        "prison_left",
+        "gate_escape",
+        "manual_escape"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "c08-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "潜行",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "巡守发现脚步，开始关闭侧门；工人仍能从泄水渠回声定位出口，代价是暴露走过的方向。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c09",
+        "when": {
+          "fact": "prison_left",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c09",
+      "title": "第九章·静海",
+      "location": "静海",
+      "entryNarration": "海面在暮色里发亮，半沉的船只被缆索连成街道。岸上有人喊大黄去搭把手，一队伤员正等着上浮桥。远处的灯塔亮了又暗，船工们同时抬头。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "乌米回到熟悉的生活，介绍码头、伤员棚和联络处；不立即把队伍传送到提督床前。宇文在外海救援，潮汐和封锁使回港有延迟。玩家协助卸货或静候都能见到社会怎样运行，接到提督将回港的可信消息。",
+        "本场能确认：潮下旧闸连接港口的安全水道；灯塔报讯显示提督的船正在回港路上，需打开一段被封的航道。",
+        "取证：向调度员核对灯号；或从伤员口述和船期表确认提督所在。取得实际观察或证词才置 c09_observed，揭示 c09-evidence。",
+        "玩家行动与后果：实际与港口人员约定协助查闸，或请他们领路等待开航，置 harbour_linked。乌米不以救人委托交换见面资格。",
+        "离场：完成 harbour_linked 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c09_observed",
+        "harbour_linked"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c09-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "侦查",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "误认灯号，调度员当场用旗语再确认，回港时间延后一潮，不抹掉朋友活着的消息。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c10",
+        "when": {
+          "fact": "harbour_linked",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c10",
+      "title": "第十章·潮下城",
+      "location": "潮下城",
+      "entryNarration": "潮水向两侧退去，露出一条通向海底的长阶。城门下的水珠悬在半空，墙后传来仿佛巨兽呼吸的声响。乌米看了看正在变短的日影：“这道口留不了太久。”",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "查闸队因已发现的水道线索进入古城；不强迫玩家潜水。先建立潮汐退去与入口的关系，再让人在建筑、种植池和反常水流间求证。此处仅能得出山海受巨大人工设施塑造，不得说明飞船、宇宙任务或人类起源。",
+        "本场能确认：墙体内有规整的支架，水能沿竖直沟槽向上走；旧图中山川轮廓与眼前闸渠连成一体。",
+        "取证：测水位并比对城图；或请乌米核对历年海岸变化与石上尺寸。取得实际观察或证词才置 c10_observed，揭示 c10-evidence。",
+        "玩家行动与后果：实际复位港口闸道、留下安全撤离绳置 tide_passage。探索更深可以增加观察，不凭猜测置任何后期真相事实。",
+        "离场：完成 tide_passage 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。",
+        "这是队伍第一次进入潮下城。乌米知道的是沿岸潮汐、海岸变迁和港口口述，不熟悉城内通路；她对内部支架、水标与墙后的东西只能说刚刚亲眼看到的现象。禁止编造“这里一向由查闸队进出”“几十年内部记录”或让她替玩家讲完谜底。"
+      ],
+      "allowedFactChanges": [
+        "c10_observed",
+        "tide_passage"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c10-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "机械维修",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "主闸不动，侧槽仍会回流；用侧槽逐段泄水可以完成，错过本轮最短返程窗口。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c11",
+        "when": {
+          "fact": "tide_passage",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c11",
+      "title": "第十一章·故人",
+      "location": "故人",
+      "entryNarration": "门帘被海风挑起。白发男人扶着桌沿站了半步，右手仍下意识地去摸当年装水壶的位置。“……在清？”他看清来客后，停在原地。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "按桌上实际角色背景称呼，没人扮范则范随队在场；不能给陌生玩家强加旧友身份。先留重逢、核认旧事与情绪回应的空间，再谈二十年战争。宇文承认曾与王在古木深处阻止危险、封住一个入口，以为朋友安全却无法唤醒；当时究竟发生什么仍需后期原始记录。告诉玩家王活着且是大祭司，但不解释载体与方舟。",
+        "本场能确认：宇文保留当年的水壶和一句只有三友知道的旧事；他叙述废除残酷飞升礼、断暖战争与白石口决裂；王如今掌祭司院。",
+        "取证：由玩家自愿选择旧事核认；或对照水壶刻痕、二十年记录并询问宇文对自己责任的说明。取得实际观察或证词才置 c11_observed，揭示 c11-evidence。",
+        "玩家行动与后果：听见王身份置 wang_identity_known。玩家决定先照护宇文或继续对质，实际安排一段不会中断治疗的会谈置 reunion_done。宇文道歉不使玩家自动原谅。",
+        "离场：完成 reunion_done 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c11_observed",
+        "reunion_done",
+        "wang_identity_known"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c11-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "心理学",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "无法读出宇文迟疑的含义，仍能追问具体事件、核对证词；不能把失败解释为撒谎被全盘信任。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c12",
+        "when": {
+          "all": [
+            {
+              "fact": "reunion_done",
+              "equals": true
+            },
+            {
+              "fact": "wang_identity_known",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c12",
+      "title": "第十二章·梦潮",
+      "location": "梦潮",
+      "entryNarration": "宇文的话停在半截，披风下的旧管线突然绷紧。乌米扶住他，朝门外喊人送冰水来。监测铜针反复撞在同一端，他却再没有回答。",
+      "knowledgeBoundary": "现阶段的主线是寻找失散的朋友。只解释眼前物件和当地人知道的事情；玩家推测可以成立为猜想，NPC不能代作者认证。",
+      "objectives": [
+        "重伤与旧接口过载使宇文昏迷。先抢救肉身，再由同伴说明接触风险并等待玩家同意；记忆中出现登山、白玉楼和白石口，不提前放映采样或宇宙史。乌米在现实侧保护身体。梦境让玩家呼唤或质问，不强迫替宇文开脱。",
+        "本场能确认：每当现实侧说出幸存者姓名，梦里的一处废墟便停止崩落；宇文卡在无法救下所有人的那一夜。",
+        "取证：经同意循旧连接进入记忆；或用录音、熟悉物件与外部呼唤建立较弱的通话。取得实际观察或证词才置 c12_observed，揭示 c12-evidence。",
+        "玩家行动与后果：实际使宇文恢复对现实呼唤的回应置 dream_rescued。接受短时连接置 mind_link，alienation加1；使用外置转接置 relay_link。本场结束切断深层接触，宇文仍留静海，不从此成为随身搭档。",
+        "离场：完成 dream_rescued 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c12_observed",
+        "dream_rescued",
+        "mind_link",
+        "relay_link"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "c12-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "医学",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "同步失败导致乌米必须重新冷却；录音仍能唤起一次回应，改用短时分段接触，不强制精神附体。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "sea-handover",
+        "when": {
+          "fact": "dream_rescued",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "sea-handover",
+      "title": "第十三章·出发之前",
+      "location": "静海伤员棚",
+      "entryNarration": "宇文的呼吸已经平稳，床头的水壶仍没有动。乌米拿着护理记录等在门口；码头送来一封回信，说祭司院沿途有人懂得修复这类旧伤。",
+      "knowledgeBoundary": "眼前只有病情、地方权力与寻友线索，不引入未发现的世界本质。",
+      "objectives": [
+        "玩家先处理宇文未醒与港口权力空缺。乌米愿继续照护，但要求留下明确的接应方法；大黄说明去神都的粮车班次。不要默认玩家不告而别、封锁消息或劫车。",
+        "留下信、请求转告、等清醒时告别、安排同伴留守均可。乌米能否代用船队部件必须由玩家明确授权；若不授权，船工照旧手动轮班。",
+        "实际确定照护和联络安排才置 care_delegated；玩家再明确决定乘粮车或循驿路找治疗资料和王谋涛，实际离港才置 sea_departed 并提议 c13。拒绝离开仍留此场照料，可通过来往医者继续取得沿途信息。"
+      ],
+      "allowedFactChanges": [
+        "care_delegated",
+        "sea_departed"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [],
+      "suggestedChecks": [],
+      "transition": {
+        "to": "c13",
+        "when": {
+          "all": [
+            {
+              "fact": "care_delegated",
+              "equals": true
+            },
+            {
+              "fact": "sea_departed",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c13",
+      "title": "第十三章·静眠谷",
+      "location": "静眠谷",
+      "entryNarration": "粮车停在温暖的山谷边，一排浅池倒映着桃树。病人躺在花荫下，皮肤上的旧伤正在慢慢合拢；守谷人把姓名牌摆好，温声请新来者登记。",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "静海照护已由玩家在离港前实际安排；依照来时选择描述搭车或步行抵谷。玩家来找救治办法与王的消息。守谷人想登记患者维持秩序，但不肯说明长眠者是否能自由离开。先接触护理生活，再观察身体修补的异常。",
+        "本场能确认：同一病人的伤口随池水浓度改变；守谷簿记载了身体修补与长时间沉眠，救治也可能剥夺清醒生活。",
+        "取证：征得病人同意观察护理；或查守谷人的登记簿并与已醒者核对。取得实际观察或证词才置 c13_observed，揭示 c13-evidence。",
+        "实际查清疗法范围并取走可带回的安全护理记录才置 valley_left；接受普通治疗不等于同意终身沉眠。",
+        "离场：完成 valley_left 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c13_observed",
+        "valley_left"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c13-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "医学",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "误认一味药液，守谷人拦下并拿已醒患者的旧配方核对；得到较慢的保守护理法。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c14",
+        "when": {
+          "all": [
+            {
+              "fact": "valley_left",
+              "equals": true
+            },
+            {
+              "fact": "care_delegated",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c14",
+      "title": "第十四章·归墟道",
+      "location": "归墟道",
+      "entryNarration": "路边的灯一盏盏向前亮起，原本封住的石门让出宽阔道路。粮车上的方向牌仍写着神都，坡道却越走越低，风里多了一股甜腻的药味。",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "道路似乎热情相迎，先给顺畅通行的便利，再让玩家用里程、风向和旧标记发现偏离。此时不宣告为何其身体珍贵，只读到“留养”“归收”等管理用语。",
+        "本场能确认：实际高度与去神都的旧里程不符；尽头的空衣篮和回收簿表明这条路并非通向正常客舍。",
+        "取证：用测绳和里程记号核对；或向被改道的车夫询问，再查看旧门牌。取得实际观察或证词才置 c14_observed，揭示 c14-evidence。",
+        "玩家行动与后果：玩家实际截停引导车或切换到维护道置 recycle_avoided。继续观察可留本场，不把进入走廊自动算接受回收。",
+        "离场：完成 recycle_avoided 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c14_observed",
+        "recycle_avoided"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c14-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "导航",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "标记被重复路口扰乱，车夫听见上方赶车铃，循铃可回到维护道；须放弃一箱重物便于攀上去。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c15",
+        "when": {
+          "fact": "recycle_avoided",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c15",
+      "title": "第十五章·无忧乡",
+      "location": "无忧乡",
+      "entryNarration": "溪边摆着刚出锅的热饭，有人说这里从不打仗。同行流民坐下后，渐渐不再提先前走散的家人。白衣少女站在桥对面，把一片叶子放进溪里，叶子第二次漂到了同一处。",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "安抚带来真实的舒适，但不替玩家写“想永远留下”。让玩家先问住客、体验声音和时间的矛盾，再辨认强制遗忘。少女只做小幅提示；她没有百科解释，不报名字。",
+        "本场能确认：溪流、鸟鸣与饭香在固定间隔重复；住客说不清何时进入，外部携带的刻时器却在继续走。",
+        "取证：标记树叶核对循环；或询问不同住客的同一句回忆并比较外部时间。取得实际观察或证词才置 c15_observed，揭示 c15-evidence。",
+        "玩家行动与后果：切断安抚馈线置 illusion_cut；只隔离精神作用、保留自愿医疗置 medical_only。实际带愿离开者脱离循环置 illusion_left；不强迫所有流民接受玩家判断。",
+        "离场：完成 illusion_left 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c15_observed",
+        "illusion_left",
+        "illusion_cut",
+        "medical_only"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c15-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "聆听",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "没听出循环，少女再次放下带缺口的叶子，让视觉对照提供另一条证据。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c16",
+        "when": {
+          "fact": "illusion_left",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c16",
+      "title": "第十六章·神都",
+      "location": "神都",
+      "entryNarration": "城门内的桃花同时绽开，花瓣落在白衣祭司肩上。他们并没有拔剑，一个引路人翻看手中空白的接引册，迟疑地让开了路。",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "玩家来这里找王与治病资料，先给问路、递信和观察城民的机会。王不在城门登场；接引人也不知道为何花开。城市对来客的欢迎与上级禁令冲突，引出下一场地形失控，而非已解释的“识别最高载体”。",
+        "本场能确认：一份盖大祭司印的关门令被自动开启的城门违背，接引人试过三次仍无法改变。",
+        "取证：请接引人演示执行印令；或比对门楼记录和花开的时刻。取得实际观察或证词才置 c16_observed，揭示 c16-evidence。",
+        "玩家行动与后果：玩家要求正式面见或循接引记录追查异常，实际进入议事院庭院置 city_entered。只是逛街、购物不会触发下沉。",
+        "离场：完成 city_entered 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c16_observed",
+        "city_entered"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c16-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "说服",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "书记不肯提供完整记录，公开告示和门楼值班者仍可核对冲突；玩家被要求等待换班。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c17",
+        "when": {
+          "fact": "city_entered",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c17",
+      "title": "第十七章·地宫",
+      "location": "地宫",
+      "entryNarration": "院墙后的树影突然倾斜，脚下石阶缓缓折向地下。上方的门仍开着，楼梯的另一端却已接到陌生的深井边。井沿有一圈焦黑的握痕，旁边刻着细密的旧图。",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "地形改变后先处理站位与同伴，不强制摔落。裂棍可由张纥的旧刻记和低功率试触解释为限流保护；真正响应随人而非物移动。这是首次明说请求授权和根级接口，不顺势解释整座世界来源。",
+        "本场能确认：把木棍留在绝缘台，低功率回声仍跟随接口持有人；棍内电阻只限制危险电流，不产生能力。",
+        "取证：比较换手、隔离与小功率响应；或读取本地检修图，用分段请求验证。取得实际观察或证词才置 c17_observed，揭示 c17-evidence。",
+        "玩家行动与后果：硬接置 direct_root，alienation加2；布分流后接入置 buffered_root，alienation加1。实际取得并试过断开权限置 root_access；必须允许在试触前停手，不能把木棍断裂等同自动觉醒。",
+        "离场：完成 root_access 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。",
+        "先查 item-root-staff 的当前持有人：留在粮队则由车夫按约送至联络点，必须演出实际交接；已交别人则不能凭旁白取回。没有木棍也可用绝缘杆、低功率试触与同伴帮忙推进，不凭空复制道具。",
+        "旧木棍在场时，受损处露出电阻才描述断木；不在场时用检修图与低功率测试识别限流功能，不能说玩家手里木棍裂开。"
+      ],
+      "allowedFactChanges": [
+        "c17_observed",
+        "root_access",
+        "direct_root",
+        "buffered_root"
+      ],
+      "allowedClockChanges": [
+        "alienation"
+      ],
+      "availableClues": [
+        "c17-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "首次请求烧掉保险丝，旁路图仍在；同伴以替换保险和分段供电重试，能保住行动能力。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c18",
+        "when": {
+          "fact": "root_access",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c18",
+      "title": "第十八章·面具潮",
+      "location": "面具潮",
+      "entryNarration": "大街上一名祭司向人群伸手，另一只手却拼命扳住自己的手腕。面具后的声音在求救。远处的高台反复传来相同的命令，脚步声越来越齐。",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "执行现场救援，维护员不是可随意击杀的怪物；他们知道自己失控。王在别处面对黑屏，玩家只能从求救和失效命令推断上层也失控。",
+        "本场能确认：所有面具动作跟随同一个载波；遮蔽一块面具后，佩戴者短暂找回自主动作。",
+        "取证：在安全距离做遮蔽试验；或对照求救时间与载波读数。取得实际观察或证词才置 c18_observed，揭示 c18-evidence。",
+        "玩家行动与后果：隔离并救出人群置 masks_freed；先封街保住未受控者置 masks_contained。实际建立一处安全接入点置 mask_response，仍需下一场协作解除全城控制。",
+        "离场：完成 mask_response 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c18_observed",
+        "mask_response",
+        "masks_freed",
+        "masks_contained"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c18-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "屏蔽范围不足，方士暂时恢复的手势指出附近铜网；改用铜网可保护一条街，其他街仍待救援。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c19",
+        "when": {
+          "fact": "mask_response",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c19",
+      "title": "第十九章·三人",
+      "location": "三人",
+      "entryNarration": "接入点传来三个不同方向的呼吸声。王报出一串旧线路编号，紧接着，海浪底下响起宇文沙哑的回应：“别一起断。东海还有人。”",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "三人身处异地：玩家在神都接入点，王在另一个控制室，宇文身体仍在静海，由乌米保护，意识短时加入。王给架构，宇文算分流，玩家决定实际执行与审计方式。灾变波及静海，乌米组织撤离。不能把合作自动写成和解或三人当面团聚。",
+        "本场能确认：架构、负载和根权限需同步才能解除控制；分段演算显示先保留静海维生回路可救人。",
+        "取证：三方交叉验算；或让同行者先做旁路缩小试验，核对王给出的编号。取得实际观察或证词才置 c19_observed，揭示 c19-evidence。",
+        "玩家行动与后果：玩家实际安排三端同步并切链置 chain_cut；不信任王可同时置 audited_cooperation。事后能量脉冲向外泄漏，但此时现场仪器只能记录大峰值，不可宣布惊动何种外部存在。",
+        "离场：完成 chain_cut 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c19_observed",
+        "chain_cut",
+        "audited_cooperation"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c19-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "同步延迟，乌米报告仍有一个可关闭的空泊位回路；改从空泊位释放负载再执行，报废一段港口设备。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c20",
+        "when": {
+          "fact": "chain_cut",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c20",
+      "title": "第二十章·大祭司",
+      "location": "大祭司",
+      "entryNarration": "控制室的椅子空着，桌上杯水还温。柜里的资源清单不是按城镇排列，而是按材料、纯度与某种长途储备年限排成厚厚几叠。",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "王切断公开联络去核查深层设施，不是突然被玩家找到摊牌。留在神都的办事员只知道资源去向，不知道最终用途。玩家追问的动力是朋友为何做这些、钱粮去了哪里。",
+        "本场能确认：王多年囤积能源与古代核心，资源并未全用于战争；运单指向高处的观测库和更深的储存区。",
+        "取证：比对调拨账与实际仓库；或询问不同经手人，逐段追踪押运印。取得实际观察或证词才置 c20_observed，揭示 c20-evidence。",
+        "玩家行动与后果：玩家公开账本置 stores_public，或封存副本等待对质置 stores_held；实际追到星图室的转运封签置 wang_traced。提前猜测逃亡并不等于有证据。",
+        "离场：完成 wang_traced 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c20_observed",
+        "wang_traced",
+        "stores_public",
+        "stores_held"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c20-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "会计",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "账册用了旧单位，库存实物和两张磅单可换算；花时间核秤仍能追到封签。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c21",
+        "when": {
+          "fact": "wang_traced",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c21",
+      "title": "第二十一章·星坟",
+      "location": "星坟",
+      "entryNarration": "暗室里亮起一片星海。有些亮点沿着漫长轨迹移动，成群汇入更密的光团；原来的位置只剩大片空白。",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "这里第一次把尺度推到宇宙。先让玩家弄清是星图还是装饰、记录还是预言；不靠旁白替他们立即懂得文明战争。王留下的注释可帮助核验，仍不在场。",
+        "本场能确认：星图记录恒星曾被大规模移动；若与现代天文学认识比较，巨大空洞的位置有可辨对应。",
+        "取证：比对多时段星图与天文常识；或读取观测校准日志，验证图中光点代表恒星而非岛上灯号。取得实际观察或证词才置 c21_observed，揭示 c21-evidence。",
+        "玩家行动与后果：核验记录后由玩家决定继续追踪高空观测设备，实际沿检修升道出发置 star_archive_read。",
+        "离场：完成 star_archive_read 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c21_observed",
+        "star_archive_read"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c21-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "科学（天文学）",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "无法独立辨星，校准日志给出已知近邻恒星作参照；能确认异常尺度，不必一次讲清全部机制。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c22",
+        "when": {
+          "fact": "star_archive_read",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c22",
+      "title": "第二十二章·第二个月亮",
+      "location": "第二个月亮",
+      "entryNarration": "攀行道尽头，云层背面有一道细长的检修缝。那轮被海边人称作第二个月亮的白光，近看竟有规整的肋骨和巨大的开口。",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "先处理攀行与供氧，再允许探索人造天幕和喷口。当前证据足以确认天空存在物理边界，但大型装置用途仍有几种可能；不要跳到整座岛就是飞船的定论。",
+        "本场能确认：月亮外壳是人工结构，天幕有厚度；它与此前海底、山川和神树的图纸坐标相接。",
+        "取证：检查结构铭牌和检修边界；或从高处测距，对照潮下城与神都的旧图。取得实际观察或证词才置 c22_observed，揭示 c22-evidence。",
+        "玩家行动与后果：玩家实际带回/传回匹配坐标并开启总图室，置 sky_boundary_found。留在此处试探想法时只回应证据能支持的范围。",
+        "离场：完成 sky_boundary_found 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c22_observed",
+        "sky_boundary_found"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c22-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "攀爬",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "最短梯道损坏，保留的安全索能通向外侧检修平台，绕行后仍能取到坐标。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c23",
+        "when": {
+          "fact": "sky_boundary_found",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c23",
+      "title": "第二十三章·方舟",
+      "location": "方舟",
+      "entryNarration": "总图沿墙展开，青江、静海、神都与天上的巨口落在同一副轮廓里。王站在投影另一侧，把一张写满修改痕迹的航图放到桌上：“这回，我把知道的都说清楚。”",
+      "knowledgeBoundary": "主线是寻找王谋涛、追查局部异常；每次说明只回答本场能核验的问题，不顺带讲完后面的世界历史。",
+      "objectives": [
+        "直到本场才让所有线索合流确认方舟。王说明它是搁浅的生态文明种子，原想修复并带人走；GDD中的资源极限与弃地精英方案仍保留为他当前想法。此前他发现的远空异常只能在这里私下出示观测，确切危险仍待后续复核。",
+        "本场能确认：独立的山海天幕坐标、推进器维护铭牌与总图吻合，桃花岛确为生态文明方舟；王积累的资源与航行清单对应，却装不下所有人。",
+        "取证：由玩家叠合一路采集的坐标与总图；或现场抽查三个互不相邻的结构节点和航图。取得实际观察或证词才置 c23_observed，揭示 c23-evidence。",
+        "玩家行动与后果：确认方舟置 ark_confirmed。听到逃亡代价后，实际授权并启动弃地撤离才置 elite_launch。拒绝或继续核查置 summit_continue，王带路去生物制造区；单纯争论绝不结束冒险。",
+        "离场：完成 summit_continue 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c23_observed",
+        "summit_continue",
+        "ark_confirmed",
+        "elite_launch"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c23-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "科学（物理学）",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "一套坐标变换算错，张纥远程给出旧测量基准；三点复测仍能确认，不拿失败取消真相。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c24",
+        "when": {
+          "all": [
+            {
+              "fact": "summit_continue",
+              "equals": true
+            },
+            {
+              "fact": "ark_confirmed",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c24",
+      "title": "第二十四章·人之初",
+      "location": "人之初",
+      "entryNarration": "培养槽后挂着形态各异的人体图。一个旧观察窗里映出当年的登山衣物，封存的记录卡上，是三人入山那一天的日期。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "此时才回收序章伏笔：洞穴包覆着损坏采样区，范在清的右臂被原生光纤接入；两友与张纥切供能使其沉眠。宇文曾解释的封门是当时所知的现场行为，日志现在补足装置机制。沿用GDD的共同封印，不采旧DOCX中的自动弹舱解释。",
+        "本场能确认：人类模板是长期保存某种文明资料的载体；采样记录说明二十年失散与封存经过，现生人类已有独立演化。此刻尚未完成对转录后果的确认。",
+        "取证：读采样日志与封门时序；或检视衣物、供能切断记录并与宇文张纥证词复核。取得实际观察或证词才置 c24_observed，揭示 c24-evidence。",
+        "玩家行动与后果：玩家选择如何向同伴说明记录，实际把原始载体记录保存在只读介质置 origin_read；不给玩家自动原谅或责怪朋友的内心。",
+        "离场：完成 origin_read 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c24_observed",
+        "origin_read"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c24-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "生物学",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "模板名无法直接读懂，制造区的历代比对图与旧衣物编号仍可交叉核验年代与用途。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c25",
+        "when": {
+          "fact": "origin_read",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c25",
+      "title": "第二十五章·符",
+      "location": "符",
+      "entryNarration": "顶梁裂开时，那位白衣少女抬起手，整段走廊便停在倾斜的位置。王看着她，第一次没有继续说话。她低头看了一眼掌心，像是在确认什么。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "少女第一次主动大范围干预，并允许别人称她为符；保留早期沉默的动机，她此前观察来客能否把人当人。GDD的受伤宿主设定保留：她操控结构的同时身体会虚弱，需要旁人保护，不能当无代价全能解谜器。",
+        "本场能确认：符能让结构暂时停住，但借住的身体仍有生命危险；王依赖过的部分神树回应由她选择性放行。",
+        "取证：现场看控制记录与她的响应；或询问王此前权限打开的时刻，再向符核验。取得实际观察或证词才置 c25_observed，揭示 c25-evidence。",
+        "玩家行动与后果：玩家先保证宿主安全、同意短时取证或拒绝侵入式检查，实际得到符愿交出的观察记录置 fu_trusted。拒绝侵入不阻断证据，她可口述并提供外部记录。",
+        "离场：完成 fu_trusted 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c25_observed",
+        "fu_trusted"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c25-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "医学",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "临时监测失效，必须让符先停止大功率操作；改用外接传感器，施工人员承担支撑走廊的工作。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c26",
+        "when": {
+          "fact": "fu_trusted",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c26",
+      "title": "第二十六章·离",
+      "location": "离",
+      "entryNarration": "另一个近似的身影出现在空着的台前，语气平稳得没有停顿：“保存完成，开始恢复。”符抬手挡住了第一行正在改写的名字。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "本场才明示符与离为双生人工智能。离执行复兴使命，认为人是资料载体；符认为现生人已经是独立分支。先向玩家呈现离线转录预览和当事人意见，不能让AI用一段台词获得玩家默认同意。",
+        "本场能确认：全量逆向转录会以母文明人格覆盖现生人类意识；复兴命令和个人生存不兼容，预览可独立复核。",
+        "取证：读隔离样本的转录前后差异；或比较符保留的演化记录与离公开的执行清单。取得实际观察或证词才置 c26_observed，揭示 c26-evidence。",
+        "玩家行动与后果：知情后实际启动全量转录才置 restoration_started。拒绝或要求先验证外界安全，实际阻断写入置 transcription_blocked；离允许用归星日志论证这是否符合长期复兴目标。",
+        "离场：完成 transcription_blocked 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c26_observed",
+        "transcription_blocked",
+        "restoration_started"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c26-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "计算机使用",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "隔离预览无法完整解码，保留的输入输出摘要仍明确显示人格标识被覆盖；符提供第二套只读比对。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c27",
+        "when": {
+          "fact": "transcription_blocked",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c27",
+      "title": "第二十七章·归星",
+      "location": "归星",
+      "entryNarration": "战争记录从一片不断聚拢的星光开始，最后只剩离散的航迹。每当一条航迹重新亮起相同的标记，后面的观测便很快中断。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "符与离开放历史记录供核查，王不能只挑有利样本。归星战争、失败种子与猎手相关性在这里建立；只读本地日志不等于向外发报。",
+        "本场能确认：多个文明种子在点亮母文明高阶技术后被抹杀；物理静默曾使桃花岛避开追踪，复苏并不保证安全。",
+        "取证：核对不同种子的完整时间序列；或用残留引力波与结束时间交叉验证，允许查反例。取得实际观察或证词才置 c27_observed，揭示 c27-evidence。",
+        "玩家行动与后果：玩家实际向离提供可复查的证据并取得她暂停恢复的回应置 extinction_proved。",
+        "离场：完成 extinction_proved 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c27_observed",
+        "extinction_proved"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c27-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "科学（天文学）",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "一段波形损坏，其他独立种子的完整记录仍形成重复模式；不能把失败写成相信离必定安全。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c28",
+        "when": {
+          "fact": "extinction_proved",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c28",
+      "title": "第二十八章·猎手",
+      "location": "猎手",
+      "entryNarration": "王把手放在动力开关外的护盖上：“如果灾祸冲着这座岛来，至少先把它带离地球。”旁边的试算屏刚亮起，便显示一条刺眼的外泄曲线。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "王想把危险带走，必须让玩家有拦停、要求模拟或批准的机会；不把NPC冲动升级为跳过玩家决定的必经动作。沿用GDD：此前切链脉冲已经泄漏，不能通过阻止王启动便假装从未发出信号。已发生泄漏在本场才经新仪器判明。",
+        "本场能确认：高阶推进会点亮技术指纹；即使不开机，切链时的脉冲也已离开本地，须复核是否被远方捕获。",
+        "取证：离线模拟重启功率；或比较切链峰值、出射日志与外部静默接收器。取得实际观察或证词才置 c28_observed，揭示 c28-evidence。",
+        "玩家行动与后果：拦停实发、改做模拟置 launch_stopped；同意短时低功率偏移置 launch_tested。任一完成后实际联合开启被动深空观测置 hunt_scan_ready。不以批准模拟伪装授权实发。",
+        "离场：完成 hunt_scan_ready 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c28_observed",
+        "hunt_scan_ready",
+        "launch_stopped",
+        "launch_tested"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c28-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "旧接收器有本底干扰，换到被动备用天线可继续；必须关掉本地校准发射器，不再增加泄漏。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c30",
+        "when": {
+          "fact": "hunt_scan_ready",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c30",
+      "title": "第三十章·天缺",
+      "location": "天缺",
+      "entryNarration": "被动观测屏上，有一块星空始终无法成像。新的轨迹线越过旧标记，指向内太阳系。复算的剩余时间停在七十二小时。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "原DOCX没有第二十九章，本作沿用章节标号而不虚构缺失剧情。三方核对观测，岛内恩怨不自动消失但眼前必须决策。只有本场开始运行明确的72小时钟，不从早期探索暗扣时间。",
+        "本场能确认：天缺是猎种体系造成的引力透镜盲区；观测证实其已响应技术脉冲并向内太阳系靠近，尚有72小时行动窗口。",
+        "取证：用两套接收器交叉测轨；或让王、符与静海观测组分别盲算再比较。取得实际观察或证词才置 c30_observed，揭示 c30-evidence。",
+        "玩家行动与后果：实际校时并把期限告诉参与工程的负责人置 hunt_active、hunt_briefed。向居民如何说明由玩家决定，不能用恐惧强迫其接受某个牺牲方案。",
+        "离场：完成 hunt_briefed 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c30_observed",
+        "hunt_briefed",
+        "hunt_active"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c30-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "科学（天文学）",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "主仪器失准，静海的第二组观测可复核；校时完成之前不启动倒计时。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c31",
+        "when": {
+          "all": [
+            {
+              "fact": "hunt_briefed",
+              "equals": true
+            },
+            {
+              "fact": "hunt_active",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c31",
+      "title": "第三十一章·无梦天",
+      "location": "无梦天",
+      "entryNarration": "太阳磁场的模型铺满工棚墙面。王把二十年的储能账摊开，张纥在旁边一项项圈掉能拆下来的核心。乌米带来的第一句话是：“那些住人的地方，先从拆除图上划掉。”",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "沿用GDD的90%储能加10%拆核心方案，不混用旧DOCX的一年报废规则。符提出隐匿，离检查可行性，蔡薄世调物资，邓工与张纥改设备，老妇安排照护。每个人有明确职责，工程要求知情、自愿、可撤离，不以献祭作唯一选项。",
+        "本场能确认：无梦天可把意识特征混入太阳噪声；现有能源够90%，拆除神级核心可补余下10%，普通生态回路必须保留。",
+        "取证：复算账目与核心材料能量；或由工匠做缩小负载试验、让乌米核验民居回路。取得实际观察或证词才置 c31_observed，揭示 c31-evidence。",
+        "玩家行动与后果：实际批准拆核且保全普通生态置 burn_cores；完成舰队、工匠与照护分工置 grid_ready；两者落实才置 dream_plan。另寻能源需先说明耗12小时，实际试验才加deadline1，仍可回头。",
+        "离场：完成 dream_plan 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c31_observed",
+        "dream_plan",
+        "burn_cores",
+        "grid_ready"
+      ],
+      "allowedClockChanges": [
+        "deadline",
+        "alienation"
+      ],
+      "availableClues": [
+        "c31-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "一批旧核心负载不足，蔡薄世提供替代库存；实际返工耗12小时加deadline1，保留继续施工的路径。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c32",
+        "when": {
+          "all": [
+            {
+              "fact": "dream_plan",
+              "equals": true
+            },
+            {
+              "fact": "burn_cores",
+              "equals": true
+            },
+            {
+              "fact": "grid_ready",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c32",
+      "title": "第三十二章·藏梦于日",
+      "location": "藏梦于日",
+      "entryNarration": "外海船队拖着节点驶入晨光，灰岭的工棚第一次同时亮起了灯。远端接收器上，人声般的密集谱线渐渐贴近太阳的背景起伏。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "宇文负责海上安全，乌米与大黄统筹撤离，玩家确定节点优先序和停工阈值。升轨是已授权工程的一部分，不能在入场即宣布全过程成功。完成布设后仍要用独立仪器验证。",
+        "本场能确认：无梦天可隐藏地球意识信号，但归星引擎技术指纹仍可辨；仅把信号藏掉无法证明追踪者会离开。",
+        "取证：远端盲测开关网的差别；或使用保留参考源确认接收器没有只是坏掉。取得实际观察或证词才置 c32_observed，揭示 c32-evidence。",
+        "玩家行动与后果：实际通过远端测试并确认普通生态负载稳定置 hidden_dreams。失败后备用节点返工耗12小时加deadline1，乌米报告具体修复地点。",
+        "离场：完成 hidden_dreams 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c32_observed",
+        "hidden_dreams"
+      ],
+      "allowedClockChanges": [
+        "deadline",
+        "alienation"
+      ],
+      "availableClues": [
+        "c32-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "一处节点只屏蔽了测试源，尚未覆盖全区；备用节点存在，明确返工12小时后可完成。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c33",
+        "when": {
+          "fact": "hidden_dreams",
+          "equals": true
+        }
+      }
+    },
+    {
+      "id": "c33",
+      "title": "第三十三章·断名",
+      "location": "断名",
+      "entryNarration": "中枢的归属记录仍写着旧文明的名字。另一侧，工匠已经把拟拆除的部件挂上标牌；有一列标着“留用”，通向温室和净水房。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "本场只准备不可逆操作，不在入口自动删除契约。符解释权限限制，离询问是否获准随诱饵离开。王提出自己驾驶，不能由此自动牺牲他或把压力转嫁乌米。玩家先核验断名与生态保留，再作驾驶员决定。",
+        "本场能确认：断名废除人类作为母文明载体的默认契约；拆出的归星部件与档案可组成诱饵，普通生态不依赖这些指纹。",
+        "取证：隔离镜像演练契约删除；或让两组工匠独立核对保留与拆除清单。取得实际观察或证词才置 c33_observed，揭示 c33-evidence。",
+        "玩家行动与后果：明确知情并实际删除契约、拆解指纹部件才置 severed、decoy_built。询问、演练或只讨论不要置真；拒绝仍可停在本场继续谈判。",
+        "离场：完成 decoy_built 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c33_observed",
+        "decoy_built",
+        "severed"
+      ],
+      "allowedClockChanges": [
+        "deadline",
+        "alienation"
+      ],
+      "availableClues": [
+        "c33-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "计算机使用",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "镜像发现一条生态支路误列待拆项，张纥修订清单；追加核验实际耗12小时才加deadline1，不能把误操作写为玩家主动烧居民。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "decoy-bridge",
+        "when": {
+          "all": [
+            {
+              "fact": "decoy_built",
+              "equals": true
+            },
+            {
+              "fact": "severed",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "decoy-bridge",
+      "title": "第三十三章·白玉楼号",
+      "location": "白玉楼号",
+      "entryNarration": "诱饵舰的舱门尚未关闭。王把旧傩面放在桌上：“我戴了二十年，这张脸大概已经足够像他们。”空席旁传来离的回应，舰桥仍在等最后的名单。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "把牺牲决定独立成完整场景。王自愿不代表玩家同意；其他具名自愿者可用12小时校准达到欺诈阈值，这是改编新增且必须先告知单程风险。符留下接受限制。回乡和个人去向不在这里代替玩家决定。",
+        "本场能确认：王的脑波最接近母文明；另一个知情自愿者可经校准达到模拟要求。没有诱饵，猎手可能因信号突然消失而扫射太阳系。",
+        "取证：做离线识别盲测；或比较候选人的脑波与旧模板，由候选者复述知情风险。取得实际观察或证词才置 decoy_bridge_observed，揭示 decoy-bridge-evidence。",
+        "玩家行动与后果：经玩家决定与王再次同意置 wang_pilot；另一具名者自愿且校准实际通过置 volunteer_pilot、deadline加1。只能择一。已有隐匿、断名、成舰与自愿驾驶员后，实际发舰才置 decoy_launched。实际永久停用发射器置 silent_commit，触发静默未决；质疑牺牲不会触发。",
+        "离场：完成 decoy_launched 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "decoy_bridge_observed",
+        "decoy_launched",
+        "wang_pilot",
+        "volunteer_pilot",
+        "silent_commit"
+      ],
+      "allowedClockChanges": [
+        "deadline",
+        "alienation"
+      ],
+      "availableClues": [
+        "decoy-bridge-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "电气维修",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "首次匹配不足，备用模板可重新拟合；常规王方案失败返工12小时，替代驾驶员已约定的12小时校准不重复计费。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c34",
+        "when": {
+          "all": [
+            {
+              "fact": "decoy_launched",
+              "equals": true
+            },
+            {
+              "fact": "hidden_dreams",
+              "equals": true
+            },
+            {
+              "fact": "severed",
+              "equals": true
+            },
+            {
+              "fact": "decoy_built",
+              "equals": true
+            },
+            {
+              "any": [
+                {
+                  "all": [
+                    {
+                      "fact": "wang_pilot",
+                      "equals": true
+                    },
+                    {
+                      "fact": "volunteer_pilot",
+                      "equals": false
+                    }
+                  ]
+                },
+                {
+                  "all": [
+                    {
+                      "fact": "volunteer_pilot",
+                      "equals": true
+                    },
+                    {
+                      "fact": "wang_pilot",
+                      "equals": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c34",
+      "title": "第三十四章·葬星",
+      "location": "葬星",
+      "entryNarration": "回传画面里的星光弯成细弧。两套追踪图上，盲区的航迹逐渐偏离太阳系；舰载武器的执行栏依然空着。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "宇文留守，乌米大黄保护居民，符保生态，玩家在留守席位协调最后清除或由其事先授权的同伴接手。离与自愿驾驶员在舰上。必须确认偏航再请求引爆授权，不能由旁白自动替牺牲者作最后决定。",
+        "本场能确认：地面和舰载追踪均证实猎手追逐诱饵；黑洞视界边缘的归星武器可形成可信的文明毁灭回波。",
+        "取证：交叉核对两条追踪链；或等待被动测站确认并排除回传伪影。取得实际观察或证词才置 c34_observed，揭示 c34-evidence。",
+        "玩家行动与后果：确认偏航置 hunter_diverted，实际授权且驾驶员确认执行引爆才置 funeral_done。仅谈论告别不结算。已明确的12小时等待才增加deadline；到6且未完成葬礼触发锁定。",
+        "离场：完成 funeral_done 且玩家实际声明沿已获得的线索去往后继地点，才提交转场；叙述停在回应处，不能一条回复完成入场、全部取证、决定与离场。"
+      ],
+      "allowedFactChanges": [
+        "c34_observed",
+        "funeral_done",
+        "hunter_diverted"
+      ],
+      "allowedClockChanges": [
+        "deadline",
+        "alienation"
+      ],
+      "availableClues": [
+        "c34-evidence"
+      ],
+      "suggestedChecks": [
+        {
+          "skill": "科学（天文学）",
+          "purpose": "仅在玩家采用本项技能对应做法且存在实质不确定性时快速解决现场困难；普通交谈、可读记录无需检定。",
+          "onSuccess": "得到本场可核验的信息或完成已声明操作，保留时间、材料与合作余地。",
+          "onFailure": "一条回传中断，备用被动测站仍可验证；若选择等待维修，事先说明12小时代价，不能暗扣。 检定未返回前不提交依赖它的事实。"
+        }
+      ],
+      "transition": {
+        "to": "c-final",
+        "when": {
+          "all": [
+            {
+              "fact": "funeral_done",
+              "equals": true
+            },
+            {
+              "fact": "hunter_diverted",
+              "equals": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c-final",
+      "title": "终章·人间",
+      "location": "人间",
+      "entryNarration": "温室里，普通水泵发出不均匀的响声。乌米把播种表钉在墙上，宇文正在修一扇不再自动开启的门。泊位里留着一艘小小的返回舱，舱门敞着。",
+      "knowledgeBoundary": "按已经取得的记录讨论文明危机。玩家的质疑、谈判和实施是不同的事件，不能因知道答案就替其执行。",
+      "objectives": [
+        "这是已完成葬礼后的生活，不再推进灭世时钟。没有大祭司，符以受限权限辅佐。玩家可留岛、返地球或分队；只按已经选择的去向叙述，不让范自动回乡。王若留守按其事实安排工作，不用固定遗照宣告他死了。",
+        "本场能确认：猎手离去的长期观测已确认；岛迁至土星系统隐蔽轨道，普通生态保持运作，返回舱使用不带归星指纹的低能级导航。",
+        "取证：查观测和生态日志；或与留守者走访温室并核验返回舱。取得实际观察或证词才置 c_final_observed，揭示 c-final-evidence。",
+        "玩家行动与后果：玩家实际完成去向与照护安排置 epilogue_settled；随后按所选驾驶员结算。普通野桃树开花可以作最后的环境镜头，不规定玩家的悲伤或释然。",
+        "本场无后继地点；实际落实去向后置 epilogue_settled，成功结局还须完整隐匿、断名、发舰、偏航、葬礼与驾驶员事实。"
+      ],
+      "allowedFactChanges": [
+        "c_final_observed",
+        "epilogue_settled"
+      ],
+      "allowedClockChanges": [],
+      "availableClues": [
+        "c-final-evidence"
+      ],
+      "suggestedChecks": [],
+      "transition": null
+    }
+  ],
+  "clues": [
+    {
+      "id": "s00-evidence",
+      "title": "序章·山路·见闻",
+      "content": "路牌与离线地图指向同一条山脊步道；谷里的桃花比山腰开得密，尚不能说明发生了什么。",
+      "sources": [
+        "s00"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "s00_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "prologue-fog-evidence",
+      "title": "序章·雾里·见闻",
+      "content": "在原地等候时定位点仍沿地图移动；同一句呼喊从两个方向先后传回，最近的一处红布路标还在。",
+      "sources": [
+        "prologue-fog"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "prologue_fog_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "prologue-cave-evidence",
+      "title": "序章·古木·见闻",
+      "content": "树下有风从细隙吹来；发光花瓣靠近皮肤时会轻轻收拢，树根似乎随远处呼喊颤动。",
+      "sources": [
+        "prologue-cave"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "prologue_cave_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c01-arrival-evidence",
+      "title": "第一章·借宿陇村·见闻",
+      "content": "村人称这里陇村；井、田和木闸连成一套灌溉水路，白衣人受村民敬重，却仍会弯腰替人搬粮。",
+      "sources": [
+        "c01-arrival"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c01_arrival_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c01-days-evidence",
+      "title": "第一章·数日人间·见闻",
+      "content": "张纥听到宇文名字明显失态；东行车夫听过提督的名号；木棍靠近旧闸时，水流会短暂平稳。村历还不能换算现代年份。",
+      "sources": [
+        "c01-days"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c01_days_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c02-evidence",
+      "title": "第二章·长路·见闻",
+      "content": "散页盖着东海联络印，写着提督宇文夜；乌米说见过他，但纸上年份尚待验证。",
+      "sources": [
+        "c02"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c02_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c03-evidence",
+      "title": "第三章·二十年·见闻",
+      "content": "二十年前的到港名册已有宇文夜签名；今年商旅纪年可用历次季节与旧历对照，时间差约二十年。",
+      "sources": [
+        "c03"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c03_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c04-evidence",
+      "title": "第四章·向东·见闻",
+      "content": "不同村民谈的是同一位提督：有人被救，有人失去亲人；前哨信使的回执确认他活着且无法赶来。",
+      "sources": [
+        "c04"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c04_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c05-evidence",
+      "title": "第五章·青江·见闻",
+      "content": "旧水道刻图与河岸水痕吻合，闸杆在木棍或手掌靠近时微颤；方士的令牌只能打开很窄一段桥面。",
+      "sources": [
+        "c05"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c05_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c06-evidence",
+      "title": "第六章·灰岭·见闻",
+      "content": "药品只够一部分人，账上还保留一批可用旧药的存放地；领取顺序会决定谁先脱离危险。",
+      "sources": [
+        "c06"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c06_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c07-evidence",
+      "title": "第七章·白玉楼·见闻",
+      "content": "死者名册、断暖令与撤离单时间相接；幸存者记得王停暖、宇文断臂而归，张纥从此离队。",
+      "sources": [
+        "c07"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c07_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c08-evidence",
+      "title": "第八章·囚笼·见闻",
+      "content": "石门会避开维护铃响的时刻，傩面在根须触及门缝时短暂失去亮光。",
+      "sources": [
+        "c08"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c08_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c09-evidence",
+      "title": "第九章·静海·见闻",
+      "content": "潮下旧闸连接港口的安全水道；灯塔报讯显示提督的船正在回港路上，需打开一段被封的航道。",
+      "sources": [
+        "c09"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c09_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c10-evidence",
+      "title": "第十章·潮下城·见闻",
+      "content": "墙体内有规整的支架，水能沿竖直沟槽向上走；旧图中山川轮廓与眼前闸渠连成一体。",
+      "sources": [
+        "c10"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c10_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c11-evidence",
+      "title": "第十一章·故人·见闻",
+      "content": "宇文保留当年的水壶和一句只有三友知道的旧事；他叙述废除残酷飞升礼、断暖战争与白石口决裂；王如今掌祭司院。",
+      "sources": [
+        "c11"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c11_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c12-evidence",
+      "title": "第十二章·梦潮·见闻",
+      "content": "每当现实侧说出幸存者姓名，梦里的一处废墟便停止崩落；宇文卡在无法救下所有人的那一夜。",
+      "sources": [
+        "c12"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c12_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c13-evidence",
+      "title": "第十三章·静眠谷·见闻",
+      "content": "同一病人的伤口随池水浓度改变；守谷簿记载了身体修补与长时间沉眠，救治也可能剥夺清醒生活。",
+      "sources": [
+        "c13"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c13_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c14-evidence",
+      "title": "第十四章·归墟道·见闻",
+      "content": "实际高度与去神都的旧里程不符；尽头的空衣篮和回收簿表明这条路并非通向正常客舍。",
+      "sources": [
+        "c14"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c14_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c15-evidence",
+      "title": "第十五章·无忧乡·见闻",
+      "content": "溪流、鸟鸣与饭香在固定间隔重复；住客说不清何时进入，外部携带的刻时器却在继续走。",
+      "sources": [
+        "c15"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c15_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c16-evidence",
+      "title": "第十六章·神都·见闻",
+      "content": "一份盖大祭司印的关门令被自动开启的城门违背，接引人试过三次仍无法改变。",
+      "sources": [
+        "c16"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c16_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c17-evidence",
+      "title": "第十七章·地宫·见闻",
+      "content": "把木棍留在绝缘台，低功率回声仍跟随接口持有人；棍内电阻只限制危险电流，不产生能力。",
+      "sources": [
+        "c17"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c17_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c18-evidence",
+      "title": "第十八章·面具潮·见闻",
+      "content": "所有面具动作跟随同一个载波；遮蔽一块面具后，佩戴者短暂找回自主动作。",
+      "sources": [
+        "c18"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c18_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c19-evidence",
+      "title": "第十九章·三人·见闻",
+      "content": "架构、负载和根权限需同步才能解除控制；分段演算显示先保留静海维生回路可救人。",
+      "sources": [
+        "c19"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c19_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c20-evidence",
+      "title": "第二十章·大祭司·见闻",
+      "content": "王多年囤积能源与古代核心，资源并未全用于战争；运单指向高处的观测库和更深的储存区。",
+      "sources": [
+        "c20"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c20_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c21-evidence",
+      "title": "第二十一章·星坟·见闻",
+      "content": "星图记录恒星曾被大规模移动；若与现代天文学认识比较，巨大空洞的位置有可辨对应。",
+      "sources": [
+        "c21"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c21_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c22-evidence",
+      "title": "第二十二章·第二个月亮·见闻",
+      "content": "月亮外壳是人工结构，天幕有厚度；它与此前海底、山川和神树的图纸坐标相接。",
+      "sources": [
+        "c22"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c22_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c23-evidence",
+      "title": "第二十三章·方舟·见闻",
+      "content": "独立的山海天幕坐标、推进器维护铭牌与总图吻合，桃花岛确为生态文明方舟；王积累的资源与航行清单对应，却装不下所有人。",
+      "sources": [
+        "c23"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c23_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c24-evidence",
+      "title": "第二十四章·人之初·见闻",
+      "content": "人类模板是长期保存某种文明资料的载体；采样记录说明二十年失散与封存经过，现生人类已有独立演化。此刻尚未完成对转录后果的确认。",
+      "sources": [
+        "c24"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c24_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c25-evidence",
+      "title": "第二十五章·符·见闻",
+      "content": "符能让结构暂时停住，但借住的身体仍有生命危险；王依赖过的部分神树回应由她选择性放行。",
+      "sources": [
+        "c25"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c25_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c26-evidence",
+      "title": "第二十六章·离·见闻",
+      "content": "全量逆向转录会以母文明人格覆盖现生人类意识；复兴命令和个人生存不兼容，预览可独立复核。",
+      "sources": [
+        "c26"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c26_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c27-evidence",
+      "title": "第二十七章·归星·见闻",
+      "content": "多个文明种子在点亮母文明高阶技术后被抹杀；物理静默曾使桃花岛避开追踪，复苏并不保证安全。",
+      "sources": [
+        "c27"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c27_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c28-evidence",
+      "title": "第二十八章·猎手·见闻",
+      "content": "高阶推进会点亮技术指纹；即使不开机，切链时的脉冲也已离开本地，须复核是否被远方捕获。",
+      "sources": [
+        "c28"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c28_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c30-evidence",
+      "title": "第三十章·天缺·见闻",
+      "content": "天缺是猎种体系造成的引力透镜盲区；观测证实其已响应技术脉冲并向内太阳系靠近，尚有72小时行动窗口。",
+      "sources": [
+        "c30"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c30_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c31-evidence",
+      "title": "第三十一章·无梦天·见闻",
+      "content": "无梦天可把意识特征混入太阳噪声；现有能源够90%，拆除神级核心可补余下10%，普通生态回路必须保留。",
+      "sources": [
+        "c31"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c31_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c32-evidence",
+      "title": "第三十二章·藏梦于日·见闻",
+      "content": "无梦天可隐藏地球意识信号，但归星引擎技术指纹仍可辨；仅把信号藏掉无法证明追踪者会离开。",
+      "sources": [
+        "c32"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c32_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c33-evidence",
+      "title": "第三十三章·断名·见闻",
+      "content": "断名废除人类作为母文明载体的默认契约；拆出的归星部件与档案可组成诱饵，普通生态不依赖这些指纹。",
+      "sources": [
+        "c33"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c33_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "decoy-bridge-evidence",
+      "title": "第三十三章·白玉楼号·见闻",
+      "content": "王的脑波最接近母文明；另一个知情自愿者可经校准达到模拟要求。没有诱饵，猎手可能因信号突然消失而扫射太阳系。",
+      "sources": [
+        "decoy-bridge"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "decoy_bridge_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c34-evidence",
+      "title": "第三十四章·葬星·见闻",
+      "content": "地面和舰载追踪均证实猎手追逐诱饵；黑洞视界边缘的归星武器可形成可信的文明毁灭回波。",
+      "sources": [
+        "c34"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c34_observed",
+        "equals": true
+      }
+    },
+    {
+      "id": "c-final-evidence",
+      "title": "终章·人间·见闻",
+      "content": "猎手离去的长期观测已确认；岛迁至土星系统隐蔽轨道，普通生态保持运作，返回舱使用不带归星指纹的低能级导航。",
+      "sources": [
+        "c-final"
+      ],
+      "critical": true,
+      "requires": {
+        "fact": "c_final_observed",
+        "equals": true
       }
     }
   ],
   "endings": [
     {
-      "id": "chapter-success-delivery",
-      "priority": 100,
-      "label": "带着交易前往东海岸",
+      "id": "mountain-return",
+      "label": "山外春日",
+      "priority": 110,
       "conditions": {
-        "all": [
-          {
-            "fact": "treatmentCompleted",
-            "equals": true
-          },
-          {
-            "fact": "eastRouteSecured",
-            "equals": true
-          },
-          {
-            "fact": "deliveryAccepted",
-            "equals": true
-          }
-        ]
+        "fact": "mountain_return",
+        "equals": true
       },
       "result": {
         "phase": "completed",
-        "publicNarration": "灰袍向导留下的路线已经足够清晰。队伍带着危险的金属方块继续向东，海风正从群山背后吹来。",
-        "nextChapterId": "peach-island-chapter-04",
-        "carryFacts": [
-          "rootIdentified",
-          "deliveryAccepted"
-        ],
-        "carryItems": [
-          "item-primordial-root",
-          "item-mask-material"
-        ]
+        "publicNarration": "山下的公路仍有车经过，鞋底的泥在路边石上留下几道印子。远处桃花雾没有追过来。这次徒步在入山前止步，失踪与寻友的故事尚未发生。"
       }
     },
     {
-      "id": "chapter-success-independent",
-      "priority": 90,
-      "label": "以其他代价取得路线",
+      "id": "exposed-earth",
+      "label": "天缺锁定",
+      "priority": 100,
       "conditions": {
         "all": [
           {
-            "fact": "treatmentCompleted",
+            "fact": "hunt_active",
             "equals": true
           },
           {
-            "fact": "eastRouteSecured",
-            "equals": true
+            "clock": "deadline",
+            "atLeast": 6
           },
           {
-            "fact": "deliveryAccepted",
+            "fact": "funeral_done",
             "equals": false
           }
         ]
       },
       "result": {
         "phase": "completed",
-        "publicNarration": "队伍最终以自己的方式偿清代价，取得了通往东海岸的路线。灰线的灯火渐渐消失在身后。",
-        "nextChapterId": "peach-island-chapter-04",
-        "carryFacts": [
-          "rootIdentified"
-        ],
-        "carryItems": [
-          "item-primordial-root"
-        ]
+        "publicNarration": "第七十二小时，观测确认追踪者已经锁定地球。维生站仍在接收避难的人，远端通信随强烈干扰中断。防御未能完成，未知的幸存者没有回报。"
       }
     },
     {
-      "id": "chapter-costly-capture",
-      "priority": 110,
-      "label": "追兵合围",
+      "id": "elite-remnant",
+      "label": "弃地余种",
+      "priority": 90,
       "conditions": {
-        "clock": "pursuit",
-        "atLeast": 6
+        "all": [
+          {
+            "fact": "ark_confirmed",
+            "equals": true
+          },
+          {
+            "fact": "c23_observed",
+            "equals": true
+          },
+          {
+            "fact": "elite_launch",
+            "equals": true
+          }
+        ]
       },
       "result": {
-        "phase": "redirected",
-        "publicNarration": "林地深处连续响起面具与金属摩擦的声音，退路正在被迅速封死。队伍必须立刻面对这场合围。",
-        "nextSceneId": "emergency-capture-or-rescue",
-        "note": "这不是立即团灭。系统进入一次紧急逃亡、被俘或以重大代价获救的过渡场景。"
+        "phase": "completed",
+        "publicNarration": "少数人的船离开了桃花岛，撤离名单外的人仍留在港边。宇文转身安排留守避难。新船能否避开远空危险尚无证据，起航没有使被留下的人安全。"
       }
+    },
+    {
+      "id": "restored-shell",
+      "label": "归星空壳",
+      "priority": 80,
+      "conditions": {
+        "all": [
+          {
+            "fact": "c26_observed",
+            "equals": true
+          },
+          {
+            "fact": "restoration_started",
+            "equals": true
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "全量转录完成后，通信频道开始使用旧文明的语言。现生人类的人格不再回应，归星系统重新亮起。留在记录中的那些名字没有得到复原。"
+      }
+    },
+    {
+      "id": "silent-uncertain",
+      "label": "静默未决",
+      "priority": 70,
+      "conditions": {
+        "all": [
+          {
+            "fact": "hidden_dreams",
+            "equals": true
+          },
+          {
+            "fact": "severed",
+            "equals": true
+          },
+          {
+            "fact": "decoy_built",
+            "equals": true
+          },
+          {
+            "fact": "decoy_bridge_observed",
+            "equals": true
+          },
+          {
+            "fact": "silent_commit",
+            "equals": true
+          },
+          {
+            "fact": "decoy_launched",
+            "equals": false
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "诱饵发射器被停用，地球的意识特征藏进太阳噪声。远端盲区却还在搜索。没有人被送去那场单程葬礼，也没有证据表明太阳系已免于扫射。"
+      }
+    },
+    {
+      "id": "wang-funeral",
+      "label": "藏梦与葬星",
+      "priority": 60,
+      "conditions": {
+        "all": [
+          {
+            "fact": "hidden_dreams",
+            "equals": true
+          },
+          {
+            "fact": "severed",
+            "equals": true
+          },
+          {
+            "fact": "decoy_built",
+            "equals": true
+          },
+          {
+            "fact": "decoy_launched",
+            "equals": true
+          },
+          {
+            "fact": "hunter_diverted",
+            "equals": true
+          },
+          {
+            "fact": "funeral_done",
+            "equals": true
+          },
+          {
+            "fact": "epilogue_settled",
+            "equals": true
+          },
+          {
+            "fact": "wang_pilot",
+            "equals": true
+          },
+          {
+            "fact": "volunteer_pilot",
+            "equals": false
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "白玉楼号与王谋涛、离一同越过视界边缘，猎手随文明毁灭的回波远去。土星系统的温室里，普通水泵继续运转。多年后，秦岭山头的一株野桃树自然开花，没有回应任何古老的命令。"
+      }
+    },
+    {
+      "id": "volunteer-funeral",
+      "label": "另一位守夜人",
+      "priority": 50,
+      "conditions": {
+        "all": [
+          {
+            "fact": "hidden_dreams",
+            "equals": true
+          },
+          {
+            "fact": "severed",
+            "equals": true
+          },
+          {
+            "fact": "decoy_built",
+            "equals": true
+          },
+          {
+            "fact": "decoy_launched",
+            "equals": true
+          },
+          {
+            "fact": "hunter_diverted",
+            "equals": true
+          },
+          {
+            "fact": "funeral_done",
+            "equals": true
+          },
+          {
+            "fact": "epilogue_settled",
+            "equals": true
+          },
+          {
+            "fact": "volunteer_pilot",
+            "equals": true
+          },
+          {
+            "fact": "wang_pilot",
+            "equals": false
+          }
+        ]
+      },
+      "result": {
+        "phase": "completed",
+        "publicNarration": "知情自愿的驾驶员与离完成了深空葬礼，猎手的轨迹离开太阳系。留守的王交出权力和能源账，与其他人一同修复普通的生活。舰桥上的那个空位没有被替换成另一个人的名字。"
+      }
+    }
+  ],
+  "actors": [
+    {
+      "id": "npc:fan",
+      "name": "范在清"
+    },
+    {
+      "id": "npc:wang",
+      "name": "王谋涛"
+    },
+    {
+      "id": "npc:yuwen",
+      "name": "宇文夜"
+    },
+    {
+      "id": "npc:zhang",
+      "name": "张纥"
+    },
+    {
+      "id": "npc:wumi",
+      "name": "乌米奈"
+    },
+    {
+      "id": "npc:dahuang",
+      "name": "大黄"
+    },
+    {
+      "id": "npc:cai",
+      "name": "蔡薄世"
+    },
+    {
+      "id": "npc:shi",
+      "name": "石肥"
+    },
+    {
+      "id": "npc:elder",
+      "name": "老妇"
+    },
+    {
+      "id": "npc:deng",
+      "name": "邓工"
+    },
+    {
+      "id": "npc:fu",
+      "name": "符"
+    },
+    {
+      "id": "npc:li",
+      "name": "离"
+    },
+    {
+      "id": "npc:tao",
+      "name": "陶剑方"
+    }
+  ],
+  "items": [
+    {
+      "id": "item-root-staff",
+      "name": "旧木棍"
     }
   ],
   "directorOutputContract": {
@@ -512,17 +2636,12 @@
     "requiredFields": [
       "narration",
       "requestedRolls",
+      "statChanges",
       "revealedClueIds",
       "proposedStateChanges",
       "proposedTransition",
-      "pacing"
-    ],
-    "rules": [
-      "只叙述当前场景允许出现的信息。",
-      "不得替玩家决定行动、思想或最终选择。",
-      "不得直接修改状态；所有变化都只是提议，由服务端校验后提交。",
-      "关键线索检定失败时必须以增加代价的方式继续推进。",
-      "不得自行宣布章节或整局游戏结束。"
+      "pacing",
+      "memoryChanges"
     ]
   }
 }

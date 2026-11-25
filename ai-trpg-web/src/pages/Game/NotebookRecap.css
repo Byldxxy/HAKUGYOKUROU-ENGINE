@@ -1,0 +1,8 @@
+.notebook-recap ul { list-style: none; padding: 0; }
+.notebook-recap li { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 12px; padding: 4px 0; }
+.notebook-recap li > span { flex: 1 1 260px; overflow-wrap: anywhere; }
+.notebook-recap button {
+  min-height: 36px; padding: 4px; color: var(--color-ink); background: transparent;
+  border: 0; text-underline-offset: 3px; text-decoration: underline; cursor: pointer; font-size: .875rem;
+}
+.recap-empty { margin: 0; color: var(--color-ink-muted); }
