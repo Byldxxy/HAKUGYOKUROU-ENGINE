@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { socket, socketRequest, type SocketAck } from '../socket';
 import './HostApiPanel.css';
 
-export default function HostApiPanel({ roomId }: { roomId: string }) {
+export type HostReadiness = Pick<SocketAck, 'mode' | 'configured' | 'balance'>;
+
+export default function HostApiPanel({ roomId, onReadiness }: {
+  roomId: string;
+  onReadiness?: (value: HostReadiness) => void;
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [status, setStatus] = useState<SocketAck | null>(null);
   const [mode, setMode] = useState<'site' | 'custom'>('site');
@@ -12,21 +17,25 @@ export default function HostApiPanel({ roomId }: { roomId: string }) {
   const [code, setCode] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const receive = useCallback((value: SocketAck) => {
+    setStatus(value);
+    onReadiness?.({ mode: value.mode, configured: value.configured, balance: value.balance });
+  }, [onReadiness]);
   useEffect(() => {
     let active = true;
     const refresh = () => socketRequest('host_api_status', { roomId }).then(value => {
-      if (active) setStatus(value);
+      if (active) receive(value);
     }).catch(() => {});
     void refresh();
     socket.on('billing_changed', refresh);
     socket.on('connect', refresh);
     return () => { active = false; socket.off('billing_changed', refresh); socket.off('connect', refresh); };
-  }, [roomId]);
+  }, [roomId, receive]);
   const openPanel = async () => {
     setBusy(true);
     try {
       const value = await socketRequest('host_api_status', { roomId });
-      setStatus(value);
+      receive(value);
       setMode(value.mode || (value.profile ? 'custom' : 'site'));
       setUrl(value.profile?.url || '');
       setModel(value.profile?.model || '');
@@ -40,7 +49,7 @@ export default function HostApiPanel({ roomId }: { roomId: string }) {
     if (!window.confirm('删除此账号保存的自有 API 配置？使用该配置的房间需要重新设置。')) return;
     setBusy(true);
     try {
-      setStatus(await socketRequest('forget_host_api', { roomId }));
+      receive(await socketRequest('forget_host_api', { roomId }));
       setUrl(''); setModel(''); setKey(''); setNotice('已删除账号保存的配置。');
     } catch (error) { setNotice((error as Error).message); }
     finally { setBusy(false); }
@@ -51,7 +60,7 @@ export default function HostApiPanel({ roomId }: { roomId: string }) {
     try {
       const value = redeem ? await socketRequest('redeem_cdk', { roomId, code })
         : await socketRequest('set_host_api', mode === 'site' ? { roomId, mode } : { roomId, mode, url, model, key });
-      setStatus(value);
+      receive(value);
       if (redeem) setCode(''); else setKey('');
       setNotice(redeem ? '兑换成功。' : '主持 API 已保存。');
     } catch (error) { setNotice((error as Error).message); }

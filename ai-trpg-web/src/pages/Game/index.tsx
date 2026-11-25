@@ -1,7 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Game.css';
-import OfflineRollPreference from '../../components/OfflineRollPreference';
+import './TurnControls.css';
+import './GameHistory.css';
+import { useGameReadingPosition } from './useGameReadingPosition';
+import { useChatEnter } from '../../components/useChatEnter';
+import GameSidebar from './GameSidebar';
 import NotebookRecap from './NotebookRecap';
 import HostApiPanel from '../../components/HostApiPanel';
 import RelationGraph from '../../components/RelationGraph';
@@ -56,6 +60,12 @@ type CampaignState = {
   ending: { id: string; label: string } | null;
 };
 
+const describeRollRules = (rules: RollRules) => {
+  const difficulty = { regular: '常规', hard: '困难', extreme: '极难' }[rules.difficulty];
+  const dice = rules.modifier ? ` · ${Math.abs(rules.modifier)} 枚${rules.modifier > 0 ? '奖励骰' : '惩罚骰'}` : '';
+  return `${difficulty} · 目标 ≤ ${rules.target}${dice}`;
+};
+
 // SECTION: 检定结果查找
 // NOTE: 新日志优先按 rollId 匹配；旧日志没有 rollId 时，用“角色 + 技能”兼容历史数据。
 const findRollResult = (messages: Message[], dmIndex: number, roll: RollRequestWithState) => {
@@ -77,8 +87,14 @@ const findRollResult = (messages: Message[], dmIndex: number, roll: RollRequestW
 };
 
 export default function Game() {
-  const navigate = useNavigate();
   const { roomId } = useParams();
+  const account = localStorage.getItem('trpg_username');
+  const draftKey = 'trpg_action:' + JSON.stringify([account, roomId]);
+  return <RoomGame key={draftKey} roomId={roomId} draftKey={draftKey} />;
+}
+
+function RoomGame({ roomId, draftKey }: { roomId?: string; draftKey: string }) {
+  const navigate = useNavigate();
 
   // SECTION: UI 状态
   // NOTE: activeCard 控制角色详情弹窗；myCharacter 是当前客户端唯一的“我”。
@@ -88,13 +104,33 @@ export default function Game() {
   // SECTION: 战役笔记状态
   // NOTE: 关系图状态提升到 Game，避免切换笔记页签时节点和边丢失。
   const [isNotebookOpen, setIsNotebookOpen] = useState(false);
+  const [excerptNotice, setExcerptNotice] = useState('');
+  useEffect(() => {
+    if (!excerptNotice) return;
+    const timer = window.setTimeout(() => setExcerptNotice(''), 2200);
+    return () => window.clearTimeout(timer);
+  }, [excerptNotice]);
   const [activeTab, setActiveTab] = useState<'relation' | 'notes' | 'clues' | 'inventory' | 'recap'>('relation');
   const { freeNotes, setFreeNotes, clues, setClues, graphNodes, setGraphNodes, graphEdges, setGraphEdges,
     ready: notebookReady, error: notebookError, flush: flushNotebook } = useCampaignNotebook(roomId);
 
   // SECTION: 聊天与回合状态
   // NOTE: turnState 来自后端，是输入锁和等待提示的权威来源。
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState(() => {
+    try { return sessionStorage.getItem(draftKey) || ''; } catch { return ''; }
+  });
+  const draftText = useRef(inputText);
+  const sendingAction = useRef(false);
+  const [actionSending, setActionSending] = useState(false);
+  const enterKey = useChatEnter();
+  const editAction = (value: string) => {
+    draftText.current = value;
+    setInputText(value);
+    try {
+      if (value) sessionStorage.setItem(draftKey, value);
+      else sessionStorage.removeItem(draftKey);
+    } catch { /* The in-memory editor still works when storage is unavailable. */ }
+  };
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [connectionReady, setConnectionReady] = useState(false);
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
@@ -128,12 +164,8 @@ export default function Game() {
   // SECTION: 检定同步锁
   // NOTE: rolledIndices 只处理“点击后、广播回来前”的短暂窗口；刷新后的去重由后端 rollId 保证。
   const [rolledIndices, setRolledIndices] = useState<string[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // SECTION: 聊天自动滚动
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+  const { historyRef, reviewing, unread, onHistoryScroll, returnToLatest, jumpToSource } =
+    useGameReadingPosition(roomId, chatMessages.length, Boolean(myCharacter));
 
   // SECTION: Socket 事件绑定
   // NOTE: new_message 只追加聊天；turn_state 只更新状态，二者职责分离。
@@ -187,12 +219,20 @@ export default function Game() {
   // SECTION: 玩家普通行动
   // NOTE: 普通行动不带 isRoll，后端会把它纳入“本轮已行动玩家”统计。
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !connectionReady) return;
+    if (!inputText.trim() || !connectionReady || isInputLocked || sendingAction.current) return;
+    sendingAction.current = true;
+    setActionSending(true);
     const sent = inputText;
     try {
       await socketRequest('player_action', { roomId, message: sent });
-      setInputText(current => current === sent ? '' : current);
+      if (draftText.current === sent) {
+        draftText.current = '';
+        setInputText('');
+        try { if (sessionStorage.getItem(draftKey) === sent) sessionStorage.removeItem(draftKey); }
+        catch { /* Drafts can also be memory-only. */ }
+      }
     } catch (error) { alert((error as Error).message); }
+    finally { sendingAction.current = false; setActionSending(false); }
   };
 
   // 检定数值、技能与随机数均由服务端计算。
@@ -283,15 +323,37 @@ export default function Game() {
     return () => { socket.off('lobby_update', handleLobbyUpdate); };
   }, [myCharacter?.id, connectionReady, roomId]);
 
-  // SECTION: 线索提取
-  // NOTE: 右键选中文本会写入关键线索列表，随后由笔记防抖保存。
-  const handleContextMenu = (e: React.MouseEvent) => {
-    const selectedText = window.getSelection()?.toString().trim();
-    if (selectedText && notebookReady) {
-      e.preventDefault();
-      setClues(prev => prev.includes(selectedText) ? prev : [...prev, selectedText]);
-      alert(`已成功提取线索: "${selectedText.substring(0, 10)}..."`);
+  const addExcerpt = (text: string) => {
+    if (notebookReady && text) {
+      setClues(prev => prev.includes(text) || prev.length >= 500 ? prev : [...prev, text]);
     }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    const selection = window.getSelection();
+    const text = selection?.toString().trim();
+    if (!notebookReady || !text || !selection ||
+        !e.currentTarget.contains(selection.anchorNode) || !e.currentTarget.contains(selection.focusNode)) return;
+    e.preventDefault();
+    if (clues.length >= 500 && !clues.includes(text)) {
+      setExcerptNotice('手摘线索已满，请先整理笔记。');
+    } else {
+      addExcerpt(text);
+      setExcerptNotice(clues.includes(text) ? '笔记中已有这段原话。' : '已摘入个人笔记。');
+    }
+  };
+
+  const messageHeading = (sender: string, text: string) => {
+    const excerpt = text.trim();
+    const recorded = clues.includes(excerpt);
+    const full = clues.length >= 500 && !recorded;
+    return <div className="message-heading">
+      <span className="sender-name">{sender}</span>
+      {excerpt && <button type="button" className="excerpt-button"
+        disabled={recorded || !notebookReady || full} onClick={() => addExcerpt(excerpt)}>
+        {recorded ? '已摘录' : full ? '线索已满' : '摘入笔记'}
+      </button>}
+    </div>;
   };
 
   // SECTION: 角色卡弹窗内容
@@ -335,69 +397,33 @@ export default function Game() {
     );
   }
 
-  // SECTION: 本地回合兜底推导
-  // NOTE: 后端 turn_state 未抵达时，前端仍可用聊天历史推导基础锁定状态。
-  const allPlayers = [myCharacter.name, ...teammates.map(t => t.name)];
-  const playerDisplayNames = new Map<string, string>([
-    [myCharacter.name, myCharacter.name],
-    ...teammates.map(t => [t.name, t.name] as [string, string])
-  ]);
   const lastDmIndex = chatMessages.map(m => m.role).lastIndexOf('dm');
-  const currentRoundMessages = chatMessages.slice(lastDmIndex + 1);
-  const actedPlayers = Array.from(new Set(currentRoundMessages.map(m => m.sender)));
-  const pendingPlayers = turnState?.pendingPlayers || allPlayers.filter(name => !actedPlayers.includes(name));
-  const pendingPlayerLabels = pendingPlayers.map(name => playerDisplayNames.get(name) || name);
-  const activeActedPlayers = turnState?.actedPlayers || actedPlayers;
-  const isMyTurnDone = activeActedPlayers.includes(myCharacter.name);
-
-  const lastDmMessage = lastDmIndex !== -1 ? String(chatMessages[lastDmIndex]?.content || '') : '';
-  const fallbackRollRequests: RollRequestWithState[] = parseRollRequests(lastDmMessage).map((roll) => ({
-    ...roll,
-    id: `${lastDmIndex}-${roll.index}-${roll.player}-${roll.skill}`,
-  }));
-  const activeRollRequests = turnState?.rollRequests || fallbackRollRequests;
-  const pendingRolls = turnState?.pendingRolls || activeRollRequests.filter(roll => !findRollResult(chatMessages, lastDmIndex, roll));
-  const pendingRollPlayers = turnState?.pendingRollPlayers || Array.from(new Set(pendingRolls.map(roll => roll.player)));
-  const isWaitingForMyRoll = pendingRolls.some(roll => roll.characterId === myCharacter.id);
-  const isRollGateLocked = activeRollRequests.length > 0;
-  const isCampaignLocked = Boolean(campaignState && campaignState.phase !== 'active');
-  // NOTE: 输入锁优先使用后端 turn_state；本地历史推导只作为重连前的兜底。
-  const isTurnLocked = turnState
-    ? (
-      (turnState.mode === 'waiting_dm' && activeRollRequests.length === 0) ||
-      (turnState.mode === 'waiting_players' && isMyTurnDone)
-    )
-    : (isMyTurnDone);
-  const isInputLocked = !connectionReady || isCampaignLocked || isRollGateLocked || isTurnLocked;
-
-  // SECTION: 输入提示文案
-  // NOTE: 文案优先级为检定锁、回合锁、可自由行动。
-  let inputPlaceholder = "描述你的行动、语言，或心理活动（Shift+Enter 换行）...";
-  if (isCampaignLocked) {
-    inputPlaceholder = campaignState?.ending
-      ? '本章已经结束。'
-      : '当前章节已进入结算状态。';
-  } else if (isRollGateLocked) {
-    if (isWaitingForMyRoll) {
-      inputPlaceholder = "请先完成上方检定...";
-    } else if (pendingRollPlayers.length > 0) {
-      inputPlaceholder = `等待 ${pendingRollPlayers.join('、')} 掷骰...`;
-    } else {
-      inputPlaceholder = "等待系统 DM 结算检定...";
-    }
-  } else if (isTurnLocked) {
-    if (pendingPlayers.length > 0) {
-      inputPlaceholder = `等待 ${pendingPlayerLabels.join('、')} 行动...`;
-    } else {
-      inputPlaceholder = "队伍行动完毕，等待系统 DM 推进剧情...";
-    }
+  const myRoll = connectionReady && turnState?.mode === 'waiting_rolls'
+    ? turnState.pendingRolls.find(roll => roll.characterId === myCharacter.id) : undefined;
+  const isInputLocked = !connectionReady || !turnState || turnState.inputLocked ||
+    turnState.actedPlayers.includes(myCharacter.name);
+  let turnSummary = '';
+  if (!connectionReady || !turnState) {
+    turnSummary = '正在重新连接房间…';
+  } else if (turnState.mode === 'completed') {
+    turnSummary = campaignState?.ending?.label || '本章已经结束';
+  } else if (turnState.canRetry) {
+    turnSummary = turnState.retryMessage || '主持回复失败';
+  } else if (myRoll) {
+    turnSummary = `你的检定 · ${myRoll.skill}`;
+  } else if (turnState.mode === 'waiting_rolls') {
+    turnSummary = `等待 ${turnState.pendingRollPlayers.join('、')} 掷骰`;
+  } else if (turnState.mode === 'waiting_dm') {
+    turnSummary = 'KP 正在回应…';
+  } else if (isInputLocked) {
+    turnSummary = `行动已提交，等待 ${turnState.pendingPlayers.join('、') || '队友'} 行动`;
   }
 
   return (
     <div className="game-container">
       <div className="game-header flat-box">
         <span className="room-info">{campaignState?.title || '桃花岛历险记'} // {roomId}</span>
-        <div style={{ display: 'flex', gap: '15px' }}>
+        <div className="game-header-actions">
           {isOwner && roomId && <HostApiPanel roomId={roomId} />}
           <button className="flat-btn secondary small" onClick={handleSaveGame}>存档</button>
           <button className="flat-btn secondary small" onClick={async () => { try { await socketRequest('leave_room', { roomId }); navigate('/hall'); } catch (error) { alert((error as Error).message); } }}>退出</button>
@@ -405,63 +431,12 @@ export default function Game() {
       </div>
 
       <div className="game-body">
-        <aside className="game-sidebar">
-          <div className="flat-box my-character-panel">
-            <div
-              className="avatar-box clickable"
-              onClick={() => setActiveCard('self')}
-              title="点击查看完整角色卡"
-            >
-              {myCharacter.avatar && <img src={myCharacter.avatar} alt="" className="game-portrait" />}
-              <span className={myCharacter.avatar ? 'portrait-name' : undefined}>{myCharacter.name}</span>
-            </div>
-            <div className="stats-board">
-              <div className="stat-item">
-                <span className="stat-label">HP</span>
-                <div className="stat-bar-bg"><div className="stat-bar-fill hp" style={{ width: `${(myCharacter.hp.current/myCharacter.hp.max)*100}%` }}></div></div>
-                <span style={{ fontSize: '13px', fontFamily: 'monospace', fontWeight: 'bold', color: '#A0858D', minWidth: '45px', textAlign: 'right', display: 'inline-block', marginLeft: '10px' }}>{myCharacter.hp.current}/{myCharacter.hp.max}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">SAN</span>
-                <div className="stat-bar-bg"><div className="stat-bar-fill san" style={{ width: `${(myCharacter.san.current/myCharacter.san.max)*100}%` }}></div></div>
-                <span style={{ fontSize: '13px', fontFamily: 'monospace', fontWeight: 'bold', color: '#A0858D', minWidth: '45px', textAlign: 'right', display: 'inline-block', marginLeft: '10px' }}>{myCharacter.san.current}/{myCharacter.san.max}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">MP</span>
-                <div className="stat-bar-bg"><div className="stat-bar-fill mp" style={{ width: `${(myCharacter.mp.current/myCharacter.mp.max)*100}%` }}></div></div>
-                <span style={{ fontSize: '13px', fontFamily: 'monospace', fontWeight: 'bold', color: '#A0858D', minWidth: '45px', textAlign: 'right', display: 'inline-block', marginLeft: '10px' }}>{myCharacter.mp.current}/{myCharacter.mp.max}</span>
-              </div>
-            </div>
-            <button
-              className="flat-btn secondary notebook-btn"
-              onClick={() => setIsNotebookOpen(true)}
-            >
-              📓 打开战役笔记
-            </button>
-            {roomId && <OfflineRollPreference roomId={roomId} enabled={connectionReady ? offlineRoll : undefined} />}
-          </div>
-          <div className="teammates-section">
-            <h4 className="section-subtitle">小队成员</h4>
-            {teammates.map(mate => (
-              <div key={mate.id} className="flat-box teammate-card">
-                <div
-                  className="teammate-name clickable"
-                  onClick={() => setActiveCard(mate.id)}
-                  title="点击观察外貌"
-                >
-                  {mate.name} <span className="teammate-role">({mate.role})</span>
-                </div>
-                <div className="teammate-mini-stats">
-                  <span className="mini-stat hp">HP {mate.hp.current}/{mate.hp.max}</span>
-                  <span className="mini-stat san">SAN {mate.san.current}/{mate.san.max}</span>
-                  <span className="mini-stat mp">MP {mate.mp.current}/{mate.mp.max}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </aside>
+        <GameSidebar self={myCharacter} teammates={teammates} roomId={roomId}
+          offlineRoll={connectionReady ? offlineRoll : undefined}
+          onCharacter={setActiveCard} onNotebook={() => setIsNotebookOpen(true)} />
         <main className="game-main flat-box">
-          <div className="chat-history" onContextMenu={handleContextMenu}>
+          <div className="game-history-viewport">
+          <div className="chat-history" ref={historyRef} onScroll={onHistoryScroll} onContextMenu={handleContextMenu}>
             {chatMessages.map((msg, idx) => {
               const messageContent = String(msg.content || '');
               const parsedRolls = parseRollRequests(messageContent);
@@ -483,7 +458,7 @@ export default function Game() {
 
                 return (
                   <div id={msg.logIndex === undefined ? undefined : `log-message-${msg.logIndex}`} tabIndex={-1} key={idx} className="message dm">
-                    <span className="sender-name">系统 DM</span>
+                    {messageHeading('系统 DM', pureText)}
                     <div className="message-content">
                       {pureText}
                       {stats.length > 0 && (
@@ -510,8 +485,7 @@ export default function Game() {
                              </span>
 
                              {rollItem.rules && <div className="roll-target">
-                               {{regular:'常规', hard:'困难', extreme:'极难'}[rollItem.rules.difficulty]} · 目标 ≤ {rollItem.rules.target}
-                               {rollItem.rules.modifier !== 0 && ` · ${Math.abs(rollItem.rules.modifier)} 枚${rollItem.rules.modifier > 0 ? '奖励骰' : '惩罚骰'}`}
+                               {describeRollRules(rollItem.rules)}
                              </div>}
                              {rollResult ? (
                                <div className="roll-result">
@@ -539,46 +513,58 @@ export default function Game() {
 
               return (
                 <div id={msg.logIndex === undefined ? undefined : `log-message-${msg.logIndex}`} tabIndex={-1} key={idx} className={`message ${msg.role}`}>
-                  <span className="sender-name">{msg.sender}</span>
+                  {messageHeading(msg.sender, msg.content)}
                   <div className="message-content">{msg.content}</div>
                 </div>
               );
             })}
-            <div ref={messagesEndRef} />
+          </div>
+          {reviewing && (
+            <button type="button" className="flat-btn secondary small history-return"
+              onClick={returnToLatest}>
+              {unread ? `${unread} 条新消息` : '回到最新'} ↓
+            </button>
+          )}
           </div>
           <div className="control-panel" style={{ flexDirection: 'column', gap: '10px' }}>
-            {turnState?.canRetry && (
-              <button className="flat-btn secondary" onClick={() => socketRequest('retry_dm', { roomId }).catch(error => alert(error.message))}>
-                {turnState.retryMessage || '主持回复失败'} 点击重试
-              </button>
-            )}
-
             <div className="composer-row">
+              {isInputLocked && (
+                <div className="turn-summary" role="status" aria-live="polite">
+                  <strong>{turnSummary}</strong>
+                  {myRoll?.rules && <span>{describeRollRules(myRoll.rules)}</span>}
+                </div>
+              )}
               <textarea
                 className="flat-textarea"
-                placeholder={inputPlaceholder}
+                hidden={isInputLocked}
+                aria-label="调查员行动"
+                placeholder="描述你的行动、语言，或心理活动…"
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={(e) => editAction(e.target.value)}
+                {...enterKey.compositionEvents}
                 disabled={isInputLocked}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (!isInputLocked) handleSendMessage();
-                  }
+                  if (enterKey.shouldSubmit(e)) void handleSendMessage();
                 }}
               ></textarea>
 
-              <button
-                className="flat-btn primary send-btn"
-                onClick={handleSendMessage}
-                disabled={isInputLocked}
-              >
-                执行
-              </button>
+              {myRoll ? (
+                <button type="button" className="flat-btn primary send-btn turn-roll-btn"
+                  onClick={() => handleSkillRoll(myRoll.id)} disabled={rolledIndices.includes(myRoll.id)}>
+                  <span>掷骰 · {myRoll.skill}</span>
+                </button>
+              ) : turnState?.canRetry && connectionReady ? (
+                <button type="button" className="flat-btn secondary send-btn"
+                  onClick={() => socketRequest('retry_dm', { roomId }).catch(error => alert(error.message))}>重试主持</button>
+              ) : (
+                <button className="flat-btn primary send-btn" onClick={handleSendMessage}
+                  disabled={isInputLocked || actionSending || !inputText.trim()}>执行</button>
+              )}
             </div>
           </div>
         </main>
       </div>
+      {excerptNotice && <div className="excerpt-feedback" role="status">{excerptNotice}</div>}
       {activeCard && (
         <div className="modal-overlay" onClick={() => setActiveCard(null)}>
           <div className="modal-content flat-box" onClick={(e) => e.stopPropagation()}>
@@ -600,11 +586,7 @@ export default function Game() {
             <div className="notebook-content">
               {activeTab === 'recap' && <NotebookRecap entries={campaignState?.recap ?? []} onJump={index => {
                 setIsNotebookOpen(false);
-                window.requestAnimationFrame(() => {
-                  const message = document.getElementById(`log-message-${index}`);
-                  message?.focus({ preventScroll: true });
-                  message?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                });
+                window.requestAnimationFrame(() => jumpToSource(index));
               }} />}
               {activeTab === 'inventory' && (
                 <div className="notebook-inventory">
@@ -632,7 +614,7 @@ export default function Game() {
 
               {activeTab === 'clues' && (
                 <div className="clues-list">
-                  <p className="clues-hint">※ 在右侧游戏对话区选中文本并「右键」，即可自动提取到此处。</p>
+                  <p className="clues-hint">点击消息旁的「摘入笔记」可保存整段原话；在电脑上也可以选中一段文字后右键摘录。</p>
                   {campaignState?.revealedClues.map((clue) => (
                     <div key={clue.id} className="clue-item campaign-clue-item">
                       <strong>{clue.title}</strong>

@@ -1,5 +1,6 @@
 import { preparePortrait } from '../../domain/portrait';
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useLayoutEffect } from 'react';
+import { readCharacterDraft, type CharacterDraft } from './characterDraft';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../../config';
 import { COC_OCCUPATIONS, type CocOccupation } from '../../data/cocOccupations';
@@ -455,8 +456,27 @@ const parseOccupationSkillRules = (skillText: string): OccupationSkillRules => {
 };
 
 export default function CreateCharacter() {
-  const navigate = useNavigate();
   const location = useLocation();
+  const account = localStorage.getItem('trpg_username');
+  const draftKey = 'trpg_character:' + JSON.stringify([account, location.state?.roomId || null, location.state?.character?.id || null]);
+  return <CharacterEditor key={draftKey} draftKey={draftKey} />;
+}
+
+function CharacterEditor({ draftKey }: { draftKey: string }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [restored] = useState(() => readCharacterDraft(draftKey));
+  const draftWarning = useRef<HTMLParagraphElement>(null);
+  const discarded = useRef(false);
+  const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null);
+  const returnToOrigin = () => {
+    if (window.history.state?.idx > 0) navigate(-1);
+    else navigate(location.state?.roomId ? '/lobby/' + location.state.roomId : '/hall', { replace: true });
+  };
+  const discardDraft = () => {
+    try { localStorage.removeItem(draftKey); } catch { /* Storage may be disabled. */ }
+    discarded.current = true;
+  };
 
   // SECTION: 编辑模式入口
   // NOTE: Lobby 点击编辑时通过 navigate state 传入整张角色摘要和 fullData。
@@ -466,14 +486,14 @@ export default function CreateCharacter() {
 
   // SECTION: 页面页签与基础资料
   // NOTE: 新建时使用默认空值，编辑时优先回填旧角色的 fullData.basicInfo。
-  const [activeTab, setActiveTab] = useState('skills');
-  const [basicInfo, setBasicInfo] = useState(editData?.fullData?.basicInfo || {
+  const [activeTab, setActiveTab] = useState(restored?.activeTab || (editData ? 'skills' : 'basic'));
+  const [basicInfo, setBasicInfo] = useState(restored?.basicInfo || editData?.fullData?.basicInfo || {
     name: '', age: 20, gender: '', era: '1920s', 
     residence: '', hometown: '', occupation: ''
   });
 
   // SECTION: 头像上传状态
-  const [avatar, setAvatar] = useState<string | null>(editData?.fullData?.avatar ?? null);
+  const [avatar, setAvatar] = useState<string | null>(restored ? restored.avatar : editData?.fullData?.avatar ?? null);
   const [processingAvatar, setProcessingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -481,14 +501,14 @@ export default function CreateCharacter() {
   // SECTION: 属性生成模式
   // NOTE: roll 是传统随机，buy 是购点；两种模式共用同一份 stats。
   const [statMode, setStatMode] = useState<'roll' | 'buy'>(() => (
-    lockRoomLimits ? 'buy' : (editData?.fullData?.statMode || 'roll')
+    restored?.statMode ?? (lockRoomLimits ? 'buy' : (editData?.fullData?.statMode || 'roll'))
   ));
   const [buyLimit, setBuyLimit] = useState(() => (
-    lockRoomLimits ? roomRules!.pointBuyLimit : (editData?.fullData?.buyLimit || 480)
+    lockRoomLimits ? roomRules!.pointBuyLimit : (restored?.buyLimit ?? editData?.fullData?.buyLimit ?? 480)
   ));
   const [stats, setRawStats] = useState<Record<string, number>>({
     ...emptyStats,
-    ...(editData?.fullData?.stats || {})
+    ...(restored?.stats || editData?.fullData?.stats || {})
   });
 
   // SECTION: 派生资源
@@ -514,7 +534,7 @@ export default function CreateCharacter() {
 
   // SECTION: 技能状态
   // NOTE: 编辑旧卡时保留已分配点数，同时补齐新版标准技能。
-  const [skills, setSkills] = useState<Skill[]>(() => mergeSkillTemplates(
+  const [skills, setSkills] = useState<Skill[]>(() => restored?.skills || mergeSkillTemplates(
     createDefaultSkills(stats),
     editData?.fullData?.skills
   ));
@@ -522,13 +542,10 @@ export default function CreateCharacter() {
   // SECTION: 职业技能自选槽
   // NOTE: 保存结构仍然只落 skills，这个状态用于编辑页把职业规则投射成 UI。
   const [occupationSkillChoices, setOccupationSkillChoices] = useState<Record<string, string[]>>(
-    () => normalizePersistedChoices(editData?.fullData?.occupationSkillChoices)
+    () => normalizePersistedChoices(restored?.occupationSkillChoices || editData?.fullData?.occupationSkillChoices)
   );
   // NOTE: 三份草稿分别保存上级技能、预设子技能和用户填写的自定义子技能。
-  const [choiceDrafts, setChoiceDrafts] = useState<Record<string, string>>({});
-  const [choiceSubtypeDrafts, setChoiceSubtypeDrafts] = useState<Record<string, string>>({});
-  const [choiceCustomSubtypeDrafts, setChoiceCustomSubtypeDrafts] = useState<Record<string, string>>({});
-
+  const [choiceDrafts, setChoiceDrafts] = useState<Record<string, string>>(restored?.choiceDrafts || {});  const [choiceSubtypeDrafts, setChoiceSubtypeDrafts] = useState<Record<string, string>>(restored?.choiceSubtypeDrafts || {});  const [choiceCustomSubtypeDrafts, setChoiceCustomSubtypeDrafts] = useState<Record<string, string>>(restored?.choiceCustomSubtypeDrafts || {});
   // SECTION: 属性联动技能
   // NOTE: 闪避基础值依赖 DEX，母语基础值依赖 EDU；属性改动后自动刷新。
   const setStats = (next: Record<string, number>) => {
@@ -599,7 +616,7 @@ export default function CreateCharacter() {
   // NOTE: 背景资料只影响角色档案展示，不参与当前自动判定逻辑。
   const [bgInfo, setBgInfo] = useState({
     ...emptyBgInfo,
-    ...(editData?.fullData?.bgInfo || {})
+    ...(restored?.bgInfo || editData?.fullData?.bgInfo || {})
   });
 
   const growthRuleContext = useMemo<SkillGrowthContext>(() => ({
@@ -610,9 +627,44 @@ export default function CreateCharacter() {
 
   // SECTION: 职业列表状态
   // NOTE: 职业数据来自 Excel 的“职业列表”工作表，页面只负责检索、预览和套用基础字段。
-  const [occupationSearch, setOccupationSearch] = useState('');
-  const [selectedOccupationId, setSelectedOccupationId] = useState(2);
-  const [occupationSortMode, setOccupationSortMode] = useState<'id' | 'points'>('id');
+  const [occupationSearch, setOccupationSearch] = useState(restored?.occupationSearch || '');
+  const [selectedOccupationId, setSelectedOccupationId] = useState(restored?.selectedOccupationId ?? 2);
+  const [occupationSortMode, setOccupationSortMode] = useState<'id' | 'points'>(restored?.occupationSortMode || 'id');
+
+  // Browsing an existing card or searching professions must not shadow a later server edit.
+  const sheet = useMemo(() => ({
+    basicInfo, avatar, statMode, buyLimit, stats, skills, bgInfo, occupationSkillChoices,
+    choiceDrafts, choiceSubtypeDrafts, choiceCustomSubtypeDrafts,
+  }), [basicInfo, avatar, statMode, buyLimit, stats, skills, bgInfo, occupationSkillChoices,
+    choiceDrafts, choiceSubtypeDrafts, choiceCustomSubtypeDrafts]);
+  const initialSheet = useRef(sheet);
+  useLayoutEffect(() => {
+    if (discarded.current || (!restored && initialSheet.current === sheet)) return;
+    const draft: CharacterDraft = {
+      version: 1, ...sheet, activeTab, occupationSearch, selectedOccupationId, occupationSortMode,
+    };
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(draft));
+      if (draftWarning.current) draftWarning.current.hidden = true;
+    } catch {
+      if (draftWarning.current) draftWarning.current.hidden = false;
+    }
+  }, [sheet, restored, draftKey, activeTab, occupationSearch, selectedOccupationId, occupationSortMode]);
+  useLayoutEffect(() => {
+    const field = fieldError && document.getElementById(fieldError.field);
+    if (!field) return;
+    field.setAttribute('aria-invalid', 'true');
+    field.setAttribute('aria-errormessage', 'character-validation-error');
+    field.focus();
+    return () => {
+      field.removeAttribute('aria-invalid');
+      field.removeAttribute('aria-errormessage');
+    };
+  }, [fieldError]);
+  function invalid(tab: string, field: string, message: string) {
+    setActiveTab(tab);
+    setFieldError({ field, message });
+  }
 
   // SECTION: 职业检索
   // NOTE: 检索同时覆盖职业名、信用评级、点数公式和本职技能，方便按技能反查职业。
@@ -775,9 +827,32 @@ export default function CreateCharacter() {
   // NOTE: 保存前做最小完整性校验；更复杂的房规校验后续可集中到后端。
   const handleSave = async () => {
     if (processingAvatar || saving) return;
-    if (!basicInfo.name.trim() || Object.values(stats).some(value => !Number.isInteger(value) || value < 1 || value > 99)) return alert('请至少填写姓名并检定核心属性！');
-    if (statMode === 'buy' && remainStatPoints < 0) return alert('基础属性购点已超过房规上限！');
-    if (remainJob < 0 || remainInt < 0) return alert('技能点数已透支，请检查加点！');
+    if (!basicInfo.name.trim()) return invalid('basic', 'character-name', '请填写调查员姓名。');
+    if (basicInfo.name.trim().length > 40 || /[<>:\r\n]/.test(basicInfo.name)) {
+      return invalid('basic', 'character-name', '姓名最多 40 字，不能包含尖括号、冒号或换行。');
+    }
+    const gear = bgInfo.carriedItems.split(/\r?\n/).map((line: string) => line.trim()).filter(Boolean);
+    if (gear.length > 40 || gear.some((line: string) => line.length > 60)) {
+      return invalid('background', 'carried-items', '随身物品最多 40 行，每件名称最多 60 字。');
+    }
+    const badStat = statOrder.find(key => !Number.isInteger(stats[key]) || stats[key] < 1 || stats[key] > 99);
+    if (badStat) return invalid('basic', statMode === 'buy' ? 'stat-' + badStat : 'roll-attributes',
+      statMode === 'buy' ? statLabels[badStat] + '需要填写 1 至 99 之间的整数。' : '请先掷出调查员的基础属性。');
+    if (statMode === 'buy' && remainStatPoints < 0) return invalid('basic', 'stat-str', '基础属性超出预算 ' + -remainStatPoints + ' 点，请减少分配。');
+    const skillNames = new Set<string>();
+    for (const skill of skills) {
+      const name = skill.name.trim();
+      if (!name || name.length > 100 || /[<>\r\n]/.test(name) || skillNames.has(name)) {
+        const custom = skills.find(row => row.name.trim() === name && row.id.startsWith('custom'));
+        return invalid('skills', (custom || skill).id + '-name', '请填写唯一的技能名，限 100 字，不含尖括号或换行。');
+      }
+      skillNames.add(name);
+    }
+    if (remainJob < 0 || remainInt < 0) {
+      const column = remainJob < 0 ? 'job' : 'interest';
+      const first = skills.find(skill => skill[column] > 0);
+      if (first) return invalid('skills', first.id + '-' + column, (remainJob < 0 ? '职业' : '兴趣') + '点数超出预算，请减少分配。');
+    }
     if (lockRoomLimits) {
       const overflowSkill = skills.find((skill) => {
         const allocatedPoints = skill.job + skill.interest;
@@ -790,7 +865,8 @@ export default function CreateCharacter() {
       if (overflowSkill) {
         const isOccupationSkill = occupationalSkillNameSet.has(overflowSkill.name);
         const skillLimit = isOccupationSkill ? roomRules!.occupationSkillLimit : roomRules!.interestSkillLimit;
-        return alert(`${isOccupationSkill ? '职业' : '兴趣'}技能【${overflowSkill.name}】超过房规上限 ${skillLimit}。`);
+        return invalid('skills', overflowSkill.id + (overflowSkill.job && isOccupationSkill ? '-job' : '-interest'),
+          `${overflowSkill.name}超过房规上限 ${skillLimit}，请降低该项点数。`);
       }
     }
     const username = localStorage.getItem('trpg_username'); 
@@ -819,7 +895,8 @@ export default function CreateCharacter() {
       if (result.success) {
         alert(`调查员 [${basicInfo.name}] 档案已成功刻录进星舰数据库！`);
         if (result.card?.id) localStorage.setItem('trpg_current_char_id', result.card.id);
-        navigate(-1);
+        discardDraft();
+        returnToOrigin();
       } else {
         alert(`保存失败: ${result.message || result.error}`);
       }
@@ -830,7 +907,7 @@ export default function CreateCharacter() {
   };
 
   return (
-    <div className="create-char-container">
+    <div className="create-char-container" onChangeCapture={() => setFieldError(null)}>
       <div className="char-workspace">
         <div className="char-sidebar flat-box">
           <div className="sidebar-top">
@@ -849,7 +926,14 @@ export default function CreateCharacter() {
           </div>
           <div className="sidebar-bottom">
             <button className="flat-btn primary" onClick={handleSave} disabled={processingAvatar || saving}>💾 录入数据库</button>
-            <button className="flat-btn secondary" onClick={() => navigate(-1)}>放弃并返回</button>
+            <button className="flat-btn secondary" disabled={saving} onClick={() => {
+              if (draftWarning.current?.hidden || window.confirm('草稿未能暂存，仍要离开吗？')) returnToOrigin();
+            }}>暂存并返回</button>
+            {restored && <button className="flat-btn secondary" disabled={saving} onClick={() => {
+              if (window.confirm('确定舍弃这份未提交的角色草稿？')) { discardDraft(); returnToOrigin(); }
+            }}>舍弃草稿</button>}
+            {fieldError && <p id="character-validation-error" role="alert" className="error-text">{fieldError.message}</p>}
+            <p ref={draftWarning} hidden role="alert" className="error-text">浏览器暂存空间不可用，请在离开前将角色录入数据库。</p>
           </div>
         </div>
         <div className={`char-main-area flat-box ${activeTab === 'occupations' ? 'occupation-tab-active' : ''} ${activeTab === 'basic' ? 'basic-tab-active' : ''}`}>
@@ -867,7 +951,7 @@ export default function CreateCharacter() {
                 </button>
                 <div className="basic-identity-fields">
                   <div className="form-row">
-                    <div className="form-item"><label>姓名</label><input type="text" className="flat-input" value={basicInfo.name} onChange={e=>setBasicInfo({...basicInfo, name: e.target.value})} /></div>
+                    <div className="form-item"><label htmlFor="character-name">姓名</label><input id="character-name" type="text" className="flat-input" value={basicInfo.name} onChange={e=>setBasicInfo({...basicInfo, name: e.target.value})} /></div>
                     <div className="form-item small"><label>年龄</label><input type="number" className="flat-input" value={basicInfo.age} onChange={e=>setBasicInfo({...basicInfo, age: Number(e.target.value)})} /></div>
                     <div className="form-item small"><label>性别</label><input type="text" className="flat-input" value={basicInfo.gender} onChange={e=>setBasicInfo({...basicInfo, gender: e.target.value})} /></div>
                   </div>
@@ -906,7 +990,7 @@ export default function CreateCharacter() {
                   </div>
                   <div className="stat-mode-action">
                     {statMode === 'roll' ? (
-                      <button className="flat-btn primary small" onClick={handleRollAll}>🎲 随机投掷全属性</button>
+                      <button className="flat-btn primary small" id="roll-attributes" onClick={handleRollAll}>🎲 随机投掷全属性</button>
                     ) : (
                       <div className="point-buy-control">
                         <label>购点上限（不含 LUC）</label>
@@ -940,7 +1024,7 @@ export default function CreateCharacter() {
                             {statMode === 'buy' ? (
                             <input 
                                 type="number" 
-                                className="stat-input" 
+                                id={'stat-' + key} aria-label={statLabels[key]} className="stat-input"
                                 value={val || ''} 
                                 onChange={e => setStats({...stats, [key]: Number(e.target.value)})} 
                                 placeholder="-"
@@ -1142,7 +1226,7 @@ export default function CreateCharacter() {
                         <article key={skill.id} className={`compact-skill-card ${isOccupationSkill ? 'occupation-skill-row' : ''}`}>
                           <div className="compact-skill-heading">
                             {isCustom ? (
-                              <input type="text" className="flat-input skill-input text" placeholder="输入技能名" value={skill.name} onChange={e => updateSkill(skill.id, 'name', e.target.value)} />
+                              <input type="text" className="flat-input skill-input text" id={skill.id + '-name'} placeholder="输入技能名" value={skill.name} onChange={e => updateSkill(skill.id, 'name', e.target.value)} />
                             ) : (
                               <span className="skill-name-main">{skill.name}</span>
                             )}
@@ -1159,8 +1243,8 @@ export default function CreateCharacter() {
                               <input type="number" className="flat-input skill-input" value={skill.base} onChange={e => updateSkill(skill.id, 'base', e.target.value)} />
                             ) : <strong>{skill.base}</strong>}
                           </label>
-                          <label><span>职业</span><input type="number" className="flat-input skill-input" disabled={shouldLockJobInput} max={maxJobPoints} value={skill.job || ''} onChange={e => updateSkill(skill.id, 'job', e.target.value)} placeholder="0" /></label>
-                          <label><span>兴趣</span><input type="number" className="flat-input skill-input" max={maxInterestPoints} value={skill.interest || ''} onChange={e => updateSkill(skill.id, 'interest', e.target.value)} placeholder="0" /></label>
+                          <label><span>职业</span><input type="number" className="flat-input skill-input" id={skill.id + '-job'} disabled={shouldLockJobInput} max={maxJobPoints} value={skill.job || ''} onChange={e => updateSkill(skill.id, 'job', e.target.value)} placeholder="0" /></label>
+                          <label><span>兴趣</span><input type="number" className="flat-input skill-input" id={skill.id + '-interest'} max={maxInterestPoints} value={skill.interest || ''} onChange={e => updateSkill(skill.id, 'interest', e.target.value)} placeholder="0" /></label>
                           <label><span>成长</span><strong>{growthPoints}</strong></label>
                           <label className="skill-total"><span>总值</span><strong>{total}</strong></label>
                           </div>

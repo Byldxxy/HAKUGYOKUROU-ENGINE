@@ -11,6 +11,7 @@ export type CharacterData = {
 };
 export type Character = { id: string; name: string; role: string; hp: number; san: number; mp: number; fullData: CharacterData };
 export type PublicPlayer = {
+  fitsRoomRules?: boolean;
   offlineRoll?: boolean;
   avatarPath?: string;
   id: string | null; name: string; characterId: string | null; characterName: string | null;

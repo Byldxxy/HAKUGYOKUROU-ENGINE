@@ -1,0 +1,38 @@
+.turn-summary {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--control-height);
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 12px;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.turn-summary span {
+  font-size: 0.875rem;
+}
+
+.composer-row .turn-roll-btn {
+  flex: 0 0 auto;
+  width: auto !important;
+  min-width: 112px;
+  max-width: 48%;
+  color: var(--color-ink);
+}
+
+.turn-roll-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 560px) {
+  .composer-row .turn-roll-btn {
+    min-height: 48px;
+    min-width: 104px;
+    max-width: 46%;
+    padding-inline: 10px;
+  }
+}

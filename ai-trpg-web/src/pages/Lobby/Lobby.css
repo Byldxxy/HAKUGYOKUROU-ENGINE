@@ -303,3 +303,31 @@
 }
 
 .player-portrait { width: 32px; height: 32px; object-fit: cover; border-radius: var(--radius-control); }
+
+.scenario-introduction, .start-readiness {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.host-readiness, .player-readiness {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.host-readiness {
+  justify-content: space-between;
+  margin: 8px 0;
+}
+
+.readiness-link {
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  text-decoration: underline;
+  cursor: pointer;
+}

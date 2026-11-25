@@ -1502,6 +1502,13 @@ textarea.flat-input {
   .basic-page .form-item.small,
   .form-item.small { flex: 1 1 120px; }
 
+  .basic-identity-fields .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 12px;
+  }
+  .basic-identity-fields .form-row > :first-child { grid-column: 1 / -1; }
+
   .basic-page .stats-grid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;

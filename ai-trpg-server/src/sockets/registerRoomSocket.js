@@ -7,6 +7,7 @@ const ai = require('../services/aiService');
 const campaignService = require('../services/campaignService');
 const { isValidRoomId } = require('../domain/validation');
 const { normalizeRoomRules } = require('../domain/roomRules');
+const { validateForRoom } = require('../domain/characterValidation');
 const { parseRollRequests, stripDirectives, isRollResultMessage } = require('../domain/directives');
 const { skillValue, rollSkill, makeRollRules } = require('../domain/dice');
 
@@ -97,8 +98,9 @@ const emitState = (io, room) => {
   const owner = room.players.find((player) => player.accountName === room.ownerAccount);
   io.to(room.id).emit('lobby_update', {
     roomId: room.id, ownerName: owner?.name || room.ownerAccount, ownerId: owner?.id, roomConfig: room.config, started: room.started,
-    players: room.players.map(({ id, name, characterId, characterName, avatarRevision, role, hp, san, mp, hpMax, sanMax, mpMax, offlineRoll }) =>
+    players: room.players.map(({ id, name, characterId, characterName, avatarRevision, role, hp, san, mp, hpMax, sanMax, mpMax, offlineRoll, fullData }) =>
       ({ id, name, characterId, characterName, role, hp, san, mp, offlineRoll: Boolean(offlineRoll),
+        ...(!room.started && characterId && { fitsRoomRules: !validateForRoom(fullData, room.config.rules) }),
         avatarPath: avatarRevision ? `/api/characters/${encodeURIComponent(characterId)}/avatar?roomId=${room.id}&v=${avatarRevision}` : undefined,
         hpMax: hpMax ?? hp, sanMax: sanMax ?? san, mpMax: mpMax ?? mp })),
   });
@@ -419,7 +421,7 @@ module.exports = (io) => {
       if (!room.players.length || room.players.some((p) => !p.characterId || !p.id)) return ack({ success: false, reason: 'missing_character' });
       for (const player of room.players) {
         const card = ownedCharacter(player.accountName, player.characterId);
-        const error = require('../domain/characterValidation').validateForRoom(card, room.config.rules);
+        const error = validateForRoom(card, room.config.rules);
         if (error) return ack({ success: false, reason: 'invalid_character_rules', message: `${player.name}：${error}` });
         Object.assign(player, playerFrom(player.accountName, card, player.id));
       }

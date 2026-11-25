@@ -140,7 +140,11 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   for(const route of ['/room_history?roomId='+roomId,'/notebooks?roomId='+roomId]) assert.equal((await api(route,x.cookie)).status,403);
   assert.equal((await api('/saves',x.cookie,{roomId})).status,403);
   assert.equal((await send(sb,'update_room_config',{roomId,scriptId:'ontology',rules:{}})).reason,'forbidden');
+  await send(sa,'update_room_config',{roomId,scriptId:'ontology',rules:{pointBuyLimit:300}});
+  await wait(()=>sa.lobby.players.every(p=>p.fitsRoomRules===false),'room rules flag incompatible cards');
+  assert.equal((await send(sa,'host_start_game',{roomId})).reason,'invalid_character_rules');
   assert.equal((await send(sa,'update_room_config',{roomId,scriptId:'ontology',rules:{pointBuyLimit:480,occupationSkillLimit:80,interestSkillLimit:70}})).success,true);
+  await wait(()=>sa.lobby.players.every(p=>p.fitsRoomRules===true),'room readiness refreshed');
   assert.equal((await send(sa,'host_start_game',{roomId})).success,true);
   assert.equal((await send(sa,'host_start_game',{roomId})).reason,'game_started');
   await send(sa,'join_room',roomId); await send(sb,'join_room',roomId);
