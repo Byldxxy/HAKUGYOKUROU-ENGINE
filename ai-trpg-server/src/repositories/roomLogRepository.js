@@ -1,92 +1,129 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
+const { StringDecoder } = require('node:string_decoder');
 const { cleanKpNarration } = require('../domain/narration');
 const config = require('../config');
-const { appendJsonLine, ensureDir, readJsonLines } = require('../storage/jsonFile');
+const { appendJsonLine, ensureDir } = require('../storage/jsonFile');
 
 ensureDir(config.paths.logsDir);
+const getRoomLogPath = roomId => path.join(config.paths.logsDir, `room_${roomId}.jsonl`);
+const active = new Map();
+const recentRooms = new Map();
 
-// SECTION: 日志文件定位
-// NOTE: 每个房间一个 JSONL 文件，roomId 直接参与文件名，之后上线前应增加白名单校验。
-const getRoomLogPath = (roomId) => path.join(config.paths.logsDir, `room_${roomId}.jsonl`);
-
-// SECTION: 玩家行动写入
-// NOTE: rollId 只在检定结果上存在，用来防刷新重复投骰和回填结果框。
-const appendAction = ({ roomId, playerName, content, rollId, accountName }) => {
-  const entry = {
-    timestamp: new Date().toISOString(),
-    type: 'player_action',
-    roomId,
-    playerName,
-    accountName,
-    content,
-  };
-  if (rollId) entry.rollId = rollId;
-  appendJsonLine(getRoomLogPath(roomId), entry);
-  return entry;
-};
-
-// SECTION: DM 回复写入
-// NOTE: DM 回复是回合切片的边界，turn_state 会从最后一条 dm_reply 开始计算当前轮。
-const appendDmReply = ({ roomId, content, rollRules }) => {
-  const entry = {
-    timestamp: new Date().toISOString(),
-    type: 'dm_reply',
-    ...(rollRules?.length ? { rollRules } : {}),
-    roomId,
-    playerName: '系统 DM',
-    content,
-  };
-  appendJsonLine(getRoomLogPath(roomId), entry);
-  return entry;
-};
-
-// SECTION: 战役状态快照
-// NOTE: 状态与聊天写入同一 JSONL，复制存档时能保持场景、线索、时钟和结局一致。
-const appendCampaignState = ({ roomId, campaign }) => {
-  const entry = {
-    timestamp: new Date().toISOString(),
-    type: 'campaign_state',
-    roomId,
-    campaign,
-  };
-  appendJsonLine(getRoomLogPath(roomId), entry);
-  return entry;
-};
-
-const getLatestCampaignState = (roomId) => {
-  const lines = readRoomLines(roomId);
-  for (let index = lines.length - 1; index >= 0; index -= 1) {
-    if (lines[index].type === 'campaign_state' && lines[index].campaign) {
-      return lines[index].campaign;
+function indexEntry(index, entry) {
+  const logIndex = index.nextIndex++;
+  if (entry.type === 'campaign_state') {
+    index.latestCampaignSeq = logIndex;
+    index.latestCampaign = entry.campaign;
+    const round = entry.campaign?.round - 1;
+    if (index.pendingSource && round > 0) index.sources.set(round, index.pendingSource);
+    index.pendingSource = null;
+    return;
+  }
+  if (!['dm_reply', 'player_action'].includes(entry.type)) return;
+  if (entry.type === 'dm_reply') {
+    if (entry.roomId === index.roomId && Number.isSafeInteger(entry.sourceDmIndex)) {
+      index.settled.set(entry.sourceDmIndex, logIndex);
+    }
+    index.lastDmIndex = logIndex;
+    index.lastDm = entry;
+    index.round = [];
+    index.pendingSource = { logIndex, content: entry.content };
+  } else {
+    index.round.push(entry);
+    if (entry.roomId === index.roomId && entry.clientActionId) {
+      index.actions.set(JSON.stringify([entry.accountName, entry.clientActionId]), logIndex);
     }
   }
-  return null;
-};
+  index.recent.push(entry);
+  if (index.recent.length > 15) index.recent.shift();
+  index.messages.push({
+    role: entry.type === 'dm_reply' ? 'dm' : entry.rollId || entry.content?.includes('D100 =') ? 'roll' : 'player',
+    sender: entry.playerName,
+    content: entry.type === 'dm_reply' ? cleanKpNarration(entry.content) : entry.content,
+    ...(entry.rollId && { rollId: entry.rollId }),
+    ...(entry.rollRules?.length && { rollRules: entry.rollRules }),
+    logIndex,
+  });
+}
 
-// SECTION: 原始日志读取
-// NOTE: Socket 层使用原始 lines 推导回合状态，路由层再转换成前端消息结构。
-const readRoomLines = (roomId) => readJsonLines(getRoomLogPath(roomId));
+function buildIndex(roomId) {
+  const index = { roomId, needsTerminator: false, nextIndex: 0, lastDmIndex: -1, lastDm: null, round: [], recent: [], messages: [],
+    sources: new Map(), settled: new Map(), actions: new Map(), latestCampaign: null, pendingSource: null };
+  const file = getRoomLogPath(roomId);
+  if (!fs.existsSync(file)) return index;
+  // Old snapshots may be large. Release each snapshot as soon as the next arrives.
+  const fd = fs.openSync(file, 'r');
+  const buffer = Buffer.alloc(64 * 1024);
+  const decoder = new StringDecoder('utf8');
+  let tail = '';
+  try {
+    let count;
+    while ((count = fs.readSync(fd, buffer, 0, buffer.length)) > 0) {
+      const lines = (tail + decoder.write(buffer.subarray(0, count))).split('\n');
+      tail = lines.pop();
+      for (const line of lines) if (line.trim()) indexEntry(index, JSON.parse(line));
+    }
+    tail += decoder.end();
+    if (tail.trim()) indexEntry(index, JSON.parse(tail));
+    index.needsTerminator = Boolean(tail);
+  } finally {
+    fs.closeSync(fd);
+  }
+  return index;
+}
 
-// SECTION: 前端消息列表
-// NOTE: 这里保留 rollId，刷新页面后前端才能把骰子结果放回对应 ROLL 卡片。
-const listRoomMessages = (roomId, lines = readRoomLines(roomId)) => {
-  return lines
-    .map((line, logIndex) => ({ line, logIndex }))
-    .filter(({ line }) => line.type === 'dm_reply' || line.type === 'player_action')
-    .map(({ line, logIndex }) => ({
-      role: line.type === 'dm_reply' ? 'dm' : (line.rollId || (line.content || '').includes('D100 =') ? 'roll' : 'player'),
-      sender: line.playerName,
-      content: line.type === 'dm_reply' ? cleanKpNarration(line.content) : line.content,
-      rollId: line.rollId,
-      ...(line.rollRules ? { rollRules: line.rollRules } : {}),
-      logIndex,
-    }));
-};
+// Keep active rooms hot. A small LRU also allows paging through archived history
+// without re-reading a long journal for every page. No empty lookup is cached.
+function getRoomIndex(roomId) {
+  if (active.has(roomId)) return active.get(roomId);
+  const index = recentRooms.get(roomId) || buildIndex(roomId);
+  if (index.nextIndex) {
+    recentRooms.delete(roomId);
+    recentRooms.set(roomId, index);
+    if (recentRooms.size > 4) recentRooms.delete(recentRooms.keys().next().value);
+  }
+  return index;
+}
+function activate(roomId) {
+  if (!active.has(roomId)) active.set(roomId, getRoomIndex(roomId));
+  recentRooms.delete(roomId);
+}
+const release = roomId => active.delete(roomId);
+function reload(roomId) {
+  recentRooms.delete(roomId);
+  if (active.has(roomId)) active.set(roomId, buildIndex(roomId));
+}
+const getLatestCampaignState = roomId => structuredClone(getRoomIndex(roomId).latestCampaign);
 
-// Each settled reply is followed by the snapshot for the next round. Copies of the
-// log retain these indices even when the campaign is restored into another room.
-const recapSources = (lines) => {
+function appendEntry(entry) {
+  const index = getRoomIndex(entry.roomId);
+  const file = getRoomLogPath(entry.roomId);
+  if (index.needsTerminator) {
+    fs.appendFileSync(file, '\n');
+    index.needsTerminator = false;
+  }
+  appendJsonLine(file, entry);
+  const logIndex = index.nextIndex;
+  indexEntry(index, entry);
+  return logIndex;
+}
+const appendAction = ({ roomId, playerName, content, rollId, accountName, clientActionId }) =>
+  appendEntry({ timestamp: new Date().toISOString(), type: 'player_action', roomId, playerName, accountName,
+    ...(clientActionId && { clientActionId }), ...(rollId && { rollId }), content });
+const appendDmReply = ({ roomId, content, rollRules }) =>
+  appendEntry({ timestamp: new Date().toISOString(), type: 'dm_reply', roomId, playerName: '系统 DM', content,
+    ...(rollRules?.length && { rollRules }) });
+const appendCampaignState = ({ roomId, campaign }) =>
+  appendEntry({ timestamp: new Date().toISOString(), type: 'campaign_state', roomId, campaign });
+function indexSettlement(roomId, entries) {
+  const index = active.get(roomId) || recentRooms.get(roomId);
+  if (!index) return;
+  index.needsTerminator = false;
+  for (const entry of entries) indexEntry(index, entry);
+}
+
+function recapSources(lines) {
   const sources = new Map();
   let reply = null;
   for (const [logIndex, line] of lines.entries()) {
@@ -97,45 +134,19 @@ const recapSources = (lines) => {
     reply = null;
   }
   return sources;
-};
+}
 
-// SECTION: 新游戏清场
-// NOTE: 开全新战役时删除旧 JSONL；存档文件不会被这里影响。
-const resetRoomLog = (roomId) => {
-  const logPath = getRoomLogPath(roomId);
-  if (fs.existsSync(logPath)) {
-    fs.unlinkSync(logPath);
-  }
-};
-
-// SECTION: 存档复制
-// NOTE: 存档是房间日志的快照复制，不额外重写日志内容。
-const copyLogTo = (roomId, targetPath) => {
-  const logPath = getRoomLogPath(roomId);
-  if (!fs.existsSync(logPath)) return false;
+function resetRoomLog(roomId) {
+  fs.rmSync(getRoomLogPath(roomId), { force: true });
+  reload(roomId);
+}
+function copyLogTo(roomId, targetPath) {
+  const source = getRoomLogPath(roomId);
+  if (!fs.existsSync(source)) return false;
   ensureDir(path.dirname(targetPath));
-  fs.copyFileSync(logPath, targetPath);
+  fs.copyFileSync(source, targetPath);
   return true;
-};
+}
 
-// SECTION: 存档恢复
-// NOTE: 加载存档会覆盖当前房间日志，因此调用方必须确认这是房主操作。
-const loadLogFrom = (roomId, sourcePath) => {
-  if (!fs.existsSync(sourcePath)) return false;
-  fs.copyFileSync(sourcePath, getRoomLogPath(roomId));
-  return true;
-};
-
-module.exports = {
-  getRoomLogPath,
-  appendAction,
-  appendDmReply,
-  appendCampaignState,
-  getLatestCampaignState,
-  readRoomLines,
-  listRoomMessages,
-  recapSources,
-  resetRoomLog,
-  copyLogTo,
-  loadLogFrom,
-};
+module.exports = { getRoomLogPath, getRoomIndex, activate, release, reload, indexSettlement, getLatestCampaignState,
+  appendAction, appendDmReply, appendCampaignState, recapSources, resetRoomLog, copyLogTo };

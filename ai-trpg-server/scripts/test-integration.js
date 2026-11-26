@@ -82,6 +82,18 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   const avatar = 'data:image/png;base64,' + imageBase64;
   const ca=(await api('/characters',a.cookie,{cardData:{...draft('调查员甲'), avatar}})).data.card;
   assert.equal(ca.fullData.avatar, avatar);
+  const summaries = (await api('/characters?view=summary',a.cookie)).data.cards;
+  assert.equal(summaries[0].name, '调查员甲');
+  assert.ok(!Object.hasOwn(summaries[0], 'fullData') && !JSON.stringify(summaries).includes(imageBase64));
+  const detail = (await api('/characters/' + ca.id,a.cookie)).data.card;
+  assert.equal(detail.fullData.basicInfo.name, '调查员甲');
+  assert.ok(!Object.hasOwn(detail.fullData, 'avatar') && detail.avatarPath);
+  const rootUrl = 'http://127.0.0.1:' + port;
+  assert.equal((await fetch(rootUrl + '/api/characters/' + ca.id, {headers:{cookie:b.cookie}})).status, 404);
+  const ownImage = await fetch(rootUrl + detail.avatarPath, {headers:{cookie:a.cookie}});
+  assert.equal(Buffer.from(await ownImage.arrayBuffer()).toString('base64'), imageBase64);
+  assert.equal((await fetch(rootUrl + detail.avatarPath, {headers:{cookie:b.cookie}})).status, 404);
+
   const edited = await api('/characters',a.cookie,{cardData:{...draft('调查员甲'), id:ca.id}});
   assert.equal(edited.data.card.fullData.avatar, avatar, 'older editors preserve the portrait');
   const invalid = await api('/characters',a.cookie,{cardData:{...draft('调查员甲'), id:ca.id, avatar:'data:image/png;base64,AA=='}});
@@ -148,6 +160,23 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await send(sa,'host_start_game',{roomId})).success,true);
   assert.equal((await send(sa,'host_start_game',{roomId})).reason,'game_started');
   await send(sa,'join_room',roomId); await send(sb,'join_room',roomId);
+  // Modern clients already have the account's campaign/turn projection in the reconnect snapshot.
+  const snapshotEvent = once(sa, 'room_snapshot');
+  let duplicateState = 0;
+  const countState = () => duplicateState++;
+  sa.on('campaign_state', countState);
+  sa.on('turn_state', countState);
+  const lastSeq = sa.messages.at(-1).logIndex;
+  assert.equal((await send(sa, 'join_room', {roomId, historyVersion:1, afterSeq:lastSeq})).success, true);
+  const [resumed] = await snapshotEvent;
+  assert.deepEqual(resumed.messages, []);
+  assert.equal(resumed.delta, true);
+  assert.equal(resumed.latestSeq, lastSeq);
+  assert.equal(duplicateState, 0);
+  sa.off('campaign_state', countState);
+  sa.off('turn_state', countState);
+  assert.equal((await api('/room_history?roomId='+roomId+'&aroundSeq='+lastSeq, a.cookie)).data.messages.at(-1).logIndex,lastSeq);
+  assert.equal((await api('/room_history?roomId='+roomId+'&aroundSeq='+lastSeq, x.cookie)).status,403);
   assert.equal((await send(sa,'player_action',{roomId,message:'D100 = 1'})).reason,'invalid_action');
   assert.equal((await send(sa,'player_action',{roomId,message:'我查看周围。'})).success,true);
   assert.equal((await send(sa,'player_action',{roomId,message:'再次行动。'})).reason,'turn_locked');
@@ -205,6 +234,15 @@ const draft = name => ({ basicInfo: { name, occupation: '' }, stats: { str:50,co
   assert.equal((await api('/notebooks',a.cookie,{roomId,notebook:{freeNotes:'线索记录',clues:['线索一'],graphNodes:[],graphEdges:[]}},'PUT')).status,200);
   assert.equal((await api('/notebooks?roomId='+roomId,a.cookie)).data.notebook.freeNotes,'线索记录');
   assert.equal((await api('/notebooks?roomId='+roomId,b.cookie)).data.notebook.freeNotes,'');
+  const originalNote = (await api('/notebooks?roomId='+roomId,a.cookie)).data.notebook;
+  const update = { roomId, notebook: originalNote, baseRevision: originalNote.revision };
+  const savedVersion = (await api('/notebooks',a.cookie,update,'PUT')).data.notebook.revision;
+  assert.notEqual(savedVersion, update.baseRevision);
+  const stale = await api('/notebooks',a.cookie,{...update, notebook:{freeNotes:'过期更改'}},'PUT');
+  assert.equal(stale.status,409);
+  assert.equal(stale.data.notebook.revision,savedVersion);
+  assert.equal(stale.data.notebook.freeNotes,originalNote.freeNotes);
+
   failNext=true;
   await send(sa,'player_action',{roomId,message:'失败后重试测试'}); await send(sb,'player_action',{roomId,message:'继续观察'});
   await wait(()=>sa.turn?.canRetry,'AI error');

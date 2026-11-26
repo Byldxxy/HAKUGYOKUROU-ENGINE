@@ -1,6 +1,7 @@
 const config = require('../config');
 const rooms = require('../repositories/roomRepository');
 const logs = require('../repositories/roomLogRepository');
+const { historyPage } = require('../domain/roomHistoryPage');
 const saves = require('../repositories/saveRepository');
 const characters = require('../repositories/characterRepository');
 const ai = require('../services/aiService');
@@ -12,6 +13,8 @@ const { parseRollRequests, stripDirectives, isRollResultMessage } = require('../
 const { skillValue, rollSkill, makeRollRules } = require('../domain/dice');
 
 const credits = require('../services/creditService');
+const settlements = require('../services/turnSettlement');
+const { observe } = require('../services/performanceMetrics');
 const profiles = require('../services/accountProviderService');
 const lobbyChat = require('../repositories/lobbyChatRepository');
 const sameName = (left, right) => typeof left === 'string' && typeof right === 'string' && left.trim() === right.trim();
@@ -22,9 +25,9 @@ const playerFrom = (username, card, id = null) => ({
   avatarRevision: card?.avatarRevision, characterName: card?.name || null, role: card?.role || '无角色卡',
   hp: card?.hp ?? '-', san: card?.san ?? '-', mp: card?.mp ?? '-', fullData: card || null,
 });
-const loadRoom = (id) => {
+const loadRoom = (id, savedRecord) => {
   if (liveRooms.has(id)) return liveRooms.get(id);
-  const record = rooms.get(id);
+  const record = savedRecord || rooms.get(id);
   if (!record) return null;
   const room = { ...record, loadedAt: Date.now(), players: [], campaign: logs.getLatestCampaignState(id), dmInFlight: false };
   if (room.campaign) {
@@ -32,6 +35,7 @@ const loadRoom = (id) => {
     campaignService.migrateCampaign(room.campaign);
     if (unversioned) logs.appendCampaignState({ roomId: id, campaign: room.campaign });
   }
+  logs.activate(id);
   liveRooms.set(id, room);
   return room;
 };
@@ -56,9 +60,8 @@ const ensureCampaign = (room, persistImports = true) => {
   campaignService.applyPartyStatsToPlayers(room.campaign, room.players);
   return room.campaign;
 };
-const turnState = (room, lines = logs.readRoomLines(room.id)) => {
-  const lastDmIndex = lines.map((line) => line.type).lastIndexOf('dm_reply');
-  const round = lines.slice(lastDmIndex + 1);
+const turnState = (room) => {
+  const { lastDmIndex, lastDm, round } = logs.getRoomIndex(room.id);
   // Pending checks belong to persisted party members even if another player reconnects first.
   const rollTargets = room.players.slice();
   for (const [accountName, stats] of Object.entries(room.campaign?.partyStats || {})) {
@@ -66,8 +69,8 @@ const turnState = (room, lines = logs.readRoomLines(room.id)) => {
       rollTargets.push({ accountName, characterId: stats.characterId, name: stats.characterName });
     }
   }
-  const rollRequests = parseRollRequests(lines[lastDmIndex]?.content || '').flatMap((request) => {
-    const savedRules = lines[lastDmIndex]?.rollRules?.[request.index];
+  const rollRequests = parseRollRequests(lastDm?.content || '').flatMap((request) => {
+    const savedRules = lastDm?.rollRules?.[request.index];
     const player = rollTargets.find(item => savedRules?.characterId ? item.characterId === savedRules.characterId : sameName(item.name, request.player));
     if (!player) return [];
     const id = `${lastDmIndex}-${request.index}-${savedRules?.characterId ? request.player : player.name}-${request.skill}`;
@@ -86,37 +89,72 @@ const turnState = (room, lines = logs.readRoomLines(room.id)) => {
   const completed = room.campaign?.phase !== 'active';
   const mode = completed ? 'completed' : room.dmInFlight ? 'waiting_dm' : pendingRolls.length ? 'waiting_rolls' :
     rollRequests.length || !pendingPlayers.length ? 'waiting_dm' : 'waiting_players';
-  return { roomId: room.id, mode, inputLocked: mode !== 'waiting_players',
+  return { roomId: room.id, turnId: lastDmIndex, mode, inputLocked: mode !== 'waiting_players',
     actedPlayers: room.players.filter((p) => actedAccounts.includes(p.accountName)).map((p) => p.name),
     pendingPlayers: rollRequests.length ? [] : pendingPlayers, rollRequests, pendingRolls,
     pendingRollPlayers: [...new Set(pendingRolls.map((request) => request.player))],
     retryMessage: room.dmError ? room.dmErrorText : undefined,
     canRetry: Boolean(room.dmError) && !room.dmInFlight };
 };
+// Each socket has its own projection: inventories and recaps can differ within one room.
+function deliveries(socket, roomId) {
+  if (socket.data.delivered?.roomId !== roomId) socket.data.delivered = { roomId };
+  return socket.data.delivered;
+}
 const emitState = (io, room) => {
   ensureCampaign(room);
   const owner = room.players.find((player) => player.accountName === room.ownerAccount);
-  io.to(room.id).emit('lobby_update', {
+  const roster = {
     roomId: room.id, ownerName: owner?.name || room.ownerAccount, ownerId: owner?.id, roomConfig: room.config, started: room.started,
     players: room.players.map(({ id, name, characterId, characterName, avatarRevision, role, hp, san, mp, hpMax, sanMax, mpMax, offlineRoll, fullData }) =>
       ({ id, name, characterId, characterName, role, hp, san, mp, offlineRoll: Boolean(offlineRoll),
         ...(!room.started && characterId && { fitsRoomRules: !validateForRoom(fullData, room.config.rules) }),
         avatarPath: avatarRevision ? `/api/characters/${encodeURIComponent(characterId)}/avatar?roomId=${room.id}&v=${avatarRevision}` : undefined,
         hpMax: hpMax ?? hp, sanMax: sanMax ?? san, mpMax: mpMax ?? mp })),
-  });
-  if (room.campaign) {
-    const lines = logs.readRoomLines(room.id);
-    const sources = logs.recapSources(lines);
-    for (const player of room.players) {
-      if (player.id) io.to(player.id).emit('campaign_state', campaignService.getPublicCampaign(room.campaign, player.accountName, sources));
+  };
+  const rosterKey = JSON.stringify(roster);
+  const index = room.campaign ? logs.getRoomIndex(room.id) : null;
+  const turn = index ? turnState(room) : null;
+  const turnKey = turn && JSON.stringify(turn);
+  for (const player of room.players) {
+    const client = io.sockets.sockets.get(player.id);
+    if (!client) continue;
+    const sent = deliveries(client, room.id);
+    if (sent.roster !== rosterKey) {
+      client.emit('lobby_update', roster);
+      sent.roster = rosterKey;
     }
-    io.to(room.id).emit('turn_state', turnState(room, lines));
+    if (!index) continue;
+    if (sent.campaignRevision !== index.latestCampaignSeq) {
+      const projection = campaignService.getPublicCampaign(room.campaign, player.accountName, index.sources);
+      const key = JSON.stringify(projection);
+      if (sent.campaign !== key) client.emit('campaign_state', projection);
+      sent.campaign = key;
+      sent.campaignRevision = index.latestCampaignSeq;
+    }
+    if (sent.turn !== turnKey) {
+      client.emit('turn_state', turn);
+      sent.turn = turnKey;
+    }
   }
 };
-const snapshot = (socket, room) => {
-  const lines = logs.readRoomLines(room.id);
-  socket.emit('room_snapshot', { roomId: room.id, messages: logs.listRoomMessages(room.id, lines),
-    campaign: room.campaign ? campaignService.getPublicCampaign(room.campaign, socket.data.user.username, logs.recapSources(lines)) : null, turnState: turnState(room, lines) });
+const snapshot = (socket, room, request) => {
+  const start = performance.now();
+  const index = logs.getRoomIndex(room.id);
+  const latestSeq = index.messages.at(-1)?.logIndex ?? -1;
+  const versioned = request?.historyVersion === 1;
+  const delta = versioned && Number.isSafeInteger(request.afterSeq) && request.afterSeq >= 0 && request.afterSeq <= latestSeq;
+  const page = versioned ? historyPage(index.messages, delta ? { afterSeq: request.afterSeq } : {})
+    : { messages: index.messages, latestSeq, hasEarlier: false, hasLater: false };
+  const campaign = room.campaign ? campaignService.getPublicCampaign(room.campaign, socket.data.user.username, index.sources) : null;
+  const turn = turnState(room);
+  socket.data.delivered = { roomId: room.id };
+  if (versioned) {
+    Object.assign(socket.data.delivered, { campaign: JSON.stringify(campaign), campaignRevision: index.latestCampaignSeq, turn: JSON.stringify(turn) });
+  }
+  socket.emit('room_snapshot', { roomId: room.id, ...page, delta, campaign, turnState: turn });
+  observe('room_snapshot_messages', page.messages.length);
+  observe('room_snapshot_ms', performance.now() - start);
 };
 const absentPlayer = (room, characterId) => {
   const member = room.members.find(p => p.characterId === characterId);
@@ -134,8 +172,8 @@ const settleAbsentRolls = (io, room, state) => {
     const member = room.members.find(m => m.characterId === request.characterId);
     if (!member) {
       const content = `[对 ${request.skill} 进行检定]：玩家已主动离房，本次检定取消。`;
-      logs.appendAction({ roomId: room.id, playerName: request.player, rollId: request.id, content });
-      io.to(room.id).emit('new_message', { role: 'roll', sender: request.player, rollId: request.id, content });
+      const logIndex = logs.appendAction({ roomId: room.id, playerName: request.player, rollId: request.id, content });
+      io.to(room.id).emit('new_message', { role: 'roll', sender: request.player, rollId: request.id, content, logIndex });
       changed = true;
       continue;
     }
@@ -158,8 +196,8 @@ const settleAbsentRolls = (io, room, state) => {
     const rules = request.rules || makeRollRules(skillValue(player, request.skill));
     if (!rules) continue;
     const content = rollSkill(player, request.skill, rules) + '（服务器按本人授权离线代掷）';
-    logs.appendAction({ roomId: room.id, accountName: member.accountName, playerName: request.player, rollId: request.id, content });
-    io.to(room.id).emit('new_message', { role: 'roll', sender: request.player, rollId: request.id, content });
+    const logIndex = logs.appendAction({ roomId: room.id, accountName: member.accountName, playerName: request.player, rollId: request.id, content });
+    io.to(room.id).emit('new_message', { role: 'roll', sender: request.player, rollId: request.id, content, logIndex });
     changed = true;
   }
   if (changed) emitState(io, room);
@@ -171,7 +209,7 @@ const maybeRunDm = async (io, room) => {
   if (state.pendingRolls.length || (!state.rollRequests.length && state.pendingPlayers.length)) return;
   room.dmInFlight = true;
   room.dmError = false;
-  let settle;
+  let releaseHold;
   let awaitingRolls = false;
   const payer = room.ownerAccount;
   emitState(io, room);
@@ -180,8 +218,10 @@ const maybeRunDm = async (io, room) => {
     const byok = room.billing.mode === 'custom';
     const provider = byok ? profiles.load(payer) : undefined;
     if (byok && !provider) throw new Error('请房主保存自有 API 配置。');
-    if (!byok) settle = credits.reserve(payer);
-    const lines = logs.readRoomLines(room.id);
+    if (!byok) releaseHold = credits.reserve(payer);
+    const index = logs.getRoomIndex(room.id);
+    const lines = index.round.length + 1 > index.recent.length && index.lastDm
+      ? [index.lastDm, ...index.round] : index.recent.slice();
     const targets = room.players.slice();
     const cast = targets.slice();
     for (const roll of state.rollRequests) {
@@ -221,31 +261,37 @@ const maybeRunDm = async (io, room) => {
         changes.push({ accountName: player.accountName, playerName: player.name, type, value: Math.min(100, Math.max(-100, value)) });
       }
     }
-    room.campaign = applied.campaign;
-    campaignService.applyPartyStatChanges(room.campaign, changes);
+    campaignService.applyPartyStatChanges(applied.campaign, changes);
     const content = [stripDirectives(result.narration) || '局势暂时没有变化。',
       ...result.requestedRolls.map((request) => `<<ROLL:${request.skill}:${request.player}>>`),
       ...changes.map((change) => `<<STAT:${change.playerName}:${change.type}:${change.value}>>`),
       applied.transition?.entryNarration, applied.ending?.result?.publicNarration].filter(Boolean).join('\n\n');
-    const logIndex = logs.readRoomLines(room.id).length;
     const rollRules = result.requestedRolls.map(request => request.rules);
-    logs.appendDmReply({ roomId: room.id, content, rollRules });
-    logs.appendCampaignState({ roomId: room.id, campaign: room.campaign });
-    settle?.(true);
+    const started = performance.now();
+    const logIndex = settlements.commit({ roomId: room.id, sourceDmIndex: state.turnId, payer: byok ? null : payer,
+      content, rollRules, campaign: applied.campaign });
+    room.campaign = applied.campaign;
+    observe('dm_commit', performance.now() - started);
     io.to(room.id).emit('new_message', { role: 'dm', sender: '系统 DM', content, rollRules, logIndex });
     awaitingRolls = rollRules.length > 0;
   } catch (error) {
     room.dmError = true;
-    room.dmErrorText = /^(请房主|站点额度不足|自有 API 响应超时|自有 API 返回 HTTP \d{3}$|无法连接自有 API)/.test(error.message) ? error.message : '主持调用失败，请检查配置后重试。';
+    room.dmErrorText = error.publicMessage || (/^(请房主|站点额度不足|自有 API 响应超时|自有 API 返回 HTTP \d{3}$|无法连接自有 API)/.test(error.message) ? error.message : '主持调用失败，请检查配置后重试。');
     console.error('AI 推进失败:', error.message);
     io.to(room.id).emit('dm_error', { message: '主持回复失败，行动已保留，可重试。' });
   } finally {
-    settle?.(false);
+    releaseHold?.();
     room.dmInFlight = false;
     io.to(room.id).emit('billing_changed');
     emitState(io, room);
     if (awaitingRolls) void maybeRunDm(io, room);
+    if (!room.players.length) releaseRoom(room);
   }
+};
+const releaseRoom = room => {
+  clearTimeout(room.recoveryTimer);
+  liveRooms.delete(room.id);
+  logs.release(room.id);
 };
 const removePlayer = (io, socket, room, preserveMembership = false) => {
   const player = room.players.find((p) => p.accountName === socket.data.user.username);
@@ -269,10 +315,11 @@ const removePlayer = (io, socket, room, preserveMembership = false) => {
   }
   emitState(io, room);
   if (!room.dmError) void maybeRunDm(io, room);
-  if (!room.players.length && !room.dmInFlight) liveRooms.delete(room.id);
+  if (!room.players.length && !room.dmInFlight) releaseRoom(room);
 };
 
 module.exports = (io) => {
+  settlements.recover();
   io.on('connection', (socket) => {
     const username = socket.data.user.username;
     const handle = (event, fn) => socket.on(event, async (payload, ack) => {
@@ -292,7 +339,7 @@ module.exports = (io) => {
     });
     const member = (id) => {
       if (!isValidRoomId(id)) return null;
-      const room = loadRoom(id);
+      const room = liveRooms.get(id);
       return room?.players.some((p) => p.accountName === username && p.id === socket.id) ? room : null;
     };
     const attach = (room, card) => {
@@ -328,17 +375,19 @@ module.exports = (io) => {
     handle('join_lobby', (data, ack) => {
       const { roomId, characterInfo = {} } = data || {};
       if (!isValidRoomId(roomId)) return ack({ success: false, reason: 'invalid_room' });
-      const room = loadRoom(roomId);
-      if (!room) return ack({ success: false, reason: 'room_not_found' });
-      const savedMember = rooms.get(roomId).members.find((p) => p.accountName === username);
-      if (room.started && !savedMember) return ack({ success: false, reason: 'game_started' });
-      const characterId = room.started ? savedMember.characterId : characterInfo.id;
+      const record = rooms.get(roomId);
+      if (!record) return ack({ success: false, reason: 'room_not_found' });
+      const savedMember = record.members.find((p) => p.accountName === username);
+      if (record.started && !savedMember) return ack({ success: false, reason: 'game_started' });
+      const characterId = record.started ? savedMember.characterId : characterInfo.id;
       const card = characterId ? ownedCharacter(username, characterId) : null;
       if (characterId && !card) return ack({ success: false, reason: 'invalid_character' });
+      const room = loadRoom(roomId, record);
       if (room.players.some((p) => p.accountName !== username && sameName(p.name, card?.name || username))) {
         return ack({ success: false, reason: 'duplicate_name' });
       }
       attach(room, card);
+      socket.data.delivered = null;
       emitState(io, room);
       socket.data.notebookEditorRoom = null;
       if (!room.started) socket.emit('lobby_chat_snapshot', { roomId, ...lobbyChat.history(roomId) });
@@ -354,7 +403,7 @@ module.exports = (io) => {
       if (!card) return ack({ success: false, reason: 'invalid_character' });
       attach(room, card);
       socket.data.notebookEditorRoom = data?.flushNotebook === true ? roomId : null;
-      snapshot(socket, room);
+      snapshot(socket, room, data);
       emitState(io, room);
       ack({ success: true, characterId: card.id });
       if (!room.dmError) void maybeRunDm(io, room);
@@ -370,7 +419,8 @@ module.exports = (io) => {
     handle('sync_character', (data, ack) => {
       const room = member(data?.roomId);
       if (!room) return ack({ success: false, reason: 'forbidden' });
-      // Started games use the server's selected character, never an incoming client snapshot.
+      // A newly mounted character panel needs its initial roster even on the same socket.
+      delete deliveries(socket, room.id).roster;
       emitState(io, room);
       ack({ success: true });
     });
@@ -481,6 +531,14 @@ module.exports = (io) => {
       const room = member(data?.roomId);
       const reject = (reason) => { ack({ success: false, reason }); socket.emit(data?.isRoll ? 'roll_rejected' : 'action_rejected', { reason, rollId: data?.rollId }); };
       if (!room || !room.started) return reject('forbidden');
+      const { clientActionId, expectedTurnId } = data;
+      const index = logs.getRoomIndex(room.id);
+      if (clientActionId !== undefined) {
+        if (typeof clientActionId !== 'string' || !/^[a-zA-Z0-9:_-]{1,100}$/.test(clientActionId)) return reject('invalid_action');
+        const prior = index.actions.get(JSON.stringify([username, clientActionId]));
+        if (prior !== undefined) return ack({ success: true, logIndex: prior });
+      }
+      if (expectedTurnId !== undefined && expectedTurnId !== index.lastDmIndex) return reject('stale_turn');
       if (room.campaign?.phase !== 'active') return reject('campaign_completed');
       if (room.dmInFlight || room.dmError) return reject('waiting_dm');
       const player = room.players.find((p) => p.accountName === username);
@@ -497,9 +555,9 @@ module.exports = (io) => {
         message = String(data.message || '').trim().slice(0, 4000);
         if (!message || isRollResultMessage(message) || /<<(?:ROLL|STAT):/.test(message)) return reject('invalid_action');
       }
-      logs.appendAction({ roomId: room.id, playerName: player.name, accountName: username, content: message, rollId });
-      io.to(room.id).emit('new_message', { role: data.isRoll ? 'roll' : 'player', sender: player.name, content: message, rollId });
-      ack({ success: true });
+      const logIndex = logs.appendAction({ roomId: room.id, playerName: player.name, accountName: username, content: message, rollId, clientActionId });
+      io.to(room.id).emit('new_message', { role: data.isRoll ? 'roll' : 'player', sender: player.name, content: message, rollId, logIndex });
+      ack({ success: true, logIndex });
       emitState(io, room);
       void maybeRunDm(io, room);
     });

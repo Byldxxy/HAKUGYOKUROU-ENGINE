@@ -240,8 +240,23 @@ const buildDirectorContext = ({ campaign, players, lines = [] }) => {
   const scene = getCurrentScene(scenario, campaign);
   const clueMap = new Map((scenario.clues || []).map((clue) => [clue.id, clue]));
 
-  const { memory: entries, ...campaignState } = migrateCampaign(campaign);
+  const { memory: entries, transitionHistory, partyStats } = migrateCampaign(campaign);
+  const sceneVisits = {};
+  for (const visit of transitionHistory) sceneVisits[visit.to] = (sceneVisits[visit.to] || 0) + 1;
+  const campaignState = {
+    phase: campaign.phase, round: campaign.round, currentSceneId: scene.id,
+    facts: campaign.facts, clocks: campaign.clocks, inventory: campaign.inventory,
+    revealedClueIds: campaign.revealedClueIds, sceneVisits,
+    transitionHistory: transitionHistory.slice(-6),
+    partyStats: Object.values(partyStats).map(({ characterId, characterName, hp, san, mp }) =>
+      ({ characterId, characterName, hp, san, mp })),
+  };
   const actors = memory.actorDirectory(scenario, campaign);
+  const items = new Map((scenario.items || []).map(({ id, name }) => [id, { id, name }]));
+  for (const entry of entries) {
+    if (entry.kind === 'item') items.set(entry.id, { id: entry.id, name: entry.label,
+      holder: entry.state.holder, location: entry.state.location });
+  }
   return {
     chapter: {
       id: scenario.id,
@@ -257,10 +272,7 @@ const buildDirectorContext = ({ campaign, players, lines = [] }) => {
       : scene,
     campaignState,
     actorDirectory: actors,
-    itemDirectory: [
-      ...(scenario.items || []).map(({ id, name }) => ({ id, name })),
-      ...entries.filter(e => e.cardOwner).map(e => ({ id: e.id, name: e.label, ...e.state })),
-    ],
+    itemDirectory: [...items.values()],
     recalledMemory: memory.recall(entries, scene.id, lines, actors),
     revealedClues: campaign.revealedClueIds.map((id) => clueMap.get(id)).filter(Boolean),
     players: players.map((player) => ({ name: player.name, role: player.role })),

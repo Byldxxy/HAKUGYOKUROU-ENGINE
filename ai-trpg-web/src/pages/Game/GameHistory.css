@@ -5,9 +5,26 @@
   min-height: 0;
 }
 
-.history-return {
+.history-navigation {
   flex: none;
-  align-self: flex-end;
-  margin: 4px 12px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 4px 12px 8px;
+}
+
+.history-return {
   box-shadow: 2px 2px 0 var(--color-primary-shadow);
+}
+
+.history-page {
+  flex: none;
+  align-self: center;
+}
+
+.history-error {
+  align-self: center;
+  color: var(--color-danger);
+  font-size: .875rem;
 }

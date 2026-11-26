@@ -48,7 +48,7 @@ export const socketRequest = (event: string, payload: unknown): Promise<SocketAc
   ensureSocketConnected();
   socket.timeout(10000).emit(event, payload, (error: Error | null, result: SocketAck) => {
     if (error) reject(new Error('连接超时，请检查网络后重试。'));
-    else if (!result?.success) reject(new Error(result?.message || socketErrorMessage(result?.reason)));
+    else if (!result?.success) reject(Object.assign(new Error(result?.message || socketErrorMessage(result?.reason)), { reason: result?.reason }));
     else resolve(result);
   });
 });
@@ -62,6 +62,7 @@ export const socketErrorMessage = (reason?: string) => ({
   invalid_save: '存档无效或无法读取。',
   forbidden: '你没有访问该房间或执行此操作的权限。',
   session_replaced: '当前账号已在另一窗口进入房间。',
+  stale_turn: '这条行动所属回合已经结束，请确认当前局势后重新提交。',
   turn_locked: '本轮已经行动，请等待其他玩家。',
   invalid_roll: '该检定已完成、已失效或不属于你。',
   waiting_dm: '正在等待主持回复；失败时可点击重试。',

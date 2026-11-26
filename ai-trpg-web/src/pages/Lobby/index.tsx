@@ -5,7 +5,7 @@ import { useChatEnter } from '../../components/useChatEnter';
 import OfflineRollPreference from '../../components/OfflineRollPreference';
 import HostApiPanel, { type HostReadiness } from '../../components/HostApiPanel';
 import { apiFetch, apiUrl } from '../../config';
-import type { Character, PublicPlayer, Save, LobbyMessage } from '../../domain/types';
+import type { CharacterSummary, PublicPlayer, Save, LobbyMessage } from '../../domain/types';
 import { socketRequest, socketErrorMessage, ensureSocketConnected, socket } from '../../socket';
 import StyledSelect from '../../components/StyledSelect';
 import { DEFAULT_ROOM_RULES, type RoomRules } from '../../domain/roomRules';
@@ -77,8 +77,8 @@ function RoomLobby({ roomId }: { roomId?: string }) {
 
   // SECTION: 角色与存档状态
   // NOTE: activeCharacter 决定玩家在大厅和游戏内的展示名，也是 ROLL 归属依据。
-  const [characterList, setCharacterList] = useState<Character[]>([]);
-  const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
+  const [characterList, setCharacterList] = useState<CharacterSummary[]>([]);
+  const [activeCharacter, setActiveCharacter] = useState<CharacterSummary | null>(null);
   const [isCharactersLoaded, setIsCharactersLoaded] = useState(false);
   const [saveList, setSaveList] = useState<Save[]>([]);
   const [selectedSaveId, setSelectedSaveId] = useState('');
@@ -99,10 +99,10 @@ function RoomLobby({ roomId }: { roomId?: string }) {
 
   // SECTION: 角色卡加载
   // NOTE: 加载完成前不 join_lobby，避免用“未知调查员”占位写入房间玩家列表。
-  const loadCharacters = useCallback(() => apiFetch('/api/characters')
+  const loadCharacters = useCallback(() => apiFetch('/api/characters?view=summary')
     .then(response => { if (!response.ok) throw new Error('角色卡加载失败'); return response.json(); })
     .then(data => {
-      const cards: Character[] = data.success ? (data.cards || []) : [];
+      const cards: CharacterSummary[] = data.success ? (data.cards || []) : [];
       const savedCharId = localStorage.getItem('trpg_current_char_id');
       const selected = cards.find(card => card.id === savedCharId) || cards[0] || null;
       setCharacterList(cards);
@@ -416,7 +416,7 @@ function RoomLobby({ roomId }: { roomId?: string }) {
                       className="flat-btn secondary small"
                       disabled={!activeCharacter}
                       onClick={() => activeCharacter && navigate('/create-character', {
-                        state: { character: activeCharacter, roomId, roomRules, lockRoomLimits: true },
+                        state: { characterId: activeCharacter.id, roomId, roomRules, lockRoomLimits: true },
                       })}
                     >
                       编辑
@@ -482,7 +482,7 @@ function RoomLobby({ roomId }: { roomId?: string }) {
                     )}
                     {player.id === socket.id && player.fitsRoomRules === false && activeCharacter && (
                       <button type="button" className="readiness-link" onClick={() => navigate('/create-character', {
-                        state: { character: activeCharacter, roomId, roomRules, lockRoomLimits: true },
+                        state: { characterId: activeCharacter.id, roomId, roomRules, lockRoomLimits: true },
                       })}>调整角色卡</button>
                     )}
                   </div>

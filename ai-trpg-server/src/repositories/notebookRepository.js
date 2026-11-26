@@ -1,3 +1,4 @@
+const { createHash, randomUUID } = require('node:crypto');
 const config = require('../config');
 const { readJson, writeJson } = require('../storage/jsonFile');
 
@@ -9,6 +10,7 @@ const emptyNotebook = () => ({
   graphNodes: [],
   graphEdges: [],
   updatedAt: null,
+  revision: '0',
 });
 
 // SECTION: 笔记库读取
@@ -31,18 +33,33 @@ const getRoomBucket = (db, roomId) => {
   return db[roomId];
 };
 
+const versioned = notebook => {
+  if (!notebook) return emptyNotebook();
+  // Older saves have no revision. Bind their initial revision to the stored content
+  // so restoring a different legacy save also invalidates outstanding edits.
+  const revision = notebook.revision || createHash('sha256').update(JSON.stringify(notebook)).digest('hex');
+  return { ...emptyNotebook(), ...notebook, revision };
+};
+
 // SECTION: 获取个人战役笔记
 // NOTE: 同一房间不同账号的笔记互不覆盖，便于玩家保留私人线索。
 const getNotebook = ({ roomId, username }) => {
   const db = readNotebooks();
-  return getRoomBucket(db, roomId)[username] || emptyNotebook();
+  return versioned(getRoomBucket(db, roomId)[username]);
 };
 
 // SECTION: 保存个人战役笔记
 // NOTE: 数组字段做类型兜底，避免前端异常 payload 破坏笔记结构。
-const saveNotebook = ({ roomId, username, notebook }) => {
+const saveNotebook = ({ roomId, username, notebook, baseRevision }) => {
   const db = readNotebooks();
   const roomBucket = getRoomBucket(db, roomId);
+  const previous = versioned(roomBucket[username]);
+  if (baseRevision !== undefined && baseRevision !== previous.revision) {
+    const error = new Error('笔记已在其他设备修改。');
+    error.statusCode = 409;
+    error.currentNotebook = previous;
+    throw error;
+  }
   const savedNotebook = {
     ...emptyNotebook(),
     ...notebook,
@@ -50,6 +67,7 @@ const saveNotebook = ({ roomId, username, notebook }) => {
     graphNodes: Array.isArray(notebook.graphNodes) ? notebook.graphNodes : [],
     graphEdges: Array.isArray(notebook.graphEdges) ? notebook.graphEdges : [],
     updatedAt: new Date().toISOString(),
+    revision: randomUUID(),
   };
 
   roomBucket[username] = savedNotebook;

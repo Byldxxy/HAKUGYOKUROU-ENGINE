@@ -142,7 +142,7 @@
   overflow: hidden;
 }
 
-.section-title {
+:where(.char-workspace) .section-title {
   letter-spacing: 0;
 }
 
@@ -432,7 +432,7 @@
   letter-spacing: 1px;
 }
 
-.flat-input {
+:where(.char-workspace) .flat-input {
   width: 100%;
   box-sizing: border-box;
   padding: 12px 15px;
@@ -446,20 +446,20 @@
   transition: all 0.2s;
 }
 
-.flat-input:focus {
+:where(.char-workspace) .flat-input:focus {
   background-color: #FFFFFF;
   border-color: var(--color-primary);
   box-shadow: 4px 4px 0 var(--color-primary-shadow);
 }
 
-.flat-input:disabled {
+:where(.char-workspace) .flat-input:disabled {
   background: #EFE6E8;
   color: #A0858D;
   cursor: not-allowed;
   opacity: 0.72;
 }
 
-textarea.flat-input {
+:where(.char-workspace) textarea.flat-input {
   resize: vertical;
   min-height: 80px;
   line-height: 1.5;

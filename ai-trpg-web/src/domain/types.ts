@@ -9,7 +9,8 @@ export type CharacterData = {
   statMode?: string;
   buyLimit?: number;
 };
-export type Character = { id: string; name: string; role: string; hp: number; san: number; mp: number; fullData: CharacterData };
+export type CharacterSummary = { id: string; name: string; role: string; hp: number; san: number; mp: number; avatarRevision?: string | null };
+export type Character = CharacterSummary & { fullData: CharacterData; avatarPath?: string | null };
 export type PublicPlayer = {
   fitsRoomRules?: boolean;
   offlineRoll?: boolean;
@@ -18,7 +19,7 @@ export type PublicPlayer = {
   role: string; hp: number; san: number; mp: number; hpMax: number; sanMax: number; mpMax: number;
 };
 export type RollRules = { difficulty: 'regular' | 'hard' | 'extreme'; modifier: number; baseValue: number; target: number };
-export type Message = { rollRules?: RollRules[]; role: string; sender: string; content: string; rollId?: string; logIndex?: number };
+export type Message = { followingRolls?: Array<{ sender: string; rollId?: string; content: string }>; rollRules?: RollRules[]; role: string; sender: string; content: string; rollId?: string; logIndex?: number };
 export type LobbyMessage = { id: number; sender: string; text: string; isSystem: boolean };
 export type Save = { id: string; name: string; date: string };
 export type GameCharacter = {

@@ -95,6 +95,7 @@ const restoreIntoRoom = (save, roomId, accounts) => {
     fs.copyFileSync(getSavePath(save.id), staged);
     previous = notebooks.restoreForRoom(roomId, snapshot);
     fs.renameSync(staged, target);
+    roomLogRepository.reload(roomId);
     return true;
   } catch (error) {
     if (previous) notebooks.restoreForRoom(roomId, previous);

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 import { apiFetch } from '../../config';
-import type { Character } from '../../domain/types';
+import type { CharacterSummary } from '../../domain/types';
 import { socketRequest, socket } from '../../socket';
 import StyledSelect from '../../components/StyledSelect';
 import SiteFooter from '../../components/SiteFooter';
@@ -13,17 +13,17 @@ export default function Home() {
   // SECTION: 加入房间输入
   // NOTE: 房间号保持 6 位纯数字，和创建房间的随机规则一致。
   const [joinId, setJoinId] = useState('');
-  const [characterList, setCharacterList] = useState<Character[]>([]);
-  const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
+  const [characterList, setCharacterList] = useState<CharacterSummary[]>([]);
+  const [activeCharacter, setActiveCharacter] = useState<CharacterSummary | null>(null);
 
   useEffect(() => {
     const loadCharacters = async () => {
       try {
-        const response = await apiFetch('/api/characters');
+        const response = await apiFetch('/api/characters?view=summary');
         const data = await response.json();
         const cards = data.success ? (data.cards || []) : [];
         const savedCharacterId = localStorage.getItem('trpg_current_char_id');
-        const selected = cards.find((card: Character) => card.id === savedCharacterId) || cards[0] || null;
+        const selected = cards.find((card: CharacterSummary) => card.id === savedCharacterId) || cards[0] || null;
         setCharacterList(cards);
         setActiveCharacter(selected);
         if (selected) localStorage.setItem('trpg_current_char_id', selected.id);
@@ -112,7 +112,7 @@ export default function Home() {
                 type="button"
                 className="flat-btn secondary edit-character-btn"
                 disabled={!activeCharacter}
-                onClick={() => activeCharacter && navigate('/create-character', { state: { character: activeCharacter } })}
+                onClick={() => activeCharacter && navigate('/create-character', { state: { characterId: activeCharacter.id } })}
               >
                 编辑
               </button>

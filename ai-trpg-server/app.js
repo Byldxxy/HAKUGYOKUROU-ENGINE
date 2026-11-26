@@ -51,6 +51,7 @@ app.use(errorHandler);
 // SECTION: WebSocket 路由注册
 // NOTE: 房间内存态 liveRooms 在 registerRoomSocket 模块中维护。
 registerRoomSocket(io);
+require('./src/services/performanceMetrics').startReporting(config.metricsInterval);
 
 // SECTION: 服务启动
 server.listen(config.port, config.host, () => {

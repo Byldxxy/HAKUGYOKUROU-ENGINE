@@ -10,7 +10,7 @@
     "check": "node --check app.js",
     "test:campaign": "node scripts/test-campaign.js && node scripts/test-scenario-editions.js && node scripts/test-memory.js && node scripts/test-notebook-recap.js && node scripts/test-dice.js",
     "migrate:passwords": "node scripts/migrate-passwords.js",
-    "test": "npm run test:campaign && node scripts/test-narration.js && node scripts/generate-character-rules.js --check && node scripts/test-integration.js",
+    "test": "npm run test:campaign && node scripts/test-narration.js && node scripts/generate-character-rules.js --check && node scripts/test-history-pages.js && node scripts/test-turn-settlement.js && node scripts/test-provider-runtime.js && node scripts/test-parallel-rooms.js && node scripts/test-integration.js",
     "test:live-harbour": "node scripts/test-live-harbour.js",
     "test:live-ai": "node scripts/test-live-ai.js"
   },

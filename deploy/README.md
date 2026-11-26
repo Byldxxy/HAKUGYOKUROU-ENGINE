@@ -135,11 +135,27 @@ sudo systemctl enable --now hakugyokurou
 /opt/hakugyokurou/deploy/backup-data.sh /opt/hakugyokurou /var/backups/hakugyokurou
 ```
 
-如果服务指定了自定义数据目录，运行备份脚本时也应传入相同的 `TRPG_DATA_DIR`。续团依赖同一时间点的 `saves/`、`logs/`、`notebooks.json` 和 `scenario-revisions/`。最后一个目录按内容指纹归档开团时的剧本。发布新版剧本时请保留旧修订，换机器时从备份一并恢复这些目录。恢复后可在隔离实例用原班角色载入一个旧档，核对当前场景和个人笔记。
+如果服务指定了自定义数据目录，运行备份脚本时也应传入相同的 `TRPG_DATA_DIR`。付费回合恢复依赖同一时间点的 `credits.json` 与 `logs/`，其中 `logs/settlements/` 保存尚待完成的提交。使用文件系统时间点快照，或在短暂停服期间打包整个数据目录，并在恢复后以单实例启动。续团也依赖同一时间点的 `saves/`、`notebooks.json` 和 `scenario-revisions/`。最后一个目录按内容指纹归档开团时的剧本。发布新版剧本时请保留旧修订，换机器时从备份一并恢复这些目录。恢复后可在隔离实例用原班角色载入一个旧档，核对当前场景和个人笔记。
 
 离线代掷与断线重连共用 `RECONNECT_GRACE_MS`，默认 30000 毫秒。玩家需要在自己的房间设置中明确授权；超过宽限期后由服务器写入带标记的骰点。
 
-## 8. 当前架构限制
+## 8. 主持容量与耗时统计
+
+站点主持和房主自有接口各有一条先进先出的有限队列。以下设置均为可选。容量应结合真实供应商的速率限制和服务日志调整。
+
+| 环境变量 | 默认值 | 用途 |
+|---|---:|---|
+| `AI_SITE_CONCURRENCY` | 4 | 同时向站点供应商发送的请求数 |
+| `AI_CUSTOM_CONCURRENCY` | 8 | 全部自有接口共享的并发请求数 |
+| `AI_QUEUE_SIZE` | 24 | 每条队列可额外等待的请求数，设为 0 即仅接受空闲名额 |
+| `AI_TIMEOUT_MS` / `CUSTOM_AI_TIMEOUT_MS` | 30000 / 90000 | 从申请队列名额起计算的请求总时限，单位毫秒 |
+| `AI_INPUT_TOKEN_BUDGET` | 32768 | 组装上下文时的保守估算上限，以 UTF-8 字节加消息开销估算 |
+| `AI_OUTPUT_TOKEN_BUDGET` | 4096 | 每次请求交给模型的输出 token 上限 |
+| `PERF_METRICS_INTERVAL_MS` | 60000 | 有样本时输出一行聚合统计的间隔，0 关闭输出 |
+
+模型输入优先包含本轮行动、最近检定、当前场景和相关道具。多人长行动超出预算时，模型会看到每名玩家发言的首尾和节选标记；完整行动保存在战役日志，检定指令和骰点完整送达。模型因输出上限截断时会提示重试并释放预留额度。已访问场景以访问次数和最近六次转场表示。可从 PM2 日志筛选 `trpg_performance`。其中 `dm_queue_ms`、`dm_upstream_ms`、`dm_commit` 分别表示排队、供应商响应与持久化耗时，单位为毫秒。`room_snapshot_ms` 和 `room_snapshot_messages` 记录生成快照的耗时与消息条数。每行提供计数、总和、最大值，以及该窗口内最近最多 512 个观测值的 P50 和 P95。供应商返回用量时，`input_tokens` 和 `output_tokens` 记录其报告的实际值；`input_token_estimate` 单独记录预算估算值。统计按渠道和结果聚合，默认生产配置关闭原始模型回复日志。
+
+## 9. 当前架构限制
 
 - 房间状态保存在单个 Node 进程内，当前只能运行一个后端实例。
 - JSON/JSONL 适合小规模测试；正式扩容前应迁移到 PostgreSQL 与 Redis。

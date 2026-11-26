@@ -8,7 +8,7 @@
 }
 
 .relation-toolbar { display: flex; gap: 10px; }
-.flat-btn.small { height: 36px; padding: 0 15px; }
+:where(.relation-toolbar) .flat-btn.small { height: 36px; padding: 0 15px; }
 
 /* SECTION: 关系图画布 */
 /* NOTE: 背景点阵帮助玩家摆放节点，overflow hidden 防止拖拽节点跑出可视区。 */

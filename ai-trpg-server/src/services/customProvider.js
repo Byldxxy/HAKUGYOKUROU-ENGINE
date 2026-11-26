@@ -1,6 +1,7 @@
 const https = require('node:https');
 const dns = require('node:dns').promises;
 const net = require('node:net');
+const { publicError } = require('./providerQueue');
 
 const blocked = new net.BlockList();
 const reservedRanges = [
@@ -32,8 +33,17 @@ const validate = ({ url, key, model }) => {
   return { endpoint, key, model: model.trim() };
 };
 
-const complete = async ({ endpoint, key, model }, messages, timeout) => {
-  const addresses = await dns.lookup(endpoint.hostname, { family: 4, all: true });
+const complete = async ({ endpoint, key }, body, signal) => {
+  signal.throwIfAborted();
+  // getaddrinfo cannot be cancelled. Abandon only this lookup on timeout; a late
+  // resolution must never start an outbound request or retain a queue slot.
+  const addresses = await new Promise((resolve, reject) => {
+    const aborted = () => reject(signal.reason);
+    signal.addEventListener('abort', aborted, { once: true });
+    dns.lookup(endpoint.hostname, { family: 4, all: true }).then(resolve, reject)
+      .finally(() => signal.removeEventListener('abort', aborted));
+  });
+  signal.throwIfAborted();
   if (!addresses.length || addresses.some(({ address }) => blocked.check(address))) {
     throw new Error('API 地址不可用。');
   }
@@ -44,12 +54,12 @@ const complete = async ({ endpoint, key, model }, messages, timeout) => {
   };
   return new Promise((resolve, reject) => {
     const request = https.request(endpoint, {
-      method: 'POST', family: 4, autoSelectFamily: false, agent: false, lookup,
+      method: 'POST', family: 4, autoSelectFamily: false, agent: false, lookup, signal,
       headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
     }, response => {
       if (response.statusCode !== 200) {
         response.destroy();
-        reject(new Error('自有 API 返回 HTTP ' + response.statusCode));
+        reject(publicError('自有 API 返回 HTTP ' + response.statusCode, 'http_' + response.statusCode));
         return;
       }
       const parts = [];
@@ -63,21 +73,18 @@ const complete = async ({ endpoint, key, model }, messages, timeout) => {
       response.on('end', () => {
         try {
           const data = JSON.parse(Buffer.concat(parts).toString());
-          const content = data.choices?.[0]?.message?.content;
-          if (typeof content !== 'string' || !content.trim()) throw new Error();
-          resolve(content);
+          const choice = data.choices?.[0];
+          const content = choice?.message?.content;
+          if (choice?.finish_reason !== 'length' && (typeof content !== 'string' || !content.trim())) throw new Error();
+          resolve({ content, usage: data.usage, finishReason: choice?.finish_reason });
         } catch {
           reject(new Error('API 未返回有效的聊天回复。'));
         }
       });
     });
-    const timer = setTimeout(() => {
-      reject(new Error('自有 API 响应超时，请稍后重试。'));
-      request.destroy();
-    }, timeout);
-    request.on('close', () => clearTimeout(timer));
-    request.on('error', () => reject(new Error('无法连接自有 API，请检查配置。')));
-    request.end(JSON.stringify({ model, messages, temperature: 0.5 }));
+    request.on('error', () => reject(signal.aborted ? signal.reason
+      : publicError('无法连接自有 API，请检查配置。', 'connection')));
+    request.end(JSON.stringify(body));
   });
 };
 module.exports = { validate, complete };

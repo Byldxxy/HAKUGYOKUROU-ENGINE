@@ -1,11 +1,12 @@
 import { preparePortrait } from '../../domain/portrait';
-import { useState, useRef, useMemo, useLayoutEffect } from 'react';
+import { useState, useRef, useMemo, useLayoutEffect, useEffect } from 'react';
 import { readCharacterDraft, type CharacterDraft } from './characterDraft';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { apiFetch } from '../../config';
+import { apiFetch, apiUrl } from '../../config';
 import { COC_OCCUPATIONS, type CocOccupation } from '../../data/cocOccupations';
 import { COC_SKILL_TEMPLATES } from '../../data/cocSkills';
 import StyledSelect from '../../components/StyledSelect';
+import type { Character } from '../../domain/types';
 import type { RoomRules } from '../../domain/roomRules';
 import './CreateCharacter.css';
 
@@ -458,11 +459,38 @@ const parseOccupationSkillRules = (skillText: string): OccupationSkillRules => {
 export default function CreateCharacter() {
   const location = useLocation();
   const account = localStorage.getItem('trpg_username');
-  const draftKey = 'trpg_character:' + JSON.stringify([account, location.state?.roomId || null, location.state?.character?.id || null]);
-  return <CharacterEditor key={draftKey} draftKey={draftKey} />;
+  const draftKey = 'trpg_character:' + JSON.stringify([account, location.state?.roomId || null, location.state?.characterId || location.state?.character?.id || null]);
+  return location.state?.characterId
+    ? <SavedCharacterEditor key={draftKey} id={location.state.characterId} draftKey={draftKey} />
+    : <CharacterEditor key={draftKey} draftKey={draftKey} />;
 }
 
-function CharacterEditor({ draftKey }: { draftKey: string }) {
+function SavedCharacterEditor({ draftKey, id }: { draftKey: string; id: string }) {
+  const [card, setCard] = useState<Character>();
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  useEffect(() => {
+    const controller = new AbortController();
+    apiFetch('/api/characters/' + encodeURIComponent(id), { signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error('character');
+        const { card } = await response.json();
+        if (!controller.signal.aborted) setCard(card);
+      })
+      .catch(() => { if (!controller.signal.aborted) setFailed(true); });
+    return () => controller.abort();
+  }, [id, attempt]);
+  if (card) return <CharacterEditor draftKey={draftKey} detail={card} />;
+  return <div className="auth-container" role="status">{failed ? <>
+    <p>角色卡读取失败。</p>
+    <button className="flat-btn secondary" onClick={() => { setFailed(false); setAttempt(attempt + 1); }}>重试</button>
+    <button className="flat-btn secondary" onClick={() => navigate(state?.roomId ? '/lobby/' + state.roomId : '/hall')}>返回</button>
+  </> : '正在读取角色卡…'}</div>;
+}
+
+function CharacterEditor({ draftKey, detail }: { draftKey: string; detail?: Character }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [restored] = useState(() => readCharacterDraft(draftKey));
@@ -479,8 +507,7 @@ function CharacterEditor({ draftKey }: { draftKey: string }) {
   };
 
   // SECTION: 编辑模式入口
-  // NOTE: Lobby 点击编辑时通过 navigate state 传入整张角色摘要和 fullData。
-  const editData = location.state?.character;
+  const editData = detail ?? location.state?.character;
   const roomRules = location.state?.roomRules as RoomRules | undefined;
   const lockRoomLimits = Boolean(location.state?.lockRoomLimits && roomRules);
 
@@ -494,6 +521,7 @@ function CharacterEditor({ draftKey }: { draftKey: string }) {
 
   // SECTION: 头像上传状态
   const [avatar, setAvatar] = useState<string | null>(restored ? restored.avatar : editData?.fullData?.avatar ?? null);
+  const avatarPreview = avatar || (detail?.avatarPath ? apiUrl(detail.avatarPath) : null);
   const [processingAvatar, setProcessingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -878,13 +906,13 @@ function CharacterEditor({ draftKey }: { draftKey: string }) {
       grow: getSkillGrowth(skill),
     }));
     const finalCharacterData = { 
-      id: editData?.id, avatar,
+      id: editData?.id, ...(avatar ? { avatar } : {}),
       basicInfo, stats, skills: skillsWithCalculatedGrowth, bgInfo, occupationSkillChoices, statMode, buyLimit
     };
 
     setSaving(true);
     try {
-      const response = await apiFetch('/api/characters', {
+      const response = await apiFetch('/api/characters?view=summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cardData: finalCharacterData })
@@ -945,8 +973,8 @@ function CharacterEditor({ draftKey }: { draftKey: string }) {
               <div className="basic-identity-layout">
                 <input type="file" ref={fileInputRef} hidden accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleAvatarUpload} />
                 <button type="button" className="avatar-upload-box" disabled={processingAvatar || saving}
-                  aria-label={avatar ? '更换角色头像' : '上传角色头像'} onClick={() => fileInputRef.current?.click()}>
-                  {processingAvatar ? '正在处理图片…' : avatar ? <img src={avatar} alt="角色头像预览" className="avatar-preview" /> :
+                  aria-label={avatarPreview ? '更换角色头像' : '上传角色头像'} onClick={() => fileInputRef.current?.click()}>
+                  {processingAvatar ? '正在处理图片…' : avatarPreview ? <img src={avatarPreview} alt="角色头像预览" className="avatar-preview" /> :
                     <span className="upload-placeholder"><span>+</span>上传立绘照片</span>}
                 </button>
                 <div className="basic-identity-fields">

@@ -24,7 +24,10 @@ router.get('/', (req, res) => {
 // NOTE: 前端做防抖提交；后端仍做结构兜底，避免异常 payload 写坏文件。
 router.put('/', (req, res, next) => {
   try {
-    const { roomId, notebook } = req.body;
+    const { roomId, notebook, baseRevision } = req.body;
+    if (baseRevision !== undefined && (typeof baseRevision !== 'string' || baseRevision.length > 128)) {
+      return res.status(400).json({ success: false, error: '笔记版本无效。' });
+    }
     if (!isValidRoomId(roomId) || !notebook) {
       return res.status(400).json({ success: false, error: '缺少房间号或笔记内容。' });
     }
@@ -34,9 +37,11 @@ router.put('/', (req, res, next) => {
       roomId,
       username: req.user.username,
       notebook: sanitizeNotebook(notebook),
+      baseRevision,
     });
     res.json({ success: true, notebook: savedNotebook });
   } catch (error) {
+    if (error.currentNotebook) return res.status(409).json({ success: false, code: 'notebook_conflict', notebook: error.currentNotebook });
     next(error);
   }
 });

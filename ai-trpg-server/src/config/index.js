@@ -12,6 +12,16 @@ const isProduction = nodeEnv === 'production';
 const dataRoot = path.resolve(process.env.TRPG_DATA_DIR || serverRoot);
 const graceMs = Number(process.env.RECONNECT_GRACE_MS || 30_000);
 
+function integerSetting(name, fallback, minimum, maximum) {
+  const text = process.env[name];
+  if (!text) return fallback;
+  const value = Number(text);
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    throw new Error(`${name} 必须为 ${minimum} 到 ${maximum} 的整数。`);
+  }
+  return value;
+}
+
 const parseBoolean = (value, fallback) => {
   if (value === undefined || value === '') return fallback;
   return value === 'true';
@@ -47,10 +57,16 @@ const config = {
     apiKey: process.env.API_KEY,
     baseURL: process.env.BASE_URL || 'https://api.openai.com/v1',
     model: process.env.MODEL_NAME || 'gpt-3.5-turbo',
-    timeout: Number(process.env.AI_TIMEOUT_MS || 30000),
-    customTimeout: Number(process.env.CUSTOM_AI_TIMEOUT_MS || 90000),
+    timeout: integerSetting('AI_TIMEOUT_MS', 30000, 1, 2_147_483_647),
+    customTimeout: integerSetting('CUSTOM_AI_TIMEOUT_MS', 90000, 1, 2_147_483_647),
+    siteConcurrency: integerSetting('AI_SITE_CONCURRENCY', 4, 1, 128),
+    customConcurrency: integerSetting('AI_CUSTOM_CONCURRENCY', 8, 1, 128),
+    queueSize: integerSetting('AI_QUEUE_SIZE', 24, 0, 1024),
+    inputBudget: integerSetting('AI_INPUT_TOKEN_BUDGET', 32768, 1024, 1048576),
+    outputBudget: integerSetting('AI_OUTPUT_TOKEN_BUDGET', 4096, 256, 65536),
     debugRaw: parseBoolean(process.env.AI_DEBUG_RAW, !isProduction),
   },
+  metricsInterval: integerSetting('PERF_METRICS_INTERVAL_MS', 60000, 0, 2_147_483_647),
   // Node timers outside this integer range can fire after only one millisecond.
   reconnectGraceMs: Number.isInteger(graceMs) && graceMs >= 0 && graceMs <= 2_147_483_647 ? graceMs : 30_000,
   paths: {
