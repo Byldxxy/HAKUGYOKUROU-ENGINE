@@ -95,6 +95,9 @@ const generateDirectorReply = async ({ lines, directorContext, provider }) => {
     }
     outcome = error.publicMessage ? error.code : Number.isInteger(error.status) ? 'http_' + error.status : 'failed';
     if (error.status === 429) throw publicError('站点主持接口已限流，请稍后重试。', outcome);
+    if (error.status >= 500 && error.status <= 599) {
+      throw publicError(`站点主持供应商暂时无法完成请求（HTTP ${error.status}），行动已保留，可稍后重试。`, outcome);
+    }
     if (error.publicMessage) throw error;
     // Third-party error bodies may echo prompts, authorization fields or URLs.
     throw publicError('主持调用失败，请检查配置后重试。', outcome);

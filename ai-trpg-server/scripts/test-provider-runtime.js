@@ -58,6 +58,10 @@ async function test() {
       res.writeHead(429);
       return res.end(JSON.stringify({ error: { message: 'opaque' } }));
     }
+    if (mode === 'unavailable') {
+      res.writeHead(503);
+      return res.end(JSON.stringify({ error: { message: 'upstream unavailable' } }));
+    }
     if (mode === 'slow') return;
     if (mode === 'cut') return res.end(JSON.stringify({ choices: [{finish_reason:'length',message:{content:'一段尚未完成的回答'}}] }));
     if (mode === 'hold') {
@@ -95,13 +99,15 @@ async function test() {
     await Promise.all([first, second]);
     mode = 'limit';
     await assert.rejects(request(), { code: 'http_429' });
+    mode = 'unavailable';
+    await assert.rejects(request(), { code: 'http_503', message: /HTTP 503/ });
     mode = 'cut';
     await assert.rejects(request(), { code: 'output_limit' });
     mode = 'slow';
     await assert.rejects(request(), { code: 'upstream_timeout' });
     mode = 'ok';
     await request();
-    assert.equal(calls, 6);
+    assert.equal(calls, 7);
     const rows = require('../src/services/performanceMetrics').flush();
     assert.equal(rows.find(row => row.name === 'input_tokens').sum, 57);
     assert.ok(rows.some(row => row.name === 'dm_queue_ms' && row.outcome === 'queue_full'));
